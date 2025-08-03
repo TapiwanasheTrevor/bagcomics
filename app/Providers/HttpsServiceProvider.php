@@ -20,13 +20,8 @@ class HttpsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Force HTTPS in production or when FORCE_HTTPS is true
-        if (config('app.force_https') || $this->app->environment('production')) {
-            URL::forceScheme('https');
-        }
-
-        // Trust proxies (for Render and other cloud platforms)
         if ($this->app->environment('production')) {
+            URL::forceScheme('https');
             $this->app['request']->server->set('HTTPS', 'on');
         }
     }
