@@ -49,3 +49,5 @@ services:
         value: your_stripe_webhook_secret_here
       - key: VITE_STRIPE_PUBLISHABLE_KEY
         value: your_stripe_publishable_key_here
+      - key: AUTH_MODEL
+        value: App\Models\FilamentUser

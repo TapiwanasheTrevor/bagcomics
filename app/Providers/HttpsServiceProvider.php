@@ -20,9 +20,18 @@ class HttpsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ($this->app->environment('production')) {
+        // Force HTTPS in production or when FORCE_HTTPS is true
+        if (config('app.force_https') || $this->app->environment('production')) {
             URL::forceScheme('https');
-            $this->app['request']->server->set('HTTPS', 'on');
+
+            // Set trusted proxies for cloud platforms like Render
+            $this->app['request']->setTrustedProxies(['*'],
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO |
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_AWS_ELB
+            );
         }
     }
 }
