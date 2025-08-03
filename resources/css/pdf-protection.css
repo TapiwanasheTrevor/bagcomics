@@ -1,0 +1,200 @@
+/* PDF Content Protection Styles */
+
+.pdf-protected {
+    /* Disable text selection */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    
+    /* Disable drag and drop */
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    
+    /* Disable touch callout on mobile */
+    -webkit-touch-callout: none;
+    
+    /* Disable highlighting */
+    -webkit-tap-highlight-color: transparent;
+    
+    /* Prevent image saving */
+    pointer-events: none;
+}
+
+.pdf-protected * {
+    /* Apply to all children */
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+}
+
+/* Re-enable pointer events for controls */
+.pdf-controls {
+    pointer-events: auto !important;
+}
+
+.pdf-controls * {
+    pointer-events: auto !important;
+}
+
+/* Protection overlay */
+.protection-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 10;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 20px,
+        rgba(0, 0, 0, 0.01) 20px,
+        rgba(0, 0, 0, 0.01) 40px
+    );
+    mix-blend-mode: multiply;
+}
+
+/* Watermark styles */
+.watermark {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+    font-family: monospace;
+    pointer-events: none;
+    z-index: 15;
+    transform: rotate(45deg);
+    white-space: nowrap;
+}
+
+.watermark-top-right {
+    top: 20px;
+    right: 20px;
+}
+
+.watermark-bottom-left {
+    bottom: 20px;
+    left: 20px;
+    transform: rotate(-45deg);
+}
+
+.watermark-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+    font-size: 24px;
+    opacity: 0.05;
+}
+
+/* Disable print styles */
+@media print {
+    .pdf-protected {
+        display: none !important;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Disable screenshot on some browsers */
+.pdf-protected {
+    -webkit-app-region: no-drag;
+    -webkit-user-modify: read-only;
+}
+
+/* Additional protection for canvas elements */
+canvas.pdf-protected {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    pointer-events: none !important;
+}
+
+/* Blur effect when dev tools might be open */
+@media (max-height: 500px) and (min-width: 800px) {
+    .pdf-protected {
+        filter: blur(2px);
+        transition: filter 0.3s ease;
+    }
+}
+
+/* Hide content when window is too small (possible dev tools) */
+@media (max-width: 600px) and (max-height: 400px) {
+    .pdf-protected {
+        opacity: 0.3;
+        filter: blur(5px);
+    }
+    
+    .pdf-protected::after {
+        content: 'Content hidden for security';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 18px;
+        z-index: 20;
+        pointer-events: none;
+    }
+}
+
+/* Disable context menu specifically for PDF content */
+.pdf-protected {
+    -webkit-context-menu: none;
+    -moz-context-menu: none;
+    context-menu: none;
+}
+
+/* Additional mobile protection */
+@media (max-width: 768px) {
+    .pdf-protected {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+}
+
+/* Prevent image extraction */
+img.pdf-protected {
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+    pointer-events: none !important;
+}
+
+/* Security warning overlay */
+.security-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    z-index: 9999;
+    font-weight: bold;
+    display: none;
+}
+
+.security-warning.show {
+    display: block;
+}
