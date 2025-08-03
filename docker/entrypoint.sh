@@ -20,6 +20,10 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force
 fi
 
+# Run composer scripts that were skipped during build
+echo "Running composer post-install scripts..."
+composer run-script post-autoload-dump || echo "Composer scripts completed with warnings"
+
 # Wait a moment for any file system operations
 sleep 2
 

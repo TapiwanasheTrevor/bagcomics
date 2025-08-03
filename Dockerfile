@@ -4,7 +4,7 @@ FROM php:8.2-apache
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -12,42 +12,80 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libmcrypt-dev \
+    libgd-dev \
+    jpegoptim optipng pngquant gifsicle \
+    libonig-dev \
     zip \
     unzip \
     nodejs \
     npm \
     sqlite3 \
     libsqlite3-dev \
-    && docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        pdo \
+        pdo_mysql \
+        pdo_sqlite \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        opcache \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Verify Composer installation
+RUN composer --version
+
+# Enable Apache modules
+RUN a2enmod rewrite headers
 
 # Copy Apache configuration
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 
-# Copy composer files first for better caching
-COPY composer.json composer.lock* ./
+# Set PHP configuration for production
+RUN echo "memory_limit=512M" >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini \
+    && echo "upload_max_filesize=100M" >> /usr/local/etc/php/conf.d/docker-php-uploads.ini \
+    && echo "post_max_size=100M" >> /usr/local/etc/php/conf.d/docker-php-uploads.ini \
+    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/docker-php-timeouts.ini
 
-# Install PHP dependencies (without scripts first)
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# Copy composer files first for better caching
+COPY composer.json composer.lock ./
+
+# Verify composer files exist
+RUN ls -la composer.* && echo "Composer files found"
+
+# Install PHP dependencies with verbose output (skip scripts that need Laravel)
+RUN composer install --no-dev --optimize-autoloader --no-scripts --verbose
 
 # Copy package files for Node dependencies
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
+
+# Verify package files
+RUN ls -la package*.json && echo "Package files found"
 
 # Install Node dependencies
-RUN npm ci
+RUN npm ci --verbose
 
 # Copy application files
 COPY . /var/www/html
 
-# Run composer scripts after copying all files
-RUN composer run-script post-autoload-dump
+# Create basic .env file for build process
+RUN cp .env.example .env || echo "APP_KEY=" > .env
+
+# Generate app key for build
+RUN php artisan key:generate --force
+
+# Run composer autoload dump (safe to run now)
+RUN composer dump-autoload --optimize
 
 # Build frontend assets
 RUN npm run build
