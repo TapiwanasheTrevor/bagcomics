@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: bagcomics
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: APP_NAME
+        value: "BAG Comics"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        fromService:
+          type: web
+          name: bagcomics
+          property: host
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /var/www/html/database/database.sqlite
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_LEVEL
+        value: error
+      - key: MAIL_MAILER
+        value: log
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: STRIPE_KEY
+        value: your_stripe_publishable_key_here
+      - key: STRIPE_SECRET
+        value: your_stripe_secret_key_here
+      - key: STRIPE_WEBHOOK_SECRET
+        value: your_stripe_webhook_secret_here
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        value: your_stripe_publishable_key_here
