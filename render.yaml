@@ -21,6 +21,8 @@ services:
           property: host
       - key: APP_KEY
         generateValue: true
+      - key: FORCE_HTTPS
+        value: "true"
       - key: DB_CONNECTION
         value: sqlite
       - key: DB_DATABASE

@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Force HTTPS in Production
+    |--------------------------------------------------------------------------
+    |
+    | When your application is behind a proxy (like Render), you may need to
+    | force HTTPS URLs to be generated properly.
+    |
+    */
+
+    'force_https' => env('FORCE_HTTPS', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
