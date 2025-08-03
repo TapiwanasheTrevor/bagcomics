@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('BagComics Admin')
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -43,8 +44,6 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\GenrePopularityWidget::class,
                 \App\Filament\Widgets\TopComicsWidget::class,
                 \App\Filament\Widgets\RecentActivityWidget::class,
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
