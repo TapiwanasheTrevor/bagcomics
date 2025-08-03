@@ -51,3 +51,7 @@ services:
         value: your_stripe_publishable_key_here
       - key: AUTH_MODEL
         value: App\Models\FilamentUser
+      - key: SESSION_DOMAIN
+        value: ""
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
