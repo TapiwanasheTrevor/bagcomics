@@ -140,5 +140,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 });
 
+// Debug route to expose logs
+Route::get('/debug-log', function () {
+    $logFile = storage_path('logs/laravel.log');
+    if (file_exists($logFile)) {
+        return response()->file($logFile);
+    }
+    return response('Log file not found', 404);
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
