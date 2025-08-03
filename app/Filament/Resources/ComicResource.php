@@ -77,6 +77,7 @@ class ComicResource extends Resource
 
             Forms\Components\FileUpload::make('pdf_file_path')
                 ->label('Comic PDF')
+                ->disk('public')
                 ->directory('comics')
                 ->acceptedFileTypes(['application/pdf'])
                 ->required()
@@ -91,6 +92,7 @@ class ComicResource extends Resource
 
             Forms\Components\FileUpload::make('cover_image_path')
                 ->label('Cover Image')
+                ->disk('public')
                 ->directory('covers')
                 ->image()
                 ->imageEditor()
@@ -159,6 +161,7 @@ class ComicResource extends Resource
     {
         return $table->columns([
             Tables\Columns\ImageColumn::make('cover_image_path')
+                ->disk('public')
                 ->label('Cover')
                 ->square(),
 

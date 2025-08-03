@@ -40,7 +40,7 @@ services:
       - key: MAIL_MAILER
         value: log
       - key: FILESYSTEM_DISK
-        value: local
+        value: public
       - key: STRIPE_KEY
         value: your_stripe_publishable_key_here
       - key: STRIPE_SECRET
