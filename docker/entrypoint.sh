@@ -44,7 +44,10 @@ php artisan migrate --force
 
 # Seed the database if needed
 echo "Seeding database..."
-php artisan db:seed --class=CmsContentSeeder --force || echo "Seeding failed or already completed"
+php artisan db:seed --class=CmsContentSeeder --force || echo "CMS seeding failed or already completed"
+
+echo "Creating admin users..."
+php artisan db:seed --class=AdminUserSeeder --force || echo "Admin user seeding failed or already completed"
 
 # Create storage link
 echo "Creating storage link..."
