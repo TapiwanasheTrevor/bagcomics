@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo-dev \
     libmcrypt-dev \
     libgd-dev \
+    libicu-dev \
     jpegoptim optipng pngquant gifsicle \
-    libonig-dev \
     zip \
     unzip \
     nodejs \
@@ -36,14 +36,17 @@ RUN apt-get update && apt-get install -y \
         gd \
         zip \
         opcache \
+        intl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Verify Composer installation
-RUN composer --version
+# Verify Composer installation and PHP extensions
+RUN composer --version \
+    && php -m | grep -E "(pdo|mbstring|bcmath|gd|zip|opcache|intl)" \
+    && echo "All required PHP extensions are installed"
 
 # Enable Apache modules
 RUN a2enmod rewrite headers
