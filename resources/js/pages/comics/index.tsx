@@ -173,7 +173,9 @@ export default function ComicsIndex() {
             const data: ComicsResponse = await response.json();
 
             setComics(data.data);
-            setPagination(data.pagination);
+            if (data.pagination) {
+                            setPagination(data.pagination);
+                        }
         } catch (error) {
             console.error('Error fetching comics:', error);
         } finally {
