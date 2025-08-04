@@ -90,6 +90,20 @@ Route::prefix('api')->group(function () {
         Route::post('/{comic:slug}/view', [App\Http\Controllers\Api\ComicController::class, 'trackView']);
     });
 
+    // Public review routes
+    Route::prefix('reviews')->group(function () {
+        Route::get('/most-helpful', [App\Http\Controllers\Api\ReviewController::class, 'getMostHelpful']);
+        Route::get('/recent', [App\Http\Controllers\Api\ReviewController::class, 'getRecent']);
+        Route::get('/comics/{comic:slug}', [App\Http\Controllers\Api\ReviewController::class, 'index']);
+        
+        // Specific routes must come before parameterized routes
+        Route::middleware('auth')->group(function () {
+            Route::get('/user', [App\Http\Controllers\Api\ReviewController::class, 'getUserReviews']);
+        });
+        
+        Route::get('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'show']);
+    });
+
     // Protected routes requiring authentication
     Route::middleware('auth')->group(function () {
         // User library routes
@@ -119,6 +133,32 @@ Route::prefix('api')->group(function () {
             Route::post('/comics/{comic:slug}/intent', [App\Http\Controllers\PaymentController::class, 'createPaymentIntent']);
             Route::post('/{payment}/confirm', [App\Http\Controllers\PaymentController::class, 'confirmPayment']);
             Route::get('/{payment}/status', [App\Http\Controllers\PaymentController::class, 'getPaymentStatus']);
+        });
+
+        // Protected review routes
+        Route::prefix('reviews')->group(function () {
+            // Comic-specific reviews
+            Route::post('/comics/{comic:slug}', [App\Http\Controllers\Api\ReviewController::class, 'store']);
+            Route::get('/comics/{comic:slug}/user', [App\Http\Controllers\Api\ReviewController::class, 'getUserReview']);
+            
+            // Review voting (must come before {review} routes to avoid conflicts)
+            Route::post('/{review}/vote', [App\Http\Controllers\Api\ReviewController::class, 'vote']);
+            Route::delete('/{review}/vote', [App\Http\Controllers\Api\ReviewController::class, 'removeVote']);
+            
+            // Individual review management (must come last due to {review} parameter)
+            Route::put('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'update']);
+            Route::delete('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'destroy']);
+        });
+
+        // Admin review moderation routes
+        Route::prefix('admin/reviews')->middleware('can:access-admin')->group(function () {
+            Route::get('/moderation', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'index']);
+            Route::get('/statistics', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'statistics']);
+            Route::post('/{review}/approve', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'approve']);
+            Route::post('/{review}/reject', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'reject']);
+            Route::post('/bulk-approve', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'bulkApprove']);
+            Route::post('/bulk-reject', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'bulkReject']);
+            Route::delete('/{review}', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'destroy']);
         });
 
         // Analytics routes (admin only)

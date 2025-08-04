@@ -128,8 +128,8 @@ class ComicSeeder extends Seeder
         ];
 
         foreach ($comics as $comicData) {
-            Comic::updateOrCreate(
-                ['slug' => $comicData['slug']],
+            Comic::firstOrCreate(
+                ['title' => $comicData['title']],
                 array_merge($comicData, [
                     'language' => 'en',
                     'publication_year' => 2024,

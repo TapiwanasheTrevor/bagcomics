@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('comics', function (Blueprint $table) {
             $table->string('author')->nullable()->after('title');
             $table->string('genre')->nullable()->after('author');
-            $table->text('tags')->nullable()->after('genre'); // JSON array of tags
+            $table->json('tags')->nullable()->after('genre'); // JSON array of tags
             $table->integer('page_count')->nullable()->after('description');
             $table->string('language', 10)->default('en')->after('page_count');
             $table->decimal('average_rating', 3, 2)->default(0.00)->after('language');
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('publisher')->nullable()->after('publication_year');
             $table->json('preview_pages')->nullable()->after('cover_image_path'); // Array of preview page numbers
             $table->boolean('has_mature_content')->default(false)->after('preview_pages');
-            $table->text('content_warnings')->nullable()->after('has_mature_content');
+            $table->json('content_warnings')->nullable()->after('has_mature_content');
         });
     }
 

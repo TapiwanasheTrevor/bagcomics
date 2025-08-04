@@ -13,8 +13,12 @@ services:
       - APP_DEBUG=true
       - APP_KEY=base64:your_generated_app_key_here
       - APP_URL=http://localhost:8080
-      - DB_CONNECTION=sqlite
-      - DB_DATABASE=/var/www/html/database/database.sqlite
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=bagcomics
+      - DB_USERNAME=bagcomics_user
+      - DB_PASSWORD=bagcomics_password
       - SESSION_DRIVER=database
       - CACHE_STORE=database
       - QUEUE_CONNECTION=database
@@ -24,5 +28,21 @@ services:
       - VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key_here
     volumes:
       - ./storage:/var/www/html/storage
-      - ./database:/var/www/html/database
+    depends_on:
+      - postgres
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=bagcomics
+      - POSTGRES_USER=bagcomics_user
+      - POSTGRES_PASSWORD=bagcomics_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

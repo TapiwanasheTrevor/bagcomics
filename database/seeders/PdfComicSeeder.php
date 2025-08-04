@@ -15,11 +15,9 @@ class PdfComicSeeder extends Seeder
     public function run(): void
     {
         // Create a sample PDF comic using the uploaded sample document
-        Comic::updateOrCreate(
-            ['slug' => 'anansi-chronicles-digital'],
+        Comic::firstOrCreate(
+            ['title' => 'Anansi Chronicles: The Digital Edition'],
             [
-            'title' => 'Anansi Chronicles: The Digital Edition',
-            'slug' => 'anansi-chronicles-digital',
             'author' => 'Kwame Asante',
             'genre' => 'fantasy',
             'tags' => ['mythology', 'african folklore', 'digital comic', 'fantasy'],
@@ -55,11 +53,9 @@ class PdfComicSeeder extends Seeder
         ]);
 
         // Create another free PDF comic
-        Comic::updateOrCreate(
-            ['slug' => 'ubuntu-tales-community'],
+        Comic::firstOrCreate(
+            ['title' => 'Ubuntu Tales: Community Stories'],
             [
-            'title' => 'Ubuntu Tales: Community Stories',
-            'slug' => 'ubuntu-tales-community',
             'author' => 'Amara Okafor',
             'genre' => 'slice-of-life',
             'tags' => ['community', 'ubuntu philosophy', 'african stories', 'free'],

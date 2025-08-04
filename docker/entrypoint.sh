@@ -38,6 +38,22 @@ if [ "$APP_DEBUG" != "true" ]; then
     php artisan view:cache
 fi
 
+# Wait for database to be ready (if using PostgreSQL)
+if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_HOST" ] && [ "$DB_HOST" != "127.0.0.1" ] && [ "$DB_HOST" != "localhost" ]; then
+    echo "Waiting for PostgreSQL to be ready..."
+    timeout=60
+    while ! PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USERNAME" -d "$DB_DATABASE" -c '\q' 2>/dev/null; do
+        timeout=$((timeout - 1))
+        if [ $timeout -eq 0 ]; then
+            echo "Timeout waiting for PostgreSQL"
+            exit 1
+        fi
+        echo "PostgreSQL is unavailable - sleeping"
+        sleep 1
+    done
+    echo "PostgreSQL is ready!"
+fi
+
 # Run database migrations
 echo "Running database migrations..."
 php artisan migrate --force
@@ -57,11 +73,9 @@ php artisan storage:link || echo "Storage link already exists"
 echo "Setting permissions..."
 chown -R www-data:www-data /var/www/html/storage
 chown -R www-data:www-data /var/www/html/bootstrap/cache
-chown -R www-data:www-data /var/www/html/database
 chown -R www-data:www-data /var/www/html/public
 chmod -R 775 /var/www/html/storage
 chmod -R 775 /var/www/html/bootstrap/cache
-chmod -R 755 /var/www/html/database
 chmod -R 755 /var/www/html/public
 
 # Ensure specific directories exist and have correct permissions

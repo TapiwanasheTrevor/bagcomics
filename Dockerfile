@@ -17,18 +17,19 @@ RUN apt-get update && apt-get install -y \
     libmcrypt-dev \
     libgd-dev \
     libicu-dev \
+    libpq-dev \
     jpegoptim optipng pngquant gifsicle \
     zip \
     unzip \
     nodejs \
     npm \
-    sqlite3 \
-    libsqlite3-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-install -j$(nproc) \
         pdo \
         pdo_mysql \
-        pdo_sqlite \
+        pdo_pgsql \
+        pgsql \
         mbstring \
         exif \
         pcntl \
@@ -45,7 +46,7 @@ COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
 # Verify Composer installation and PHP extensions
 RUN composer --version \
-    && php -m | grep -E "(pdo|mbstring|bcmath|gd|zip|opcache|intl)" \
+    && php -m | grep -E "(pdo|pgsql|mbstring|bcmath|gd|zip|opcache|intl)" \
     && echo "All required PHP extensions are installed"
 
 # Enable Apache modules
@@ -107,10 +108,9 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Create SQLite database directory
-RUN mkdir -p /var/www/html/database && \
-    touch /var/www/html/database/database.sqlite && \
-    chown www-data:www-data /var/www/html/database/database.sqlite
+# Create storage directories
+RUN mkdir -p /var/www/html/storage/app/public \
+    && mkdir -p /var/www/html/storage/logs
 
 # Copy entrypoint script
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh

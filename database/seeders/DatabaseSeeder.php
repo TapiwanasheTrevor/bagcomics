@@ -13,20 +13,26 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create test user
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Create test user if it doesn't exist
+        if (!User::where('email', 'test@example.com')->exists()) {
+            User::factory()->create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+        }
 
         // Run all seeders in order
         $this->call([
             AdminUserSeeder::class,     // Create admin users first
-            ComicSeeder::class,
-            PdfComicSeeder::class,
+            ComicSeriesSeeder::class,   // Create comic series first
+            ComicSeeder::class,         // Then create individual comics
+            PdfComicSeeder::class,      // Add PDF comics
             CmsContentSeeder::class,    // Seed CMS content
-            // UserLibrarySeeder::class,  // Don't auto-add comics to user library
-            // UserProgressSeeder::class, // Don't auto-create reading progress
+            UserLibrarySeeder::class,   // Add comics to user libraries
+            UserProgressSeeder::class,  // Create reading progress
+            ComicReviewSeeder::class,   // Create reviews and ratings
+            ComicBookmarkSeeder::class, // Create bookmarks
+            SocialShareSeeder::class,   // Create social shares
         ]);
     }
 }

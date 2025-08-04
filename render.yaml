@@ -24,11 +24,29 @@ services:
       - key: FORCE_HTTPS
         value: "true"
       - key: DB_CONNECTION
-        value: sqlite
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: bagcomics-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: bagcomics-db
+          property: port
       - key: DB_DATABASE
-        value: /var/www/html/database/database.sqlite
+        fromDatabase:
+          name: bagcomics-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: bagcomics-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: bagcomics-db
+          property: password
       - key: SESSION_DRIVER
-        value: file
+        value: database
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION
@@ -55,3 +73,9 @@ services:
         value: ".bagcomics.onrender.com"
       - key: SESSION_SECURE_COOKIE
         value: "true"
+
+databases:
+  - name: bagcomics-db
+    databaseName: bagcomics
+    user: bagcomics_user
+    plan: starter
