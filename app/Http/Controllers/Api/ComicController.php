@@ -77,8 +77,25 @@ class ComicController extends Controller
         $perPage = $request->get('per_page', $request->get('limit', 12));
         $comics = $query->paginate($perPage);
 
+        // Transform the comics to include computed fields
+        $transformedComics = collect($comics->items())->map(function ($comic) use ($request) {
+            $data = $comic->toArray();
+            
+            // Add computed fields
+            $data['cover_image_url'] = $comic->getCoverImageUrl();
+            $data['reading_time_estimate'] = $comic->getReadingTimeEstimate();
+            $data['is_new_release'] = $comic->isNewRelease();
+            
+            // Add user-specific data if authenticated
+            if ($request->user()) {
+                $data['user_progress'] = $comic->userProgress->first();
+            }
+            
+            return $data;
+        });
+
         return response()->json([
-            'data' => $comics->items(),
+            'data' => $transformedComics,
             'pagination' => [
                 'current_page' => $comics->currentPage(),
                 'last_page' => $comics->lastPage(),

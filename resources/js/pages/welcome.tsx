@@ -512,8 +512,7 @@ export default function Welcome() {
                                     BAG Comics
                                 </div>
                                 <p className="text-gray-400 mb-6 max-w-md">
-                                    Celebrating African storytelling through captivating comics.
-                                    Discover heroes, legends, and adventures from across the continent.
+                                    {cms?.general?.site_description?.content || 'Celebrating African storytelling through captivating comics. Discover heroes, legends, and adventures from across the continent.'}
                                 </p>
                                 <div className="flex space-x-4">
                                     {!auth.user && (
@@ -565,7 +564,7 @@ export default function Welcome() {
                         </div>
 
                         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-                            <p>&copy; 2024 BAG Comics. Celebrating African storytelling.</p>
+                            <p>{cms?.footer?.footer_copyright?.content || '&copy; 2024 BAG Comics. Celebrating African storytelling.'}</p>
                         </div>
                     </div>
                 </footer>

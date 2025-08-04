@@ -1,17 +1,15 @@
 <?php
 
-namespace Database\Seeders;
-
 use App\Models\CmsContent;
-use Illuminate\Database\Seeder;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Schema;
 
-class CmsContentSeeder extends Seeder
+return new class extends Migration
 {
     /**
-     * Run the database seeds.
+     * Run the migrations.
      */
-    public function run(): void
+    public function up(): void
     {
         // Disable foreign key constraints temporarily
         Schema::disableForeignKeyConstraints();
@@ -111,6 +109,15 @@ class CmsContentSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 6,
             ],
+            [
+                'key' => 'site_description',
+                'section' => 'general',
+                'type' => 'text',
+                'title' => 'Site Description',
+                'content' => 'Celebrating African storytelling through captivating comics. Discover heroes, legends, and adventures from across the continent.',
+                'is_active' => true,
+                'sort_order' => 7,
+            ],
             
             // Navigation
             [
@@ -133,15 +140,6 @@ class CmsContentSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 1,
             ],
-            [
-                'key' => 'site_description',
-                'section' => 'general',
-                'type' => 'text',
-                'title' => 'Site Description',
-                'content' => 'Celebrating African storytelling through captivating comics. Discover heroes, legends, and adventures from across the continent.',
-                'is_active' => true,
-                'sort_order' => 7,
-            ],
         ];
         
         // Create or update content
@@ -155,4 +153,13 @@ class CmsContentSeeder extends Seeder
         // Re-enable foreign key constraints
         Schema::enableForeignKeyConstraints();
     }
-}
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // We don't need to reverse this migration
+        // CMS content can remain populated
+    }
+};

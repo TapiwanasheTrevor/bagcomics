@@ -249,7 +249,7 @@ export default function ComicsIndex() {
                             className="p-2 bg-emerald-500 hover:bg-emerald-600 rounded-full transition-colors"
                             onClick={(e) => {
                                 e.preventDefault();
-                                window.location.href = `/comics/${comic.id}`;
+                                window.location.href = `/comics/${comic.slug}`;
                             }}
                         >
                             <Play className="w-4 h-4" />

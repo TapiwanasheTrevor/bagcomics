@@ -28,9 +28,10 @@ class ComicResource extends Resource
                 ->maxLength(255),
 
             Forms\Components\TextInput::make('slug')
-                ->required()
                 ->maxLength(255)
-                ->unique(Comic::class, 'slug', ignoreRecord: true),
+                ->unique(Comic::class, 'slug', ignoreRecord: true)
+                ->disabled()
+                ->helperText('Automatically generated from the title'),
 
             Forms\Components\TextInput::make('author')
                 ->maxLength(255),
