@@ -20,7 +20,7 @@ services:
           name: bagcomics
           property: host
       - key: APP_KEY
-        generateValue: true
+        value: base64:nVb4U6m2ibg2Hcxah3zRuO+yGHc5gIPMKn06exhHOrc=
       - key: FORCE_HTTPS
         value: "true"
       - key: DB_CONNECTION
