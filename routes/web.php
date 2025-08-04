@@ -156,5 +156,42 @@ Route::post('/test-upload', function (\Illuminate\Http\Request $request) {
     return 'No file uploaded';
 });
 
+// Debug routes for testing CSRF and upload functionality (only in non-production)
+if (!app()->environment('production')) {
+    Route::post('/debug-upload-test', function (\Illuminate\Http\Request $request) {
+        return response()->json([
+            'csrf_token' => csrf_token(),
+            'session_id' => session()->getId(),
+            'headers' => [
+                'x-csrf-token' => $request->header('X-CSRF-TOKEN'),
+                'x-xsrf-token' => $request->header('X-XSRF-TOKEN'),
+                'cookie_xsrf' => $request->cookie('XSRF-TOKEN'),
+                'cookie_session' => $request->cookie(config('session.cookie')),
+            ],
+            'is_secure' => $request->isSecure(),
+            'scheme' => $request->getScheme(),
+            'host' => $request->getHost(),
+            'url' => $request->url(),
+            'session_driver' => config('session.driver'),
+            'session_cookie' => config('session.cookie'),
+            'session_secure' => config('session.secure'),
+            'session_same_site' => config('session.same_site'),
+        ]);
+    })->middleware(['web']);
+
+    Route::post('/debug-livewire-upload', function (\Illuminate\Http\Request $request) {
+        \Log::info('Livewire Upload Debug', [
+            'headers' => $request->headers->all(),
+            'cookies' => $request->cookies->all(),
+            'csrf_token' => csrf_token(),
+            'session_token' => session()->token(),
+            'request_token' => $request->input('_token'),
+            'header_csrf' => $request->header('X-CSRF-TOKEN'),
+        ]);
+        
+        return response()->json(['status' => 'debug logged']);
+    })->name('debug.livewire.upload');
+}
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
