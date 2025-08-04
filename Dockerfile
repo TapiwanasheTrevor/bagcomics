@@ -93,6 +93,12 @@ RUN composer dump-autoload --optimize
 # Build frontend assets
 RUN npm run build
 
+# Publish Livewire config
+RUN php artisan vendor:publish --tag=livewire:config
+
+# Configure Livewire for HTTPS
+RUN sed -i "s/'secure' => false,/'secure' => env('LIVEWIRE_SECURE', false),/" config/livewire.php
+
 # Set timezone to UTC
 RUN ln -snf /usr/share/zoneinfo/Etc/UTC /etc/localtime && echo Etc/UTC > /etc/timezone
 
