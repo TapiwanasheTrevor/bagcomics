@@ -51,5 +51,19 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+
+        {{-- Ensure Livewire CSRF token is set for admin area --}}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                if (window.Livewire) {
+                    window.Livewire.setOptions({
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                }
+            });
+        </script>
     </body>
 </html>

@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
             'api/*',
+            'livewire/upload-file',
         ]);
 
         $middleware->web(append: [
