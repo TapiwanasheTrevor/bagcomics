@@ -149,5 +149,12 @@ Route::get('/debug-log', function () {
     return response('Log file not found', 404);
 });
 
+Route::post('/test-upload', function (\Illuminate\Http\Request $request) {
+    if ($request->hasFile('file')) {
+        return $request->file('file')->store('test-uploads');
+    }
+    return 'No file uploaded';
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
