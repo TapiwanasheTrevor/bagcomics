@@ -93,6 +93,9 @@ RUN composer dump-autoload --optimize
 # Build frontend assets
 RUN npm run build
 
+# Set timezone to UTC
+RUN ln -snf /usr/share/zoneinfo/Etc/UTC /etc/localtime && echo Etc/UTC > /etc/timezone
+
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \
