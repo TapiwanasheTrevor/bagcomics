@@ -18,6 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Providers\HttpsServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: [
+            '127.0.0.1',
+            '172.16.0.0/12', // Docker networks
+            '10.0.0.0/8',     // Private networks
+            '192.168.0.0/16', // Private networks
+        ]);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->validateCsrfTokens(except: [
