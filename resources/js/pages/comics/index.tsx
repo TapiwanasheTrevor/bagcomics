@@ -140,8 +140,9 @@ export default function ComicsIndex() {
     const clearRecentSearches = () => {
         setRecentSearches([]);
         localStorage.removeItem('comic-recent-searches');
-    };    co
-nst fetchComics = async (reset = false) => {
+    };
+
+    const fetchComics = async (reset = false) => {
         setLoading(true);
         try {
             const page = reset ? 1 : pagination.current_page;
