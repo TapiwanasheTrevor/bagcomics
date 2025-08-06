@@ -7,6 +7,10 @@ services:
     region: oregon
     branch: main
     healthCheckPath: /
+    disk:
+      name: bagcomics-storage
+      mountPath: /var/www/html/storage/app/public
+      sizeGB: 10
     envVars:
       - key: APP_NAME
         value: "BAG Comics"
@@ -73,6 +77,18 @@ services:
         value: ".bagcomics.onrender.com"
       - key: SESSION_SECURE_COOKIE
         value: "true"
+      - key: REDIS_CACHE
+        value: "false"
+      - key: REDIS_QUEUE
+        value: "false"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILE_STORAGE_DISK
+        value: public
+      - key: PERSISTENT_STORAGE_PATH
+        value: /var/www/html/storage/app/public
 
 databases:
   - name: bagcomics-db

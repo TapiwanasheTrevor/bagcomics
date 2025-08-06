@@ -84,49 +84,80 @@ class StripeWebhookController extends Controller
      */
     private function handlePaymentSucceeded($paymentIntent): void
     {
-        $payment = Payment::where('stripe_payment_intent_id', $paymentIntent->id)->first();
+        $payments = Payment::where('stripe_payment_intent_id', $paymentIntent->id)->get();
 
-        if (!$payment) {
-            Log::warning('Payment not found for successful payment intent', [
+        if ($payments->isEmpty()) {
+            Log::warning('No payments found for successful payment intent', [
                 'payment_intent_id' => $paymentIntent->id
             ]);
             return;
         }
 
-        if ($payment->isSuccessful()) {
-            Log::info('Payment already marked as successful', [
-                'payment_id' => $payment->id
-            ]);
-            return;
-        }
+        DB::transaction(function () use ($payments, $paymentIntent) {
+            foreach ($payments as $payment) {
+                if ($payment->isSuccessful()) {
+                    Log::info('Payment already marked as successful', [
+                        'payment_id' => $payment->id
+                    ]);
+                    continue;
+                }
 
-        DB::transaction(function () use ($payment, $paymentIntent) {
-            // Mark payment as successful
-            $payment->update([
-                'status' => 'succeeded',
-                'paid_at' => now(),
-                'stripe_payment_method_id' => $paymentIntent->payment_method,
-            ]);
+                // Mark payment as successful
+                $payment->update([
+                    'status' => 'succeeded',
+                    'paid_at' => now(),
+                    'stripe_payment_method_id' => $paymentIntent->payment_method,
+                ]);
 
-            // Grant access to comic
-            UserLibrary::updateOrCreate(
-                [
+                // Grant access based on payment type
+                if ($payment->payment_type === 'subscription') {
+                    $this->grantSubscriptionAccess($payment);
+                } elseif ($payment->comic_id) {
+                    $this->grantComicAccess($payment);
+                }
+
+                Log::info('Payment processed and access granted', [
+                    'payment_id' => $payment->id,
+                    'payment_type' => $payment->payment_type,
                     'user_id' => $payment->user_id,
                     'comic_id' => $payment->comic_id,
-                ],
-                [
-                    'access_type' => 'purchased',
-                    'purchase_price' => $payment->amount,
-                    'purchased_at' => now(),
-                ]
-            );
+                ]);
+            }
+        });
+    }
 
-            Log::info('Payment processed and access granted', [
-                'payment_id' => $payment->id,
+    /**
+     * Grant comic access to user
+     */
+    private function grantComicAccess(Payment $payment): void
+    {
+        UserLibrary::updateOrCreate(
+            [
                 'user_id' => $payment->user_id,
                 'comic_id' => $payment->comic_id,
-            ]);
-        });
+            ],
+            [
+                'access_type' => 'purchased',
+                'purchase_price' => $payment->amount,
+                'purchased_at' => now(),
+            ]
+        );
+    }
+
+    /**
+     * Grant subscription access to user
+     */
+    private function grantSubscriptionAccess(Payment $payment): void
+    {
+        $expiresAt = $payment->subscription_type === 'yearly' 
+            ? now()->addYear() 
+            : now()->addMonth();
+
+        $payment->user->update([
+            'subscription_type' => $payment->subscription_type,
+            'subscription_expires_at' => $expiresAt,
+            'subscription_status' => 'active',
+        ]);
     }
 
     /**

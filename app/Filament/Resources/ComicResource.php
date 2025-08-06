@@ -5,13 +5,17 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ComicResource\Pages;
 use App\Filament\Resources\ComicResource\RelationManagers;
 use App\Models\Comic;
+use App\Models\ComicSeries;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\BulkAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Collection;
+use Filament\Notifications\Notification;
 
 class ComicResource extends Resource
 {
@@ -138,6 +142,35 @@ class ComicResource extends Resource
             Forms\Components\TextInput::make('publisher')
                 ->maxLength(255),
 
+            Forms\Components\Select::make('series_id')
+                ->label('Comic Series')
+                ->relationship('series', 'name')
+                ->searchable()
+                ->preload()
+                ->createOptionForm([
+                    Forms\Components\TextInput::make('name')
+                        ->required()
+                        ->maxLength(255),
+                    Forms\Components\Textarea::make('description')
+                        ->rows(3),
+                    Forms\Components\TextInput::make('publisher')
+                        ->maxLength(255),
+                    Forms\Components\Select::make('status')
+                        ->options([
+                            'ongoing' => 'Ongoing',
+                            'completed' => 'Completed',
+                            'hiatus' => 'On Hiatus',
+                            'cancelled' => 'Cancelled',
+                        ])
+                        ->default('ongoing'),
+                ]),
+
+            Forms\Components\TextInput::make('issue_number')
+                ->label('Issue Number')
+                ->numeric()
+                ->minValue(1)
+                ->visible(fn ($get) => $get('series_id')),
+
             Forms\Components\Toggle::make('is_free')
                 ->label('Is Free?')
                 ->default(true),
@@ -170,6 +203,17 @@ class ComicResource extends Resource
                 ->sortable()
                 ->searchable()
                 ->description(fn ($record) => $record->author),
+
+            Tables\Columns\TextColumn::make('series.name')
+                ->label('Series')
+                ->searchable()
+                ->sortable()
+                ->toggleable(),
+
+            Tables\Columns\TextColumn::make('issue_number')
+                ->label('Issue #')
+                ->sortable()
+                ->toggleable(),
 
             Tables\Columns\TextColumn::make('genre')
                 ->badge()
@@ -264,7 +308,81 @@ class ComicResource extends Resource
             Tables\Actions\EditAction::make(),
         ])
         ->bulkActions([
-            Tables\Actions\DeleteBulkAction::make(),
+            Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+                
+                BulkAction::make('bulk_publish')
+                    ->label('Publish Selected')
+                    ->icon('heroicon-o-eye')
+                    ->color('success')
+                    ->action(function (Collection $records) {
+                        $records->each(function ($record) {
+                            $record->update([
+                                'is_visible' => true,
+                                'published_at' => now(),
+                            ]);
+                        });
+                        
+                        Notification::make()
+                            ->title('Comics Published')
+                            ->body(count($records) . ' comics have been published successfully.')
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                BulkAction::make('bulk_unpublish')
+                    ->label('Unpublish Selected')
+                    ->icon('heroicon-o-eye-slash')
+                    ->color('warning')
+                    ->action(function (Collection $records) {
+                        $records->each(function ($record) {
+                            $record->update(['is_visible' => false]);
+                        });
+                        
+                        Notification::make()
+                            ->title('Comics Unpublished')
+                            ->body(count($records) . ' comics have been unpublished.')
+                            ->warning()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                BulkAction::make('bulk_update_genre')
+                    ->label('Update Genre')
+                    ->icon('heroicon-o-tag')
+                    ->color('info')
+                    ->form([
+                        Forms\Components\Select::make('genre')
+                            ->options([
+                                'action' => 'Action',
+                                'adventure' => 'Adventure',
+                                'comedy' => 'Comedy',
+                                'drama' => 'Drama',
+                                'fantasy' => 'Fantasy',
+                                'horror' => 'Horror',
+                                'mystery' => 'Mystery',
+                                'romance' => 'Romance',
+                                'sci-fi' => 'Science Fiction',
+                                'slice-of-life' => 'Slice of Life',
+                                'superhero' => 'Superhero',
+                                'thriller' => 'Thriller',
+                            ])
+                            ->required(),
+                    ])
+                    ->action(function (Collection $records, array $data) {
+                        $records->each(function ($record) use ($data) {
+                            $record->update(['genre' => $data['genre']]);
+                        });
+                        
+                        Notification::make()
+                            ->title('Genre Updated')
+                            ->body(count($records) . ' comics have been updated to ' . $data['genre'] . '.')
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+            ]),
         ]);
     }
 
@@ -281,6 +399,7 @@ class ComicResource extends Resource
             'index' => Pages\ListComics::route('/'),
             'create' => Pages\CreateComic::route('/create'),
             'edit' => Pages\EditComic::route('/{record}/edit'),
+            'bulk-upload' => Pages\BulkUploadComics::route('/bulk-upload'),
         ];
     }
 }

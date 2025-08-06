@@ -39,7 +39,39 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\LogRequests::class,
         ]);
+
+        $middleware->api(append: [
+            \App\Http\Middleware\ApiResponseFormatter::class,
+        ]);
+
+        $middleware->alias([
+            'api.rate_limit' => \App\Http\Middleware\ApiRateLimit::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'UNAUTHORIZED',
+                        'message' => 'Authentication required',
+                        'timestamp' => now()->toISOString(),
+                    ]
+                ], 401);
+            }
+        });
+
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'FORBIDDEN',
+                        'message' => 'Access denied',
+                        'timestamp' => now()->toISOString(),
+                    ]
+                ], 403);
+            }
+        });
     })->create();

@@ -7,12 +7,38 @@ echo "Starting BAG Comics deployment..."
 
 # Ensure storage directories exist
 echo "Creating storage directories..."
-mkdir -p /var/www/html/storage/app/public
+mkdir -p /var/www/html/storage/app/public/comics
+mkdir -p /var/www/html/storage/app/public/covers
+mkdir -p /var/www/html/storage/app/public/images/original
+mkdir -p /var/www/html/storage/app/public/images/thumbnail
+mkdir -p /var/www/html/storage/app/public/images/small
+mkdir -p /var/www/html/storage/app/public/images/medium
+mkdir -p /var/www/html/storage/app/public/images/large
+mkdir -p /var/www/html/storage/app/public/exports
 mkdir -p /var/www/html/storage/framework/cache
 mkdir -p /var/www/html/storage/framework/sessions
 mkdir -p /var/www/html/storage/framework/views
 mkdir -p /var/www/html/storage/logs
 mkdir -p /var/www/html/bootstrap/cache
+
+# If persistent storage is mounted, ensure structure exists there too
+if [ -n "$PERSISTENT_STORAGE_PATH" ] && [ -d "$PERSISTENT_STORAGE_PATH" ]; then
+    echo "Setting up persistent storage structure at $PERSISTENT_STORAGE_PATH..."
+    mkdir -p "$PERSISTENT_STORAGE_PATH/comics"
+    mkdir -p "$PERSISTENT_STORAGE_PATH/covers"
+    mkdir -p "$PERSISTENT_STORAGE_PATH/images/original"
+    mkdir -p "$PERSISTENT_STORAGE_PATH/images/thumbnail"
+    mkdir -p "$PERSISTENT_STORAGE_PATH/images/small"
+    mkdir -p "$PERSISTENT_STORAGE_PATH/images/medium"
+    mkdir -p "$PERSISTENT_STORAGE_PATH/images/large"
+    mkdir -p "$PERSISTENT_STORAGE_PATH/exports"
+    
+    # Set permissions for persistent storage
+    chown -R www-data:www-data "$PERSISTENT_STORAGE_PATH"
+    chmod -R 775 "$PERSISTENT_STORAGE_PATH"
+    
+    echo "Persistent storage structure created successfully"
+fi
 
 # Generate app key if not set
 if [ -z "$APP_KEY" ]; then

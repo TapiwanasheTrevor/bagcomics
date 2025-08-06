@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\CmsContent;
+use App\Models\CmsContentVersion;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class CmsService
 {
@@ -12,16 +14,40 @@ class CmsService
      */
     protected int $cacheDuration = 60;
 
+    protected CmsVersioningService $versioningService;
+    protected CmsAnalyticsService $analyticsService;
+    protected CmsMediaService $mediaService;
+
+    public function __construct(
+        CmsVersioningService $versioningService,
+        CmsAnalyticsService $analyticsService,
+        CmsMediaService $mediaService
+    ) {
+        $this->versioningService = $versioningService;
+        $this->analyticsService = $analyticsService;
+        $this->mediaService = $mediaService;
+    }
+
     /**
-     * Get content by key with caching
+     * Get content by key with caching and analytics tracking
      */
-    public function getContent(string $key, $default = null)
+    public function getContent(string $key, $default = null, bool $trackView = true)
     {
         $cacheKey = "cms_content_{$key}";
         
-        return Cache::remember($cacheKey, $this->cacheDuration, function () use ($key, $default) {
+        $content = Cache::remember($cacheKey, $this->cacheDuration, function () use ($key, $default) {
             return CmsContent::getByKey($key, $default);
         });
+        
+        // Track view if content exists and tracking is enabled
+        if ($trackView && $content && $content !== $default) {
+            $cmsContent = CmsContent::byKey($key)->first();
+            if ($cmsContent) {
+                $this->analyticsService->trackEvent($cmsContent, 'view');
+            }
+        }
+        
+        return $content;
     }
 
     /**
@@ -136,27 +162,176 @@ class CmsService
     }
 
     /**
-     * Update content and clear cache
+     * Update content with versioning support
      */
-    public function updateContent(string $key, array $data): bool
+    public function updateContent(string $key, array $data, ?int $userId = null, bool $createVersion = true): CmsContent
     {
-        $content = CmsContent::where('key', $key)->first();
+        return DB::transaction(function () use ($key, $data, $userId, $createVersion) {
+            $content = CmsContent::where('key', $key)->first();
+            
+            if (!$content) {
+                // Create new content
+                $data['key'] = $key;
+                $data['created_by'] = $userId;
+                $data['updated_by'] = $userId;
+                $content = CmsContent::create($data);
+                
+                // Create initial version if versioning is enabled
+                if ($createVersion) {
+                    $this->versioningService->createVersion($content, $data, $userId);
+                }
+            } else {
+                // Create version before updating if versioning is enabled
+                if ($createVersion) {
+                    $this->versioningService->createVersion($content, $data, $userId);
+                }
+                
+                // Update main content
+                $data['updated_by'] = $userId;
+                $content->update($data);
+                
+                // Track edit event
+                $this->analyticsService->trackEvent($content, 'edit', [
+                    'user_id' => $userId,
+                    'fields_changed' => array_keys($data),
+                ]);
+            }
+            
+            // Clear relevant cache
+            $this->clearContentCache($key, $data['section'] ?? null);
+            
+            return $content;
+        });
+    }
+
+    /**
+     * Create content with versioning
+     */
+    public function createContent(array $data, ?int $userId = null): CmsContent
+    {
+        return $this->updateContent($data['key'], $data, $userId, true);
+    }
+
+    /**
+     * Publish content
+     */
+    public function publishContent(CmsContent $content, ?int $userId = null): bool
+    {
+        $result = $content->update([
+            'status' => 'published',
+            'published_at' => now(),
+            'updated_by' => $userId,
+        ]);
         
-        if ($content) {
-            $content->update($data);
-        } else {
-            $data['key'] = $key;
-            $content = CmsContent::create($data);
+        if ($result) {
+            $this->analyticsService->trackEvent($content, 'publish', [
+                'user_id' => $userId,
+            ]);
+            
+            $this->clearContentCache($content->key, $content->section);
         }
         
-        // Clear relevant cache
+        return $result;
+    }
+
+    /**
+     * Schedule content for publishing
+     */
+    public function scheduleContent(CmsContent $content, \DateTime $scheduledAt, ?int $userId = null): bool
+    {
+        $result = $content->update([
+            'status' => 'scheduled',
+            'scheduled_at' => $scheduledAt,
+            'updated_by' => $userId,
+        ]);
+        
+        if ($result) {
+            $this->analyticsService->trackEvent($content, 'schedule', [
+                'user_id' => $userId,
+                'scheduled_at' => $scheduledAt->format('c'),
+            ]);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Archive content
+     */
+    public function archiveContent(CmsContent $content, ?int $userId = null): bool
+    {
+        $result = $content->update([
+            'status' => 'archived',
+            'is_active' => false,
+            'updated_by' => $userId,
+        ]);
+        
+        if ($result) {
+            $this->analyticsService->trackEvent($content, 'archive', [
+                'user_id' => $userId,
+            ]);
+            
+            $this->clearContentCache($content->key, $content->section);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Get content with full details including versions and analytics
+     */
+    public function getContentDetails(string $key): ?array
+    {
+        $content = CmsContent::with(['versions.creator', 'creator', 'updater'])
+            ->where('key', $key)
+            ->first();
+        
+        if (!$content) {
+            return null;
+        }
+        
+        return [
+            'content' => $content,
+            'performance' => $this->analyticsService->getContentPerformance($content),
+            'versions' => $this->versioningService->getVersionHistory($content),
+        ];
+    }
+
+    /**
+     * Process scheduled content
+     */
+    public function processScheduledContent(): int
+    {
+        $scheduledContent = CmsContent::scheduled()
+            ->where('scheduled_at', '<=', now())
+            ->get();
+        
+        $published = 0;
+        
+        foreach ($scheduledContent as $content) {
+            if ($this->publishContent($content)) {
+                $published++;
+            }
+        }
+        
+        // Also process scheduled versions
+        $published += $this->versioningService->processScheduledContent();
+        
+        return $published;
+    }
+
+    /**
+     * Clear content-specific cache
+     */
+    protected function clearContentCache(string $key, ?string $section = null): void
+    {
         Cache::forget("cms_content_{$key}");
-        if (isset($data['section'])) {
-            Cache::forget("cms_section_{$data['section']}");
-        }
-        Cache::forget('cms_all_content');
         
-        return true;
+        if ($section) {
+            Cache::forget("cms_section_{$section}");
+        }
+        
+        Cache::forget('cms_all_content');
     }
 
     /**

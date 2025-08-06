@@ -51,6 +51,34 @@ Route::get('/comics/{comic:slug}', function (Comic $comic) {
     ]);
 })->name('comics.show');
 
+// Comic reading route
+Route::get('/comics/{comic:slug}/read', function (Comic $comic) {
+    if (!$comic->is_visible) {
+        abort(404);
+    }
+
+    // Check if user has access to this comic
+    if (auth()->check() && !auth()->user()->hasAccessToComic($comic)) {
+        abort(403, 'You do not have access to this comic. Please purchase it first.');
+    } elseif (!auth()->check() && !$comic->is_free) {
+        return redirect()->route('login');
+    }
+
+    $comicData = $comic->load(['userProgress' => function ($query) {
+        if (auth()->check()) {
+            $query->where('user_id', auth()->id());
+        }
+    }])->toArray();
+
+    // Add computed fields
+    $comicData['cover_image_url'] = $comic->getCoverImageUrl();
+    $comicData['pdf_stream_url'] = route('comics.stream', $comic->slug);
+    
+    return Inertia::render('comics/reader', [
+        'comic' => $comicData
+    ]);
+})->name('comics.read');
+
 // PDF streaming routes
 Route::match(['GET', 'OPTIONS'], '/comics/{comic:slug}/stream', [PdfStreamController::class, 'stream'])->name('comics.stream');
 Route::get('/comics/{comic:slug}/stream-secure', [PdfStreamController::class, 'streamSecure'])->name('comics.stream.secure');
@@ -130,9 +158,27 @@ Route::prefix('api')->group(function () {
 
         // Payment routes
         Route::prefix('payments')->group(function () {
+            // Single comic purchase
             Route::post('/comics/{comic:slug}/intent', [App\Http\Controllers\PaymentController::class, 'createPaymentIntent']);
-            Route::post('/{payment}/confirm', [App\Http\Controllers\PaymentController::class, 'confirmPayment']);
+            
+            // Bundle purchase
+            Route::post('/bundle/intent', [App\Http\Controllers\PaymentController::class, 'createBundlePaymentIntent']);
+            
+            // Subscription purchase
+            Route::post('/subscription/intent', [App\Http\Controllers\PaymentController::class, 'createSubscriptionPaymentIntent']);
+            
+            // Payment confirmation and management
+            Route::post('/confirm', [App\Http\Controllers\PaymentController::class, 'confirmPayment']);
             Route::get('/{payment}/status', [App\Http\Controllers\PaymentController::class, 'getPaymentStatus']);
+            Route::get('/history', [App\Http\Controllers\PaymentController::class, 'getPaymentHistory']);
+            
+            // Refunds and retries
+            Route::post('/{payment}/refund', [App\Http\Controllers\PaymentController::class, 'requestRefund']);
+            Route::post('/{payment}/retry', [App\Http\Controllers\PaymentController::class, 'retryPayment']);
+            
+            // Receipts and invoices
+            Route::get('/{payment}/receipt', [App\Http\Controllers\PaymentController::class, 'downloadReceipt'])->name('payments.receipt');
+            Route::get('/{payment}/invoice', [App\Http\Controllers\PaymentController::class, 'getInvoice']);
         });
 
         // Protected review routes
@@ -159,6 +205,15 @@ Route::prefix('api')->group(function () {
             Route::post('/bulk-approve', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'bulkApprove']);
             Route::post('/bulk-reject', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'bulkReject']);
             Route::delete('/{review}', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'destroy']);
+        });
+
+        // Admin payment analytics routes
+        Route::prefix('admin/payments')->middleware('can:access-admin')->group(function () {
+            Route::get('/analytics', [App\Http\Controllers\Api\Admin\PaymentAnalyticsController::class, 'getDashboardAnalytics']);
+            Route::get('/revenue-trends', [App\Http\Controllers\Api\Admin\PaymentAnalyticsController::class, 'getRevenueTrends']);
+            Route::get('/payment-methods', [App\Http\Controllers\Api\Admin\PaymentAnalyticsController::class, 'getPaymentMethodBreakdown']);
+            Route::get('/failed-analysis', [App\Http\Controllers\Api\Admin\PaymentAnalyticsController::class, 'getFailedPaymentAnalysis']);
+            Route::get('/refund-analytics', [App\Http\Controllers\Api\Admin\PaymentAnalyticsController::class, 'getRefundAnalytics']);
         });
 
         // Analytics routes (admin only)
@@ -198,6 +253,27 @@ Route::post('/test-upload', function (\Illuminate\Http\Request $request) {
 
 // Debug routes for testing CSRF and upload functionality (only in non-production)
 if (!app()->environment('production')) {
+    // Route to bypass ServiceWorker for development
+    Route::get('/dev-assets/{path}', function ($path) {
+        $assetPath = public_path('build/assets/' . $path);
+        if (file_exists($assetPath)) {
+            $mimeType = match(pathinfo($path, PATHINFO_EXTENSION)) {
+                'js' => 'application/javascript',
+                'css' => 'text/css',
+                'json' => 'application/json',
+                default => 'text/plain'
+            };
+            
+            return response()->file($assetPath, [
+                'Content-Type' => $mimeType,
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Accept',
+            ]);
+        }
+        abort(404);
+    })->where('path', '.*');
     Route::post('/debug-upload-test', function (\Illuminate\Http\Request $request) {
         return response()->json([
             'csrf_token' => csrf_token(),

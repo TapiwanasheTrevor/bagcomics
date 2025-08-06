@@ -1,0 +1,179 @@
+{
+    "info": {
+        "name": "Comprehensive Comic Platform API",
+        "description": "Complete API collection for the comic platform",
+        "version": "1.0.0"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{api_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http:\/\/localhost:8000\/api",
+            "type": "string"
+        },
+        {
+            "key": "api_token",
+            "value": "your_api_token_here",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Comics",
+            "item": [
+                {
+                    "name": "Get Comics List",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}\/comics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "comics"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Comic Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}\/comics\/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "comics",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Featured Comics",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}\/comics\/featured",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "comics",
+                                "featured"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Search",
+            "item": [
+                {
+                    "name": "Search Comics",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}\/search\/comics?query=spider-man",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "search",
+                                "comics"
+                            ],
+                            "query": [
+                                {
+                                    "key": "query",
+                                    "value": "spider-man"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Reading Progress",
+            "item": [
+                {
+                    "name": "Update Reading Progress",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"current_page\": 15,\n    \"reading_time_seconds\": 900,\n    \"device_type\": \"mobile\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}\/comics\/1\/progress\/update",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "comics",
+                                "1",
+                                "progress",
+                                "update"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Reviews",
+            "item": [
+                {
+                    "name": "Submit Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"rating\": 5,\n    \"title\": \"Amazing comic!\",\n    \"content\": \"This is a fantastic comic book.\",\n    \"is_spoiler\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}\/reviews\/comics\/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "reviews",
+                                "comics",
+                                "1"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

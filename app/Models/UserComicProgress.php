@@ -21,6 +21,17 @@ class UserComicProgress extends Model
         'last_read_at',
         'completed_at',
         'bookmarks',
+        'reading_sessions',
+        'total_reading_sessions',
+        'first_read_at',
+        'reading_metadata',
+        'average_session_duration',
+        'pages_per_session_avg',
+        'reading_preferences',
+        'reading_speed_pages_per_minute',
+        'total_time_paused_minutes',
+        'bookmark_count',
+        'last_bookmark_at',
     ];
 
     protected $casts = [
@@ -28,8 +39,15 @@ class UserComicProgress extends Model
         'is_bookmarked' => 'boolean',
         'last_read_at' => 'datetime',
         'completed_at' => 'datetime',
+        'first_read_at' => 'datetime',
+        'last_bookmark_at' => 'datetime',
         'bookmarks' => 'array',
+        'reading_sessions' => 'array',
+        'reading_metadata' => 'array',
+        'reading_preferences' => 'array',
         'progress_percentage' => 'decimal:2',
+        'average_session_duration' => 'decimal:2',
+        'reading_speed_pages_per_minute' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -74,6 +92,182 @@ class UserComicProgress extends Model
 
         $this->bookmarks = $bookmarks;
         $this->is_bookmarked = true;
+        $this->bookmark_count = count($bookmarks);
+        $this->last_bookmark_at = now();
         $this->save();
+    }
+
+    /**
+     * Start a new reading session
+     */
+    public function startReadingSession(array $metadata = []): void
+    {
+        $sessions = $this->reading_sessions ?? [];
+        $sessionId = uniqid();
+        
+        $sessions[$sessionId] = [
+            'id' => $sessionId,
+            'started_at' => now()->toISOString(),
+            'ended_at' => null,
+            'start_page' => $this->current_page,
+            'end_page' => null,
+            'pages_read' => 0,
+            'duration_minutes' => 0,
+            'paused_duration_minutes' => 0,
+            'metadata' => $metadata,
+            'is_active' => true,
+        ];
+
+        $this->reading_sessions = $sessions;
+        
+        if (!$this->first_read_at) {
+            $this->first_read_at = now();
+        }
+        
+        $this->save();
+    }
+
+    /**
+     * End the current reading session
+     */
+    public function endReadingSession(int $endPage, array $metadata = []): void
+    {
+        $sessions = $this->reading_sessions ?? [];
+        
+        // Find the active session
+        foreach ($sessions as $sessionId => $session) {
+            if ($session['is_active'] ?? false) {
+                $startTime = \Carbon\Carbon::parse($session['started_at']);
+                $endTime = now();
+                $durationMinutes = $startTime->diffInMinutes($endTime);
+                
+                $sessions[$sessionId] = array_merge($session, [
+                    'ended_at' => $endTime->toISOString(),
+                    'end_page' => $endPage,
+                    'pages_read' => max(0, $endPage - $session['start_page']),
+                    'duration_minutes' => $durationMinutes,
+                    'metadata' => array_merge($session['metadata'] ?? [], $metadata),
+                    'is_active' => false,
+                ]);
+                
+                break;
+            }
+        }
+
+        $this->reading_sessions = $sessions;
+        $this->total_reading_sessions = count($sessions);
+        $this->updateReadingAnalytics();
+        $this->save();
+    }
+
+    /**
+     * Update reading analytics based on sessions
+     */
+    public function updateReadingAnalytics(): void
+    {
+        $sessions = $this->reading_sessions ?? [];
+        $completedSessions = array_filter($sessions, fn($s) => !($s['is_active'] ?? false));
+        
+        if (empty($completedSessions)) {
+            return;
+        }
+
+        // Calculate average session duration
+        $totalDuration = array_sum(array_column($completedSessions, 'duration_minutes'));
+        $this->average_session_duration = $totalDuration / count($completedSessions);
+
+        // Calculate average pages per session
+        $totalPages = array_sum(array_column($completedSessions, 'pages_read'));
+        $this->pages_per_session_avg = $totalPages / count($completedSessions);
+
+        // Calculate reading speed (pages per minute)
+        if ($totalDuration > 0) {
+            $this->reading_speed_pages_per_minute = $totalPages / $totalDuration;
+        }
+
+        // Update total reading time
+        $this->reading_time_minutes = $totalDuration;
+
+        // Calculate total paused time
+        $this->total_time_paused_minutes = array_sum(array_column($completedSessions, 'paused_duration_minutes'));
+    }
+
+    /**
+     * Add pause time to current session
+     */
+    public function addPauseTime(int $pauseMinutes): void
+    {
+        $sessions = $this->reading_sessions ?? [];
+        
+        foreach ($sessions as $sessionId => $session) {
+            if ($session['is_active'] ?? false) {
+                $sessions[$sessionId]['paused_duration_minutes'] = 
+                    ($session['paused_duration_minutes'] ?? 0) + $pauseMinutes;
+                break;
+            }
+        }
+
+        $this->reading_sessions = $sessions;
+        $this->save();
+    }
+
+    /**
+     * Update reading preferences
+     */
+    public function updateReadingPreferences(array $preferences): void
+    {
+        $currentPreferences = $this->reading_preferences ?? [];
+        $this->reading_preferences = array_merge($currentPreferences, $preferences);
+        $this->save();
+    }
+
+    /**
+     * Get reading statistics
+     */
+    public function getReadingStatistics(): array
+    {
+        $sessions = $this->reading_sessions ?? [];
+        $completedSessions = array_filter($sessions, fn($s) => !($s['is_active'] ?? false));
+
+        return [
+            'total_sessions' => $this->total_reading_sessions,
+            'total_reading_time_minutes' => $this->reading_time_minutes,
+            'average_session_duration' => $this->average_session_duration,
+            'pages_per_session_avg' => $this->pages_per_session_avg,
+            'reading_speed_pages_per_minute' => $this->reading_speed_pages_per_minute,
+            'total_time_paused_minutes' => $this->total_time_paused_minutes,
+            'bookmark_count' => $this->bookmark_count,
+            'progress_percentage' => $this->progress_percentage,
+            'is_completed' => $this->is_completed,
+            'first_read_at' => $this->first_read_at,
+            'last_read_at' => $this->last_read_at,
+            'last_bookmark_at' => $this->last_bookmark_at,
+            'completed_sessions' => count($completedSessions),
+            'active_sessions' => count($sessions) - count($completedSessions),
+        ];
+    }
+
+    /**
+     * Get current active session
+     */
+    public function getCurrentSession(): ?array
+    {
+        $sessions = $this->reading_sessions ?? [];
+        
+        foreach ($sessions as $session) {
+            if ($session['is_active'] ?? false) {
+                return $session;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if user has an active reading session
+     */
+    public function hasActiveSession(): bool
+    {
+        return $this->getCurrentSession() !== null;
     }
 }

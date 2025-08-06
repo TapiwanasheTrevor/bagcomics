@@ -250,4 +250,206 @@ class AnalyticsService
             'total_purchases' => $overallPurchases,
         ];
     }
+
+    /**
+     * Generate comprehensive analytics report with export capabilities
+     */
+    public function generateComprehensiveReport(array $options = []): array
+    {
+        $days = $options['days'] ?? 30;
+        
+        return [
+            'summary' => [
+                'period' => $days . ' days',
+                'generated_at' => now()->toISOString(),
+                'platform_metrics' => $this->getPlatformMetrics($days),
+            ],
+            'revenue_analytics' => $this->getRevenueAnalytics($days),
+            'user_engagement' => $this->getUserEngagementAnalytics($days),
+            'comic_performance' => $this->getComicPerformanceAnalytics($days),
+            'conversion_metrics' => $this->getConversionAnalytics($days),
+            'realtime_metrics' => $this->getRealtimeMetrics(),
+        ];
+    }
+
+    /**
+     * Export report to CSV format
+     */
+    public function exportReportToCsv(array $data, string $filename = null): string
+    {
+        $filename = $filename ?? 'analytics_report_' . now()->format('Y_m_d_H_i_s') . '.csv';
+        $filePath = storage_path('app/public/exports/' . $filename);
+        
+        if (!file_exists(dirname($filePath))) {
+            mkdir(dirname($filePath), 0755, true);
+        }
+        
+        $csvData = [];
+        $csvData[] = ['Section', 'Metric', 'Value', 'Date'];
+        
+        // Platform metrics
+        foreach ($data['summary']['platform_metrics'] as $key => $value) {
+            $csvData[] = ['Platform', ucwords(str_replace('_', ' ', $key)), $value, $data['summary']['generated_at']];
+        }
+        
+        // Revenue data
+        if (isset($data['revenue_analytics']['daily_revenue'])) {
+            foreach ($data['revenue_analytics']['daily_revenue'] as $row) {
+                $csvData[] = ['Revenue', 'Daily Revenue', $row->revenue, $row->date];
+                $csvData[] = ['Revenue', 'Daily Transactions', $row->transactions, $row->date];
+            }
+        }
+        
+        $handle = fopen($filePath, 'w');
+        foreach ($csvData as $row) {
+            fputcsv($handle, $row);
+        }
+        fclose($handle);
+        
+        return $filePath;
+    }
+
+    /**
+     * Export report to JSON format
+     */
+    public function exportReportToJson(array $data, string $filename = null): string
+    {
+        $filename = $filename ?? 'analytics_report_' . now()->format('Y_m_d_H_i_s') . '.json';
+        $filePath = storage_path('app/public/exports/' . $filename);
+        
+        if (!file_exists(dirname($filePath))) {
+            mkdir(dirname($filePath), 0755, true);
+        }
+        
+        file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
+        
+        return $filePath;
+    }
+
+    /**
+     * Export report to PDF format (requires dompdf or similar)
+     */
+    public function exportReportToPdf(array $data, string $filename = null): string
+    {
+        $filename = $filename ?? 'analytics_report_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+        $filePath = storage_path('app/public/exports/' . $filename);
+        
+        if (!file_exists(dirname($filePath))) {
+            mkdir(dirname($filePath), 0755, true);
+        }
+        
+        // Generate HTML content for the PDF
+        $html = view('reports.analytics', compact('data'))->render();
+        
+        // This would require a PDF library like dompdf or wkhtmltopdf
+        // For now, we'll create a simple text file as placeholder
+        file_put_contents(str_replace('.pdf', '.html', $filePath), $html);
+        
+        return str_replace('.pdf', '.html', $filePath);
+    }
+
+    /**
+     * Get real-time metrics for dashboard
+     */
+    public function getRealtimeMetrics(): array
+    {
+        $now = now();
+        
+        return [
+            'online_users' => $this->getOnlineUsersCount(),
+            'active_reading_sessions' => $this->getActiveReadingSessionsCount(),
+            'revenue_today' => Payment::where('status', 'succeeded')
+                ->whereDate('paid_at', $now->toDateString())
+                ->sum('amount'),
+            'new_users_today' => User::whereDate('created_at', $now->toDateString())->count(),
+            'views_last_hour' => ComicView::where('viewed_at', '>=', $now->subHour())->count(),
+            'last_updated' => $now->toISOString(),
+        ];
+    }
+
+    /**
+     * Get subscription-specific analytics
+     */
+    public function getSubscriptionAnalytics(): array
+    {
+        $totalUsers = User::count();
+        $subscribedUsers = User::where('subscription_status', 'active')->count();
+        $trialUsers = User::where('subscription_status', 'trial')->count();
+        $canceledUsers = User::where('subscription_status', 'canceled')->count();
+        
+        $subscriptionRevenue = Payment::where('status', 'succeeded')
+            ->where('type', 'subscription')
+            ->sum('amount');
+        
+        $monthlySubscriptionRevenue = Payment::where('status', 'succeeded')
+            ->where('type', 'subscription')
+            ->whereMonth('paid_at', now()->month)
+            ->whereYear('paid_at', now()->year)
+            ->sum('amount');
+        
+        return [
+            'total_subscribers' => $subscribedUsers,
+            'trial_users' => $trialUsers,
+            'canceled_users' => $canceledUsers,
+            'conversion_rate' => $totalUsers > 0 ? ($subscribedUsers / $totalUsers) * 100 : 0,
+            'churn_rate' => ($subscribedUsers + $canceledUsers) > 0 
+                ? ($canceledUsers / ($subscribedUsers + $canceledUsers)) * 100 : 0,
+            'subscription_revenue' => $subscriptionRevenue,
+            'monthly_subscription_revenue' => $monthlySubscriptionRevenue,
+            'average_revenue_per_user' => $subscribedUsers > 0 ? $subscriptionRevenue / $subscribedUsers : 0,
+        ];
+    }
+
+    /**
+     * Get reading behavior analytics
+     */
+    public function getReadingBehaviorAnalytics(int $days = 30): array
+    {
+        $startDate = now()->subDays($days);
+        
+        $readingPatterns = UserComicProgress::select(
+                DB::raw('HOUR(last_read_at) as hour'),
+                DB::raw('COUNT(*) as sessions'),
+                DB::raw('AVG(reading_time_minutes) as avg_duration')
+            )
+            ->where('last_read_at', '>', $startDate)
+            ->groupBy(DB::raw('HOUR(last_read_at)'))
+            ->orderBy('hour')
+            ->get();
+        
+        $deviceStats = UserComicProgress::select(
+                DB::raw('device_type'),
+                DB::raw('COUNT(*) as sessions'),
+                DB::raw('AVG(reading_time_minutes) as avg_duration')
+            )
+            ->where('last_read_at', '>', $startDate)
+            ->whereNotNull('device_type')
+            ->groupBy('device_type')
+            ->get();
+        
+        return [
+            'reading_by_hour' => $readingPatterns,
+            'device_usage' => $deviceStats,
+            'average_session_length' => UserComicProgress::where('last_read_at', '>', $startDate)
+                ->avg('reading_time_minutes') ?? 0,
+            'total_reading_time' => UserComicProgress::where('last_read_at', '>', $startDate)
+                ->sum('reading_time_minutes'),
+        ];
+    }
+
+    private function getOnlineUsersCount(): int
+    {
+        // Users with activity in the last 15 minutes
+        return User::whereHas('comicProgress', function ($query) {
+            $query->where('last_read_at', '>=', now()->subMinutes(15));
+        })->count();
+    }
+
+    private function getActiveReadingSessionsCount(): int
+    {
+        // Reading sessions updated in the last 30 minutes
+        return UserComicProgress::where('last_read_at', '>=', now()->subMinutes(30))
+            ->distinct('user_id')
+            ->count();
+    }
 }

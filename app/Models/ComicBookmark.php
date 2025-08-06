@@ -60,4 +60,72 @@ class ComicBookmark extends Model
         $this->note = $note;
         $this->save();
     }
+
+    /**
+     * Get bookmarks for a specific user and comic
+     */
+    public static function getBookmarksForUserComic(User $user, Comic $comic): \Illuminate\Database\Eloquent\Collection
+    {
+        return self::where('user_id', $user->id)
+            ->where('comic_id', $comic->id)
+            ->orderBy('page_number')
+            ->get();
+    }
+
+    /**
+     * Check if a bookmark exists for a specific page
+     */
+    public static function bookmarkExistsForPage(User $user, Comic $comic, int $page): bool
+    {
+        return self::where('user_id', $user->id)
+            ->where('comic_id', $comic->id)
+            ->where('page_number', $page)
+            ->exists();
+    }
+
+    /**
+     * Remove bookmark for a specific page
+     */
+    public static function removeBookmarkForPage(User $user, Comic $comic, int $page): bool
+    {
+        return self::where('user_id', $user->id)
+            ->where('comic_id', $comic->id)
+            ->where('page_number', $page)
+            ->delete() > 0;
+    }
+
+    /**
+     * Get bookmark count for a comic
+     */
+    public static function getBookmarkCountForComic(Comic $comic): int
+    {
+        return self::where('comic_id', $comic->id)->count();
+    }
+
+    /**
+     * Get user's bookmark count
+     */
+    public static function getBookmarkCountForUser(User $user): int
+    {
+        return self::where('user_id', $user->id)->count();
+    }
+
+    /**
+     * Sync bookmarks with user progress
+     */
+    public function syncWithProgress(): void
+    {
+        $progress = UserComicProgress::where('user_id', $this->user_id)
+            ->where('comic_id', $this->comic_id)
+            ->first();
+
+        if ($progress) {
+            $progress->bookmark_count = self::where('user_id', $this->user_id)
+                ->where('comic_id', $this->comic_id)
+                ->count();
+            $progress->last_bookmark_at = now();
+            $progress->is_bookmarked = true;
+            $progress->save();
+        }
+    }
 }

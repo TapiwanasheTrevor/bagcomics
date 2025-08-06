@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useInitials } from '@/hooks/use-initials';
 import SmartPdfViewer from '@/components/SmartPdfViewer';
+import EnhancedPdfReader from '@/components/EnhancedPdfReader';
 
 import PaymentModal from '@/components/PaymentModal';
 
@@ -799,6 +800,23 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                 onClose={() => setShowPaymentModal(false)}
                 onSuccess={handlePaymentSuccess}
             />
+
+            {/* Enhanced PDF Reader */}
+            {showPdfViewer && comic.pdf_stream_url && (
+                <EnhancedPdfReader
+                    fileUrl={comic.pdf_stream_url}
+                    fileName={comic.pdf_file_name || comic.title}
+                    downloadUrl={comic.pdf_download_url}
+                    userHasDownloadAccess={comic.user_has_access}
+                    comicSlug={comic.slug}
+                    initialPage={comic.user_progress?.current_page || 1}
+                    onPageChange={(page) => {
+                        // Update local state if needed
+                        console.log('Page changed to:', page);
+                    }}
+                    onClose={() => setShowPdfViewer(false)}
+                />
+            )}
         </>
     );
 }

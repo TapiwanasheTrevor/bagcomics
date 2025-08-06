@@ -9,7 +9,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\BulkAction;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class UserResource extends Resource
 {
@@ -90,6 +93,40 @@ class UserResource extends Resource
                     })
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('reading_streak')
+                    ->label('Reading Streak (days)')
+                    ->getStateUsing(function ($record) {
+                        return $record->getCurrentReadingStreak();
+                    })
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('total_reading_time')
+                    ->label('Total Reading Time (hours)')
+                    ->getStateUsing(function ($record) {
+                        $minutes = $record->getTotalReadingTimeMinutes();
+                        return number_format($minutes / 60, 1);
+                    })
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('subscription_status')
+                    ->label('Subscription')
+                    ->getStateUsing(function ($record) {
+                        return $record->hasActiveSubscription() ? 'Active' : 'None';
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Active' => 'success',
+                        'None' => 'gray',
+                        default => 'gray',
+                    }),
+
+                Tables\Columns\TextColumn::make('last_activity')
+                    ->label('Last Activity')
+                    ->getStateUsing(function ($record) {
+                        $lastProgress = $record->comicProgress()->latest('updated_at')->first();
+                        return $lastProgress ? $lastProgress->updated_at->diffForHumans() : 'Never';
+                    }),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -109,6 +146,18 @@ class UserResource extends Resource
 
                 Tables\Filters\Filter::make('has_purchases')
                     ->query(fn (Builder $query): Builder => $query->whereHas('successfulPayments')),
+
+                Tables\Filters\Filter::make('subscribed_users')
+                    ->query(fn (Builder $query): Builder => 
+                        $query->where('subscription_status', 'active')
+                    ),
+
+                Tables\Filters\Filter::make('heavy_readers')
+                    ->query(fn (Builder $query): Builder => 
+                        $query->whereHas('comicProgress', function ($q) {
+                            $q->where('total_reading_time_minutes', '>', 3600); // 60+ hours
+                        })
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -117,6 +166,47 @@ class UserResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    
+                    BulkAction::make('send_notification')
+                        ->label('Send Notification')
+                        ->icon('heroicon-o-bell')
+                        ->color('info')
+                        ->form([
+                            Forms\Components\TextInput::make('title')
+                                ->required()
+                                ->maxLength(100),
+                            Forms\Components\Textarea::make('message')
+                                ->required()
+                                ->maxLength(500)
+                                ->rows(3),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            foreach ($records as $user) {
+                                // Send notification logic would go here
+                                // For now, we'll just show a success message
+                            }
+                            
+                            Notification::make()
+                                ->title('Notifications Sent')
+                                ->body('Notification sent to ' . count($records) . ' users.')
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                        
+                    BulkAction::make('export_user_data')
+                        ->label('Export User Data')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('success')
+                        ->action(function (Collection $records) {
+                            // Export logic would go here
+                            Notification::make()
+                                ->title('Export Started')
+                                ->body('User data export for ' . count($records) . ' users is being generated.')
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
     }

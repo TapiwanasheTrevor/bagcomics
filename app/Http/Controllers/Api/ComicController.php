@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\ComicResource;
+use App\Http\Resources\Api\ComicCollection;
+use App\Http\Requests\Api\ComicFilterRequest;
 use App\Models\Comic;
 use App\Models\ComicView;
 use Illuminate\Http\Request;
@@ -10,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 
 class ComicController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(ComicFilterRequest $request)
     {
         $query = Comic::query()
             ->where('is_visible', true)
@@ -77,25 +80,8 @@ class ComicController extends Controller
         $perPage = $request->get('per_page', $request->get('limit', 12));
         $comics = $query->paginate($perPage);
 
-        // Transform the comics to include computed fields
-        $transformedComics = collect($comics->items())->map(function ($comic) use ($request) {
-            $data = $comic->toArray();
-            
-            // Add computed fields
-            $data['cover_image_url'] = $comic->getCoverImageUrl();
-            $data['reading_time_estimate'] = $comic->getReadingTimeEstimate();
-            $data['is_new_release'] = $comic->isNewRelease();
-            
-            // Add user-specific data if authenticated
-            if ($request->user()) {
-                $data['user_progress'] = $comic->userProgress->first();
-            }
-            
-            return $data;
-        });
-
         return response()->json([
-            'data' => $transformedComics,
+            'data' => ComicResource::collection($comics->items()),
             'pagination' => [
                 'current_page' => $comics->currentPage(),
                 'last_page' => $comics->lastPage(),
@@ -105,7 +91,7 @@ class ComicController extends Controller
         ]);
     }
 
-    public function show(Comic $comic, Request $request): JsonResponse
+    public function show(Comic $comic, Request $request)
     {
         if (!$comic->is_visible) {
             return response()->json(['message' => 'Comic not found'], 404);
@@ -117,29 +103,10 @@ class ComicController extends Controller
             }
         }]);
 
-        $data = $comic->toArray();
-
-        // Add computed fields
-        $data['cover_image_url'] = $comic->getCoverImageUrl();
-        $data['reading_time_estimate'] = $comic->getReadingTimeEstimate();
-        $data['is_new_release'] = $comic->isNewRelease();
-
-        // Add PDF-related fields
-        if ($comic->is_pdf_comic && $comic->pdf_file_path) {
-            $data['pdf_stream_url'] = route('comics.stream', $comic->slug);
-            $data['pdf_download_url'] = route('comics.download', $comic->slug);
-        }
-
-        // Add user-specific data if authenticated
-        if ($request->user()) {
-            $data['user_has_access'] = $request->user()->hasAccessToComic($comic);
-            $data['user_progress'] = $comic->userProgress->first();
-        }
-
-        return response()->json($data);
+        return response()->json((new ComicResource($comic))->toArray($request));
     }
 
-    public function featured(Request $request): JsonResponse
+    public function featured(Request $request)
     {
         $featured = Comic::query()
             ->where('is_visible', true)
@@ -148,10 +115,10 @@ class ComicController extends Controller
             ->limit(6)
             ->get();
 
-        return response()->json($featured);
+        return response()->json(ComicResource::collection($featured)->toArray($request));
     }
 
-    public function newReleases(Request $request): JsonResponse
+    public function newReleases(Request $request)
     {
         $newReleases = Comic::query()
             ->where('is_visible', true)
@@ -160,7 +127,7 @@ class ComicController extends Controller
             ->limit(8)
             ->get();
 
-        return response()->json($newReleases);
+        return response()->json(ComicResource::collection($newReleases)->toArray($request));
     }
 
     public function genres(): JsonResponse
