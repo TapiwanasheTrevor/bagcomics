@@ -61,8 +61,9 @@ function UserAvatarDropdown({ user }: UserAvatarDropdownProps) {
             </DropdownMenuContent>
         </DropdownMenu>
     );
-}e
-xport default function ComicsIndex() {
+}
+
+export default function ComicsIndex() {
     const { auth } = usePage<SharedData>().props;
     const [comics, setComics] = useState<Comic[]>([]);
     const [loading, setLoading] = useState(false);
