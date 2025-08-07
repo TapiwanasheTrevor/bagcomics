@@ -115,17 +115,43 @@ fi
 # Wait for database to be ready (if using PostgreSQL)
 if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_HOST" ] && [ "$DB_HOST" != "127.0.0.1" ] && [ "$DB_HOST" != "localhost" ]; then
     echo "Waiting for PostgreSQL to be ready..."
-    timeout=60
-    while ! PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USERNAME" -d "$DB_DATABASE" -c '\q' 2>/dev/null; do
-        timeout=$((timeout - 1))
-        if [ $timeout -eq 0 ]; then
-            echo "Timeout waiting for PostgreSQL"
-            exit 1
-        fi
-        echo "PostgreSQL is unavailable - sleeping"
-        sleep 1
-    done
-    echo "PostgreSQL is ready!"
+    
+    # For Render, try shorter timeout and different connection approach
+    if [[ "$DB_HOST" == dpg-* ]]; then
+        echo "Detected Render PostgreSQL host, using optimized connection strategy"
+        timeout=30
+        
+        # Test connection with minimal timeout
+        while [ $timeout -gt 0 ]; do
+            if timeout 5 PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c 'SELECT 1;' >/dev/null 2>&1; then
+                echo "PostgreSQL is ready!"
+                break
+            fi
+            
+            timeout=$((timeout - 1))
+            if [ $timeout -eq 0 ]; then
+                echo "PostgreSQL connection timeout, but continuing deployment..."
+                echo "Connection will be attempted during Laravel initialization"
+                break
+            fi
+            
+            echo "PostgreSQL is unavailable - sleeping (${timeout}s remaining)"
+            sleep 2
+        done
+    else
+        # Standard connection check for other environments
+        timeout=60
+        while ! PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USERNAME" -d "$DB_DATABASE" -c '\q' 2>/dev/null; do
+            timeout=$((timeout - 1))
+            if [ $timeout -eq 0 ]; then
+                echo "Timeout waiting for PostgreSQL"
+                exit 1
+            fi
+            echo "PostgreSQL is unavailable - sleeping"
+            sleep 1
+        done
+        echo "PostgreSQL is ready!"
+    fi
 fi
 
 # Run database migrations
