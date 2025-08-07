@@ -134,9 +134,9 @@ class ComicSeeder extends Seeder
                     'language' => 'en',
                     'publication_year' => 2024,
                     'publisher' => 'African Comics Collective',
-                    'pdf_file_path' => 'comics/sample-comic.pdf',
+                    'pdf_file_path' => 'sample-comic.pdf',
                     'pdf_file_name' => $comicData['slug'] . '.pdf',
-                    'pdf_file_size' => file_exists(storage_path('app/public/comics/sample-comic.pdf')) ? filesize(storage_path('app/public/comics/sample-comic.pdf')) : 1024000,
+                    'pdf_file_size' => file_exists(public_path('sample-comic.pdf')) ? filesize(public_path('sample-comic.pdf')) : 1024000,
                     'pdf_mime_type' => 'application/pdf',
                     'is_pdf_comic' => true,
                     'pdf_metadata' => [

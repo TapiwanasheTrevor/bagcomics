@@ -218,12 +218,11 @@ if [[ "$SEED_CHECK" == comics:0* ]] || [[ "$SEED_CHECK" == *users:0* ]]; then
     echo "Database appears empty, running full seeding..."
     
     # Check if sample PDF exists for comics
-    if [ -f "/var/www/html/storage/app/public/comics/sample-comic.pdf" ]; then
-        echo "Sample comic PDF found in storage directory, proceeding with seeding..."
+    if [ -f "/var/www/html/public/sample-comic.pdf" ]; then
+        echo "Sample comic PDF found in public directory, proceeding with seeding..."
     else
-        echo "Warning: sample-comic.pdf not found in storage/app/public/comics/, creating placeholder..."
-        mkdir -p /var/www/html/storage/app/public/comics
-        echo "This is a placeholder PDF for demo purposes" > /var/www/html/storage/app/public/comics/sample-comic.pdf
+        echo "Warning: sample-comic.pdf not found in public/, creating placeholder..."
+        echo "This is a placeholder PDF for demo purposes" > /var/www/html/public/sample-comic.pdf
     fi
     
     # Run database seeding with error handling

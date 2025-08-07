@@ -14,7 +14,8 @@
       "Bash(git commit:*)",
       "Bash(npm run build:*)",
       "Bash(cp:*)",
-      "Bash(convert:*)"
+      "Bash(convert:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

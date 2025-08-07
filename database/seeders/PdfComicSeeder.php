@@ -30,9 +30,9 @@ class PdfComicSeeder extends Seeder
             'isbn' => '978-0-123456-78-9',
             'publication_year' => 2024,
             'publisher' => 'African Comics Collective',
-            'pdf_file_path' => 'comics/sample-comic.pdf',
+            'pdf_file_path' => 'sample-comic.pdf',
             'pdf_file_name' => 'anansi-chronicles-digital.pdf',
-            'pdf_file_size' => file_exists(storage_path('app/public/comics/sample-comic.pdf')) ? filesize(storage_path('app/public/comics/sample-comic.pdf')) : 1024000,
+            'pdf_file_size' => file_exists(public_path('sample-comic.pdf')) ? filesize(public_path('sample-comic.pdf')) : 1024000,
             'pdf_mime_type' => 'application/pdf',
             'is_pdf_comic' => true,
             'pdf_metadata' => [
@@ -68,9 +68,9 @@ class PdfComicSeeder extends Seeder
             'isbn' => null,
             'publication_year' => 2024,
             'publisher' => 'Community Comics Initiative',
-            'pdf_file_path' => 'comics/sample-comic.pdf', // Using same sample file
+            'pdf_file_path' => 'sample-comic.pdf', // Using same sample file
             'pdf_file_name' => 'ubuntu-tales-community.pdf',
-            'pdf_file_size' => file_exists(storage_path('app/public/comics/sample-comic.pdf')) ? filesize(storage_path('app/public/comics/sample-comic.pdf')) : 1024000,
+            'pdf_file_size' => file_exists(public_path('sample-comic.pdf')) ? filesize(public_path('sample-comic.pdf')) : 1024000,
             'pdf_mime_type' => 'application/pdf',
             'is_pdf_comic' => true,
             'pdf_metadata' => [
