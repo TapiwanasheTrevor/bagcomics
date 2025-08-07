@@ -259,7 +259,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
             details: {
                 url: fileUrl,
                 retryCount,
-                workerSrc,
+                workerSrc: pdfjs.GlobalWorkerOptions.workerSrc,
                 userAgent: navigator.userAgent
             }
         };
