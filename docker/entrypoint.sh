@@ -145,9 +145,9 @@ php artisan view:clear
 php artisan cache:clear
 php artisan config:cache
 
-# Only cache routes and views if not in debug mode
+# Only cache views (disable route caching temporarily)
 if [ "$APP_DEBUG" != "true" ]; then
-    php artisan route:cache
+    # php artisan route:cache  # Disabled temporarily due to route binding issues
     php artisan view:cache
 fi
 
