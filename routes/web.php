@@ -84,14 +84,26 @@ Route::match(['GET', 'OPTIONS'], '/comics/{comic:slug}/stream', [PdfStreamContro
 Route::get('/comics/{comic:slug}/stream-secure', [PdfStreamController::class, 'streamSecure'])->name('comics.stream.secure');
 Route::get('/comics/{comic:slug}/download', [PdfStreamController::class, 'download'])->name('comics.download');
 
-// Debug route to test deployment
-Route::get('/debug-stream-test', function() {
-    return response()->json([
-        'status' => 'Route working',
-        'timestamp' => now(),
-        'sample_comic' => \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first(['slug', 'pdf_file_path', 'is_pdf_comic']),
-        'file_exists' => file_exists(public_path('sample-comic.pdf')),
-        'file_size' => file_exists(public_path('sample-comic.pdf')) ? filesize(public_path('sample-comic.pdf')) : null,
+// Test route without model binding
+Route::get('/test-simple', function() {
+    return 'Simple route works - ' . now();
+});
+
+// Test streaming directly without model binding  
+Route::get('/test-stream/{slug}', function($slug) {
+    $comic = \App\Models\Comic::where('slug', $slug)->first();
+    if (!$comic) {
+        return response()->json(['error' => 'Comic not found'], 404);
+    }
+    
+    $filePath = public_path($comic->pdf_file_path);
+    if (!file_exists($filePath)) {
+        return response()->json(['error' => 'File not found: ' . $comic->pdf_file_path], 404);
+    }
+    
+    return response()->file($filePath, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline',
     ]);
 });
 
