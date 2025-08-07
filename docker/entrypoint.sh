@@ -64,6 +64,54 @@ if [ "$APP_DEBUG" != "true" ]; then
     php artisan view:cache
 fi
 
+# Set database connection details from Render environment
+echo "Configuring database connection..."
+
+# Check if DATABASE_URL is provided (Render style)
+if [ -n "$DATABASE_URL" ]; then
+    echo "Using DATABASE_URL for connection"
+    # Parse DATABASE_URL for PostgreSQL
+    # Format: postgresql://username:password@host:port/database
+    export DB_CONNECTION="pgsql"
+    
+    # Extract components from DATABASE_URL
+    # Remove postgresql:// prefix
+    DB_URL_NO_PREFIX="${DATABASE_URL#postgresql://}"
+    
+    # Extract username:password
+    DB_CREDENTIALS="${DB_URL_NO_PREFIX%%@*}"
+    export DB_USERNAME="${DB_CREDENTIALS%%:*}"
+    export DB_PASSWORD="${DB_CREDENTIALS#*:}"
+    
+    # Extract host:port/database
+    DB_HOST_PORT_DB="${DB_URL_NO_PREFIX#*@}"
+    
+    # Extract host and port
+    DB_HOST_PORT="${DB_HOST_PORT_DB%%/*}"
+    export DB_HOST="${DB_HOST_PORT%%:*}"
+    
+    # Check if port is specified or use default
+    if [[ "$DB_HOST_PORT" == *":"* ]]; then
+        export DB_PORT="${DB_HOST_PORT#*:}"
+    else
+        export DB_PORT="5432"
+    fi
+    
+    # Extract database name
+    export DB_DATABASE="${DB_HOST_PORT_DB##*/}"
+    
+    echo "Database config: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
+else
+    # Use individual environment variables if DATABASE_URL not provided
+    export DB_CONNECTION="${DB_CONNECTION:-pgsql}"
+    export DB_HOST="${DB_HOST:-dpg-d2a2nrh5pdvs73aaf51g-a}"
+    export DB_PORT="${DB_PORT:-5432}"
+    export DB_DATABASE="${DB_DATABASE:-bagcomics_db}"
+    export DB_USERNAME="${DB_USERNAME:-bagcomics}"
+    export DB_PASSWORD="${DB_PASSWORD:-fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6}"
+    echo "Using individual DB env vars: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
+fi
+
 # Wait for database to be ready (if using PostgreSQL)
 if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_HOST" ] && [ "$DB_HOST" != "127.0.0.1" ] && [ "$DB_HOST" != "localhost" ]; then
     echo "Waiting for PostgreSQL to be ready..."
