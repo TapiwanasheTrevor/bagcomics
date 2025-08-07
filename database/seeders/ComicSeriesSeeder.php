@@ -56,13 +56,23 @@ class ComicSeriesSeeder extends Seeder
             // Create some issues for each series
             $issueCount = rand(5, 15);
             for ($i = 1; $i <= $issueCount; $i++) {
-                Comic::factory()->create([
+                Comic::create([
                     'series_id' => $comicSeries->id,
                     'issue_number' => $i,
                     'title' => $comicSeries->name . ' #' . $i,
+                    'slug' => \Illuminate\Support\Str::slug($comicSeries->name . ' ' . $i),
                     'author' => $this->getAuthorForSeries($comicSeries->name),
                     'publisher' => $comicSeries->publisher,
                     'genre' => $this->getGenreForSeries($comicSeries->name),
+                    'description' => 'Issue #' . $i . ' of ' . $comicSeries->name . ' comic series.',
+                    'page_count' => rand(20, 32),
+                    'average_rating' => round(rand(30, 50) / 10, 1),
+                    'total_ratings' => rand(10, 100),
+                    'total_readers' => rand(50, 500),
+                    'is_free' => $i <= 3, // First 3 issues free
+                    'price' => $i <= 3 ? 0 : rand(199, 499) / 100,
+                    'language' => 'English',
+                    'published_at' => now()->subDays(rand(30, 365)),
                 ]);
             }
             
@@ -87,11 +97,23 @@ class ComicSeriesSeeder extends Seeder
             
             $issueCount = rand(3, 8);
             for ($i = 1; $i <= $issueCount; $i++) {
-                Comic::factory()->create([
+                Comic::create([
                     'series_id' => $series->id,
                     'issue_number' => $i,
                     'title' => $series->name . ' #' . $i,
+                    'slug' => \Illuminate\Support\Str::slug($series->name . ' ' . $i),
+                    'author' => $this->getAuthorForSeries($series->name),
                     'publisher' => $series->publisher,
+                    'genre' => $this->getGenreForSeries($series->name),
+                    'description' => 'Issue #' . $i . ' of ' . $series->name . ' comic series.',
+                    'page_count' => rand(20, 32),
+                    'average_rating' => round(rand(30, 50) / 10, 1),
+                    'total_ratings' => rand(10, 100),
+                    'total_readers' => rand(50, 500),
+                    'is_free' => $i <= 2, // First 2 issues free
+                    'price' => $i <= 2 ? 0 : rand(199, 399) / 100,
+                    'language' => 'English',
+                    'published_at' => now()->subDays(rand(30, 180)),
                 ]);
             }
             $series->updateTotalIssues();
@@ -108,7 +130,8 @@ class ComicSeriesSeeder extends Seeder
             'Watchmen' => 'Alan Moore',
         ];
 
-        return $authors[$seriesName] ?? fake()->name();
+        $fallbackAuthors = ['John Smith', 'Jane Doe', 'Mike Johnson', 'Sarah Wilson', 'David Brown'];
+        return $authors[$seriesName] ?? $fallbackAuthors[array_rand($fallbackAuthors)];
     }
 
     private function getGenreForSeries(string $seriesName): string
@@ -121,6 +144,7 @@ class ComicSeriesSeeder extends Seeder
             'Watchmen' => 'Superhero',
         ];
 
-        return $genres[$seriesName] ?? fake()->randomElement(['Action', 'Adventure', 'Drama', 'Fantasy', 'Mystery']);
+        $fallbackGenres = ['Action', 'Adventure', 'Drama', 'Fantasy', 'Mystery'];
+        return $genres[$seriesName] ?? $fallbackGenres[array_rand($fallbackGenres)];
     }
 }
