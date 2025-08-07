@@ -139,10 +139,20 @@ grep '^DB_' /var/www/html/.env || echo "No DB_ variables found in .env"
 
 # Clear and cache config AFTER setting database configuration
 echo "Optimizing application..."
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
-php artisan cache:clear
+echo "Clearing all Laravel caches..."
+php artisan config:clear || echo "Config clear failed"
+php artisan route:clear || echo "Route clear failed"  
+php artisan view:clear || echo "View clear failed"
+php artisan cache:clear || echo "Cache clear failed"
+php artisan event:clear || echo "Event clear failed"
+
+# Remove cached files manually
+echo "Removing cache files manually..."
+rm -rf /var/www/html/bootstrap/cache/*.php || echo "No bootstrap cache files"
+rm -rf /var/www/html/storage/framework/cache/data/* || echo "No cache data"
+rm -rf /var/www/html/storage/framework/views/* || echo "No compiled views"
+
+echo "Rebuilding config cache..."
 php artisan config:cache
 
 # Only cache views (disable route caching temporarily)
