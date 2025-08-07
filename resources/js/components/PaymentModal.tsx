@@ -180,7 +180,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ comic, onSuccess, onClose }) 
 
         setRetryCount(prev => prev + 1);
         setError(null);
-        await createPaymentIntent();
+        // Try submitting the payment form again
+        const form = document.querySelector('form');
+        if (form) {
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }
     };
 
     const formatPrice = (price: number): string => {
