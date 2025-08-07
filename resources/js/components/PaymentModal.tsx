@@ -37,6 +37,7 @@ interface PurchaseConfirmationProps {
 
 interface PaymentFormProps {
     comic: Comic;
+    clientSecret: string;
     onSuccess: (payment: PaymentResult) => void;
     onClose: () => void;
 }
@@ -54,7 +55,7 @@ interface PaymentError {
     retryable: boolean;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ comic, onSuccess, onClose }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ comic, clientSecret, onSuccess, onClose }) => {
     const stripe = useStripe();
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -91,15 +92,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ comic, onSuccess, onClose }) 
                     throw new Error('Payment element not found');
                 }
 
-                // Get client secret from the Elements context
-                const { error: retrieveError, clientSecret } = await stripe.retrievePaymentIntent(
-                    elements.getElement(PaymentElement)?.clientSecret || ''
-                );
-                
-                if (retrieveError || !clientSecret) {
-                    throw new Error('Unable to retrieve payment details');
-                }
-                
+                // Use the clientSecret from props for Card Element
                 result = await stripe.confirmCardPayment(clientSecret, {
                     payment_method: {
                         card: cardElement,
@@ -515,6 +508,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ comic, isOpen, onClose, onS
                         >
                             <PaymentForm
                                 comic={comic}
+                                clientSecret={clientSecret}
                                 onSuccess={handlePaymentSuccess}
                                 onClose={handleClose}
                             />

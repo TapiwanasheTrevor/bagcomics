@@ -62,10 +62,11 @@ class ComicView extends Model
             // Update comic view counts
             $comic->increment('view_count');
             
-            // Update unique viewers count
-            $uniqueViewers = static::where('comic_id', $comic->id)
-                ->distinct()
-                ->count('COALESCE(user_id, ip_address)');
+            // Update unique viewers count using raw SQL for PostgreSQL compatibility
+            $uniqueViewers = \DB::select(
+                'SELECT COUNT(DISTINCT COALESCE(user_id::text, ip_address)) as count FROM comic_views WHERE comic_id = ?',
+                [$comic->id]
+            )[0]->count ?? 0;
             
             $comic->update(['unique_viewers' => $uniqueViewers]);
         }
