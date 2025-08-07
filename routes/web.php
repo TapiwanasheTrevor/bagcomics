@@ -89,50 +89,48 @@ Route::get('/test-simple', function() {
     return 'Simple route works - ' . now();
 });
 
-// Debug PDF URL generation
+// Debug PDF URL generation  
 Route::get('/debug-pdf-url', function() {
     $comic = \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first();
     if (!$comic) {
-        return response()->json(['error' => 'Comic not found']);
+        return response()->json(['error' => 'Comic not found - run /reseed-sample-comic first']);
     }
-    
-    $comicData = $comic->toArray();
-    $comicData['pdf_stream_url'] = $comic->getPdfUrl();
-    $comicData['pdf_download_url'] = $comic->getPdfUrl();
     
     return response()->json([
         'comic_title' => $comic->title,
-        'pdf_file_path_in_db' => $comic->pdf_file_path,
-        'getPdfUrl_returns' => $comic->getPdfUrl(),
+        'pdf_file_path' => $comic->pdf_file_path,
+        'getPdfUrl' => $comic->getPdfUrl(),
         'file_exists_public' => file_exists(public_path($comic->pdf_file_path)) ? 'YES' : 'NO',
-        'file_exists_storage' => file_exists(storage_path('app/public/' . $comic->pdf_file_path)) ? 'YES' : 'NO',
-        'public_path_check' => public_path($comic->pdf_file_path),
-        'storage_path_check' => storage_path('app/public/' . $comic->pdf_file_path),
-        'asset_public' => asset($comic->pdf_file_path),
-        'asset_storage' => asset('storage/' . $comic->pdf_file_path),
-        'frontend_data' => [
-            'pdf_stream_url' => $comicData['pdf_stream_url'],
-            'pdf_download_url' => $comicData['pdf_download_url'],
-        ]
+        'public_path' => public_path($comic->pdf_file_path),
+        'direct_url_test' => 'https://bagcomics.onrender.com/' . $comic->pdf_file_path,
     ]);
 });
 
-// Fix PDF path route
-Route::get('/fix-pdf-path', function() {
-    $comic = \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first();
-    if (!$comic) {
-        return response()->json(['error' => 'Comic not found']);
+// Reseed with clean sample comic
+Route::get('/reseed-sample-comic', function() {
+    try {
+        // Run the sample comic seeder
+        Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\SampleComicSeeder']);
+        
+        $comic = \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Sample comic reseeded successfully',
+            'comic' => [
+                'title' => $comic->title,
+                'slug' => $comic->slug,
+                'pdf_file_path' => $comic->pdf_file_path,
+                'getPdfUrl' => $comic->getPdfUrl(),
+                'file_exists' => file_exists(public_path($comic->pdf_file_path)) ? 'YES' : 'NO'
+            ]
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
     }
-    
-    $before = $comic->pdf_file_path;
-    $comic->pdf_file_path = 'sample-comic.pdf';
-    $comic->save();
-    
-    return response()->json([
-        'before' => $before,
-        'after' => $comic->pdf_file_path,
-        'getPdfUrl_now_returns' => $comic->getPdfUrl(),
-    ]);
 });
 
 // Test streaming directly without model binding  
