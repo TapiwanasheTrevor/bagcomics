@@ -231,6 +231,24 @@ Route::get('/make-admin/{email?}', function($email = null) {
     }
 });
 
+// Check admin users
+Route::get('/check-admins', function() {
+    $users = \App\Models\User::select('id', 'name', 'email', 'is_admin', 'created_at')->get();
+    
+    return response()->json([
+        'total_users' => $users->count(),
+        'admin_users' => $users->where('is_admin', true)->values(),
+        'all_users' => $users->map(function($user) {
+            return [
+                'id' => $user->id,
+                'email' => $user->email,
+                'is_admin' => $user->is_admin ?? false,
+                'can_access_panel' => method_exists($user, 'canAccessPanel') ? 'yes' : 'no'
+            ];
+        })
+    ]);
+});
+
 // Test streaming directly without model binding  
 Route::get('/test-stream/{slug}', function($slug) {
     $comic = \App\Models\Comic::where('slug', $slug)->first();
