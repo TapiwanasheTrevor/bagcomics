@@ -511,13 +511,13 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
     }, [currentPage, numPages]);
 
     return (
-        <div className={`fixed inset-0 z-50 bg-gray-900 text-white flex flex-col ${settings.theme === 'light' ? 'bg-gray-100 text-gray-900' : settings.theme === 'sepia' ? 'bg-amber-50 text-amber-900' : ''}`}>
+        <div className={`fixed inset-0 z-50 bg-black text-white flex flex-col ${settings.theme === 'light' ? 'bg-gray-100 text-gray-900' : settings.theme === 'sepia' ? 'bg-amber-50 text-amber-900' : ''}`}>
             {/* Top Controls */}
-            <div className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 p-2 sm:p-4 flex items-center justify-between flex-shrink-0">
+            <div className="bg-black/95 backdrop-blur-sm border-b border-red-500/30 p-2 sm:p-4 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                     <button
                         onClick={onClose}
-                        className="p-1.5 sm:p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
+                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                         title="Close Reader"
                     >
                         <X className="h-4 w-4" />
@@ -536,7 +536,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                         <button
                             onClick={() => goToPage(1)}
                             disabled={currentPage <= 1}
-                            className="p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
                             title="First Page"
                         >
                             <SkipBack className="h-4 w-4" />
@@ -546,7 +546,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <button
                         onClick={goToPrevPage}
                         disabled={currentPage <= 1}
-                        className="p-1.5 sm:p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
                         title="Previous Page"
                     >
                         <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -555,7 +555,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <div className="hidden sm:block">
                         <button
                             onClick={toggleAutoPlay}
-                            className={`p-2 rounded-lg transition-colors ${isAutoPlaying ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
+                            className={`p-2 rounded-lg border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50 ${isAutoPlaying ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' : 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'}`}
                             title={isAutoPlaying ? "Pause Auto-advance" : "Start Auto-advance"}
                         >
                             {isAutoPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -565,7 +565,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <button
                         onClick={goToNextPage}
                         disabled={currentPage >= numPages}
-                        className="p-1.5 sm:p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
                         title="Next Page"
                     >
                         <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -575,20 +575,20 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                         <button
                             onClick={() => goToPage(numPages)}
                             disabled={currentPage >= numPages}
-                            className="p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
                             title="Last Page"
                         >
                             <SkipForward className="h-4 w-4" />
                         </button>
                     </div>
 
-                    <div className="w-px h-4 sm:h-6 bg-gray-600 mx-1 sm:mx-2" />
+                    <div className="w-px h-4 sm:h-6 bg-red-500/30 mx-1 sm:mx-2" />
 
                     {/* Zoom Controls */}
                     <button
                         onClick={zoomOut}
                         disabled={scale <= 0.5}
-                        className="p-1.5 sm:p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Zoom Out"
                     >
                         <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -601,7 +601,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <button
                         onClick={zoomIn}
                         disabled={scale >= 3.0}
-                        className="p-1.5 sm:p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Zoom In"
                     >
                         <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -610,19 +610,19 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <div className="hidden sm:block">
                         <button
                             onClick={resetZoom}
-                            className="p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
+                            className="p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                             title="Reset Zoom"
                         >
                             <Home className="h-4 w-4" />
                         </button>
                     </div>
 
-                    <div className="w-px h-4 sm:h-6 bg-gray-600 mx-1 sm:mx-2" />
+                    <div className="w-px h-4 sm:h-6 bg-red-500/30 mx-1 sm:mx-2" />
 
                     {/* Feature Controls */}
                     <button
                         onClick={toggleBookmark}
-                        className={`p-1.5 sm:p-2 rounded-lg transition-colors ${isBookmarked ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
+                        className={`p-1.5 sm:p-2 rounded-lg border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50 ${isBookmarked ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' : 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'}`}
                         title={isBookmarked ? "Remove Bookmark" : "Add Bookmark"}
                     >
                         {isBookmarked ? <BookmarkCheck className="h-3 w-3 sm:h-4 sm:w-4" /> : <Bookmark className="h-3 w-3 sm:h-4 sm:w-4" />}
@@ -631,7 +631,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <div className="hidden sm:block">
                         <button
                             onClick={() => setShowBookmarkPanel(!showBookmarkPanel)}
-                            className="p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
+                            className="p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                             title="Show Bookmarks"
                         >
                             <List className="h-4 w-4" />
@@ -641,7 +641,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <div className="hidden md:block">
                         <button
                             onClick={() => setShowThumbnails(!showThumbnails)}
-                            className="p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
+                            className="p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                             title="Show Thumbnails"
                         >
                             <Grid3X3 className="h-4 w-4" />
@@ -650,7 +650,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
 
                     <button
                         onClick={() => setShowSettingsPanel(!showSettingsPanel)}
-                        className="p-1.5 sm:p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
+                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                         title="Reader Settings"
                     >
                         <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -660,11 +660,11 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
 
             {/* Progress Bar */}
             {showProgressBar && (
-                <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
+                <div className="bg-black px-4 py-2 border-b border-red-500/30">
                     <div className="flex items-center gap-4">
-                        <div className="flex-1 bg-gray-700 rounded-full h-2">
+                        <div className="flex-1 bg-red-500/20 border border-red-500/30 rounded-full h-2">
                             <div 
-                                className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                                className="bg-red-500 h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${progressPercentage}%` }}
                             />
                         </div>
@@ -681,22 +681,22 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     {/* PDF Viewer */}
                     <div
                         ref={containerRef}
-                        className="h-full bg-gray-800 overflow-auto flex items-center justify-center"
+                        className="h-full bg-black overflow-auto flex items-center justify-center"
                         style={{
                             cursor: isPanning ? 'grabbing' : 'grab'
                         }}
                     >
                         {loading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 z-10">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                                 <div className="text-center">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
                                     <p className="text-gray-300">Loading PDF...</p>
                                 </div>
                             </div>
                         )}
 
                         {error && !loading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 z-10">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                                 <div className="text-center max-w-md p-6">
                                     <div className="text-red-400 mb-4">
                                         <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -707,7 +707,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                     <p className="text-gray-300 mb-4">{error}</p>
                                     <button
                                         onClick={() => window.location.reload()}
-                                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                                     >
                                         <RefreshCw className="w-4 h-4 inline mr-2" />
                                         Retry
@@ -746,7 +746,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                     rotate={rotation}
                                     loading={
                                         <div className="text-center text-gray-300 p-8">
-                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500 mx-auto mb-2"></div>
+                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500 mx-auto mb-2"></div>
                                             <p className="text-sm">Loading page {currentPage}...</p>
                                         </div>
                                     }
@@ -773,13 +773,13 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
 
                 {/* Bookmark Panel */}
                 {showBookmarkPanel && (
-                    <div className="w-full sm:w-80 bg-gray-800 border-l border-gray-700 flex flex-col absolute sm:relative inset-0 sm:inset-auto z-10 sm:z-auto">
-                        <div className="p-4 border-b border-gray-700">
+                    <div className="w-full sm:w-80 bg-black border-l border-red-500/30 flex flex-col absolute sm:relative inset-0 sm:inset-auto z-10 sm:z-auto">
+                        <div className="p-4 border-b border-red-500/30">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold">Bookmarks</h3>
                                 <button
                                     onClick={() => setShowBookmarkPanel(false)}
-                                    className="p-1 rounded hover:bg-gray-700 transition-colors"
+                                    className="p-1 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300"
                                 >
                                     <X className="h-4 w-4" />
                                 </button>
@@ -793,7 +793,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                     {bookmarks.map((bookmark) => (
                                         <div
                                             key={bookmark.id}
-                                            className="p-3 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+                                            className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/30 transition-all duration-300"
                                             onClick={() => goToPage(bookmark.page)}
                                         >
                                             <div className="flex items-center justify-between">
@@ -815,13 +815,13 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
 
                 {/* Settings Panel */}
                 {showSettingsPanel && (
-                    <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
-                        <div className="p-4 border-b border-gray-700">
+                    <div className="w-80 bg-black border-l border-red-500/30 flex flex-col">
+                        <div className="p-4 border-b border-red-500/30">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold">Reader Settings</h3>
                                 <button
                                     onClick={() => setShowSettingsPanel(false)}
-                                    className="p-1 rounded hover:bg-gray-700 transition-colors"
+                                    className="p-1 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300"
                                 >
                                     <X className="h-4 w-4" />
                                 </button>
@@ -834,7 +834,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                 <select
                                     value={settings.theme}
                                     onChange={(e) => setSettings(prev => ({ ...prev, theme: e.target.value as any }))}
-                                    className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                                    className="w-full p-2 bg-red-500/20 border border-red-500/30 rounded-lg text-white hover:bg-red-500/30 transition-all duration-300"
                                 >
                                     <option value="dark">Dark</option>
                                     <option value="light">Light</option>
@@ -875,7 +875,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                 <select
                                     value={settings.fitMode}
                                     onChange={(e) => setSettings(prev => ({ ...prev, fitMode: e.target.value as any }))}
-                                    className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                                    className="w-full p-2 bg-red-500/20 border border-red-500/30 rounded-lg text-white hover:bg-red-500/30 transition-all duration-300"
                                 >
                                     <option value="width">Fit Width</option>
                                     <option value="height">Fit Height</option>

@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { type SharedData } from '@/types';
-import { Home, Library, User, Menu, X, Book, Grid, List, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Grid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useInitials } from '@/hooks/use-initials';
 import ComicGrid, { type Comic } from '@/components/ComicGrid';
 import FilterSidebar, { type FilterOptions } from '@/components/FilterSidebar';
 import SearchBar from '@/components/SearchBar';
 import SortDropdown, { discoverySortOptions } from '@/components/SortDropdown';
+import NavBar from '@/components/NavBar';
 
 interface ComicsResponse {
     data: Comic[];
@@ -21,47 +19,6 @@ interface ComicsResponse {
     };
 }
 
-// User Avatar Dropdown Component
-interface UserAvatarDropdownProps {
-    user: any;
-}
-
-function UserAvatarDropdown({ user }: UserAvatarDropdownProps) {
-    const getInitials = useInitials();
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <button className="flex items-center space-x-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-all duration-300 hover:bg-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500/50">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
-                            {getInitials(user.name)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <ChevronDown className="h-4 w-4 opacity-70" />
-                </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
-                <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                    <DropdownMenuItem asChild>
-                        <Link href="/dashboard" className="flex items-center cursor-pointer">
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
-                        </Link>
-                    </DropdownMenuItem>
-                </DropdownMenuGroup>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
 
 export default function ComicsIndex() {
     const { auth } = usePage<SharedData>().props;
@@ -70,7 +27,6 @@ export default function ComicsIndex() {
     const [hasMore, setHasMore] = useState(true);
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState('published_at');
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
     const [pagination, setPagination] = useState({
@@ -102,7 +58,7 @@ export default function ComicsIndex() {
 
     // Refetch when filters change
     useEffect(() => {
-        if (pagination.current_page === 1) {
+        if (!pagination || pagination.current_page === 1) {
             fetchComics(true);
         } else {
             setPagination(prev => ({ ...prev, current_page: 1 }));
@@ -111,10 +67,10 @@ export default function ComicsIndex() {
 
     // Refetch when page changes
     useEffect(() => {
-        if (pagination.current_page > 1) {
+        if (pagination && pagination.current_page > 1) {
             fetchComics(false);
         }
-    }, [pagination.current_page]);
+    }, [pagination?.current_page]);
 
     const loadRecentSearches = () => {
         try {
@@ -145,10 +101,10 @@ export default function ComicsIndex() {
     const fetchComics = async (reset = false) => {
         setLoading(true);
         try {
-            const page = reset ? 1 : pagination.current_page;
+            const page = reset ? 1 : (pagination?.current_page || 1);
             const params = new URLSearchParams({
                 page: page.toString(),
-                per_page: pagination.per_page.toString(),
+                per_page: (pagination?.per_page || 20).toString(),
                 sort_by: sortBy,
                 sort_order: 'desc',
             });
@@ -177,13 +133,18 @@ export default function ComicsIndex() {
             const data: ComicsResponse = await response.json();
 
             if (reset) {
-                setComics(data.data);
+                setComics(data.data || []);
             } else {
-                setComics(prev => [...prev, ...data.data]);
+                setComics(prev => [...prev, ...(data.data || [])]);
             }
 
-            setPagination(data.pagination);
-            setHasMore(data.pagination.current_page < data.pagination.last_page);
+            if (data.pagination) {
+                setPagination(data.pagination);
+                setHasMore(data.pagination.current_page < data.pagination.last_page);
+            } else {
+                // If no pagination info, assume we have all data
+                setHasMore(false);
+            }
         } catch (error) {
             console.error('Error fetching comics:', error);
         } finally {
@@ -192,10 +153,10 @@ export default function ComicsIndex() {
     };
 
     const handleLoadMore = useCallback(() => {
-        if (!loading && hasMore) {
-            setPagination(prev => ({ ...prev, current_page: prev.current_page + 1 }));
+        if (!loading && hasMore && pagination) {
+            setPagination(prev => ({ ...prev, current_page: (prev?.current_page || 1) + 1 }));
         }
-    }, [loading, hasMore]);
+    }, [loading, hasMore, pagination]);
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -248,88 +209,14 @@ export default function ComicsIndex() {
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
             <div className="min-h-screen bg-black text-white">
-                {/* Header */}
-                <header className="bg-black/95 backdrop-blur-sm border-b border-red-900/30 sticky top-0 z-50">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between h-16">
-                            {/* Logo */}
-                            <div className="flex items-center space-x-4">
-                                <Link href="/" className="flex items-center space-x-3">
-                                    <img 
-                                        src="/images/image.png" 
-                                        alt="BAG Comics Logo" 
-                                        className="h-8 w-auto"
-                                    />
-                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
-                                        BAG Comics
-                                    </div>
-                                </Link>
-                            </div>
-
-                            {/* Desktop Navigation */}
-                            <nav className="hidden md:flex items-center space-x-8">
-                                <Link
-                                    href="/"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                >
-                                    <Home className="w-4 h-4" />
-                                    <span>Home</span>
-                                </Link>
-                                <Link
-                                    href="/comics"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-red-500/30"
-                                >
-                                    <Book className="w-4 h-4" />
-                                    <span>Explore</span>
-                                </Link>
-                                {auth.user && (
-                                    <Link
-                                        href="/library"
-                                        className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                    >
-                                        <Library className="w-4 h-4" />
-                                        <span>Library</span>
-                                    </Link>
-                                )}
-                            </nav>
-
-                            {/* Search Bar */}
-                            <div className="hidden md:flex items-center space-x-4">
-                                <SearchBar
-                                    value={search}
-                                    onChange={setSearch}
-                                    onSearch={handleSearch}
-                                    placeholder="Search comics, authors, genres..."
-                                    className="w-80"
-                                    recentSearches={recentSearches}
-                                    onRecentSearchClick={handleSearch}
-                                    onClearRecentSearches={clearRecentSearches}
-                                />
-
-                                {/* User Account */}
-                                {auth.user ? (
-                                    <UserAvatarDropdown user={auth.user} />
-                                ) : (
-                                    <Link
-                                        href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
-                                    >
-                                        <User className="w-4 h-4" />
-                                        <span className="text-sm">Sign In</span>
-                                    </Link>
-                                )}
-                            </div>
-
-                            {/* Mobile Menu Button */}
-                            <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors"
-                            >
-                                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                            </button>
-                        </div>
-                    </div>
-                </header>       
+                <NavBar 
+                    auth={auth} 
+                    currentPage="comics"
+                    searchValue={search}
+                    onSearchChange={setSearch}
+                    onSearch={handleSearch}
+                />
+                
          {/* Main Content */}
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}

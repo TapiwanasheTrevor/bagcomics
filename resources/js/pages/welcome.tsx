@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Star, Play, Bookmark, TrendingUp, Clock, Gift, Search, User, Menu, X, Book, Library, Home, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useInitials } from '@/hooks/use-initials';
+import { ChevronLeft, ChevronRight, Star, Play, Bookmark, TrendingUp, Clock, Gift, Book } from 'lucide-react';
+import NavBar from '@/components/NavBar';
 
 interface Comic {
     id: number;
@@ -19,71 +17,6 @@ interface Comic {
     reading_time_estimate?: number;
 }
 
-// User Avatar Dropdown Component
-interface UserAvatarDropdownProps {
-    user: any;
-}
-
-function UserAvatarDropdown({ user }: UserAvatarDropdownProps) {
-    const getInitials = useInitials();
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <button className="flex items-center space-x-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-all duration-300 hover:bg-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500/50">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
-                            {getInitials(user.name)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <ChevronDown className="h-4 w-4 opacity-70" />
-                </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
-                <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                    <DropdownMenuItem asChild>
-                        <Link href="/dashboard" className="flex items-center cursor-pointer">
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                        <Link href="/settings/profile" className="flex items-center cursor-pointer">
-                            <Settings className="mr-2 h-4 w-4" />
-                            <span>Settings</span>
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                        <Link href="/library" className="flex items-center cursor-pointer">
-                            <Library className="mr-2 h-4 w-4" />
-                            <span>My Library</span>
-                        </Link>
-                    </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild variant="destructive">
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="flex items-center cursor-pointer w-full"
-                    >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
-                    </Link>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
 
 export default function Welcome() {
     const { auth, cms } = usePage<SharedData>().props;
@@ -92,7 +25,6 @@ export default function Welcome() {
     const [trendingComics, setTrendingComics] = useState<Comic[]>([]);
     const [newComics, setNewComics] = useState<Comic[]>([]);
     const [freeComics, setFreeComics] = useState<Comic[]>([]);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -157,197 +89,16 @@ export default function Welcome() {
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
             <div className="min-h-screen bg-black text-white">
-                {/* Header */}
-                <header className="bg-black/95 backdrop-blur-sm border-b border-red-900/30 sticky top-0 z-50">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between h-16">
-                            {/* Logo */}
-                            <div className="flex items-center space-x-4">
-                                <Link href="/" className="flex items-center space-x-3">
-                                    <img 
-                                        src="/images/image.png" 
-                                        alt="BAG Comics Logo" 
-                                        className="h-8 w-auto"
-                                    />
-                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
-                                        {cms?.navigation?.site_name?.content || 'BAG Comics'}
-                                    </div>
-                                </Link>
-                            </div>
-
-                            {/* Desktop Navigation */}
-                            <nav className="hidden md:flex items-center space-x-8">
-                                <Link
-                                    href="/"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-red-500/30"
-                                >
-                                    <Home className="w-4 h-4" />
-                                    <span>Home</span>
-                                </Link>
-                                <Link
-                                    href="/comics"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                >
-                                    <Book className="w-4 h-4" />
-                                    <span>Explore</span>
-                                </Link>
-                                {auth.user && (
-                                    <Link
-                                        href="/library"
-                                        className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                    >
-                                        <Library className="w-4 h-4" />
-                                        <span>Library</span>
-                                    </Link>
-                                )}
-                            </nav>
-
-                            {/* Search Bar */}
-                            <div className="hidden md:flex items-center space-x-4">
-                                <div className="relative">
-                                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search comics..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
-                                    />
-                                </div>
-
-                                {/* User Account */}
-                                {auth.user ? (
-                                    <UserAvatarDropdown user={auth.user} />
-                                ) : (
-                                    <Link
-                                        href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
-                                    >
-                                        <User className="w-4 h-4" />
-                                        <span className="text-sm">Sign In</span>
-                                    </Link>
-                                )}
-                            </div>
-
-                            {/* Mobile Menu Button */}
-                            <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors"
-                            >
-                                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                            </button>
-                        </div>
-
-                        {/* Mobile Menu */}
-                        {isMenuOpen && (
-                            <div className="md:hidden py-4 border-t border-gray-700">
-                                <div className="flex flex-col space-y-2">
-                                    <Link
-                                        href="/"
-                                        className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-red-500/30"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <Home className="w-5 h-5" />
-                                        <span>Home</span>
-                                    </Link>
-                                    <Link
-                                        href="/comics"
-                                        className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <Book className="w-5 h-5" />
-                                        <span>Explore</span>
-                                    </Link>
-                                    {auth.user && (
-                                        <Link
-                                            href="/library"
-                                            className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <Library className="w-5 h-5" />
-                                            <span>Library</span>
-                                        </Link>
-                                    )}
-
-                                    <div className="px-4 py-2">
-                                        <div className="relative">
-                                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search comics..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {auth.user ? (
-                                        <div className="mx-4 space-y-2">
-                                            <div className="flex items-center space-x-3 px-4 py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={auth.user.avatar} alt={auth.user.name} />
-                                                    <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
-                                                        {useInitials()(auth.user.name)}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-semibold">{auth.user.name || 'User'}</p>
-                                                    <p className="text-xs text-red-300">{auth.user.email}</p>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Link
-                                                    href="/dashboard"
-                                                    className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    <User className="w-4 h-4" />
-                                                    <span>Profile</span>
-                                                </Link>
-                                                <Link
-                                                    href="/settings/profile"
-                                                    className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    <Settings className="w-4 h-4" />
-                                                    <span>Settings</span>
-                                                </Link>
-                                                <Link
-                                                    href="/library"
-                                                    className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    <Library className="w-4 h-4" />
-                                                    <span>My Library</span>
-                                                </Link>
-                                                <Link
-                                                    href={route('logout')}
-                                                    method="post"
-                                                    as="button"
-                                                    className="flex items-center space-x-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-lg transition-colors w-full text-left"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                >
-                                                    <LogOut className="w-4 h-4" />
-                                                    <span>Log out</span>
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <Link
-                                            href="/login"
-                                            className="mx-4 flex items-center justify-center space-x-2 px-4 py-3 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg transition-all duration-300"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <User className="w-5 h-5" />
-                                            <span>Sign In</span>
-                                        </Link>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </header>
+                <NavBar 
+                    auth={auth} 
+                    currentPage="home"
+                    searchValue={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onSearch={(query) => {
+                        // Universal search - redirect to comics page with search
+                        window.location.href = `/comics?search=${encodeURIComponent(query)}`;
+                    }}
+                />
                 {/* Main Content */}
                 <main className="flex-1">
                     {loading ? (

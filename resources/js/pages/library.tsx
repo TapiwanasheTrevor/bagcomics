@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { type SharedData } from '@/types';
-import { BookOpen, Star, Clock, Download, Play, Heart, Filter, Grid, List, Search, Home, Library as LibraryIcon, User, Menu, X, Book, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useInitials } from '@/hooks/use-initials';
-import UserAvatarDropdown from '@/components/UserAvatarDropdown';
-import UserMobileMenu from '@/components/UserMobileMenu';
+import { BookOpen, Star, Download, Play, Heart, Grid, List, Search, Book } from 'lucide-react';
+import NavBar from '@/components/NavBar';
 
 interface Comic {
     id: number;
@@ -70,7 +66,6 @@ export default function Library() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [search, setSearch] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [pagination, setPagination] = useState({
         current_page: 1,
         last_page: 1,
@@ -364,137 +359,16 @@ export default function Library() {
         <>
             <Head title="Library - BagComics" />
             <div className="min-h-screen bg-black text-white">
-                {/* Header */}
-                <header className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between h-16">
-                            {/* Logo */}
-                            <div className="flex items-center space-x-4">
-                                <Link href="/" className="flex items-center space-x-3">
-                                    <img 
-                                        src="/images/image.png" 
-                                        alt="BAG Comics Logo" 
-                                        className="h-8 w-auto"
-                                    />
-                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
-                                        BAG Comics
-                                    </div>
-                                </Link>
-                            </div>
-
-                            {/* Desktop Navigation */}
-                            <nav className="hidden md:flex items-center space-x-8">
-                                <Link
-                                    href="/"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                >
-                                    <Home className="w-4 h-4" />
-                                    <span>Home</span>
-                                </Link>
-                                <Link
-                                    href="/comics"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                >
-                                    <Book className="w-4 h-4" />
-                                    <span>Explore</span>
-                                </Link>
-                                <Link
-                                    href="/library"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-emerald-500/30"
-                                >
-                                    <LibraryIcon className="w-4 h-4" />
-                                    <span>Library</span>
-                                </Link>
-                            </nav>
-
-                            {/* Search Bar */}
-                            <div className="hidden md:flex items-center space-x-4">
-                                <div className="relative">
-                                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search library..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
-                                    />
-                                </div>
-
-                                {/* User Account */}
-                                {auth.user ? (
-                                    <UserAvatarDropdown user={auth.user} />
-                                ) : (
-                                    <Link
-                                        href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 rounded-lg transition-all duration-300"
-                                    >
-                                        <User className="w-4 h-4" />
-                                        <span className="text-sm">Sign In</span>
-                                    </Link>
-                                )}
-                            </div>
-
-                            {/* Mobile Menu Button */}
-                            <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors"
-                            >
-                                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                            </button>
-                        </div>
-
-                        {/* Mobile Menu */}
-                        {isMenuOpen && (
-                            <div className="md:hidden py-4 border-t border-gray-700">
-                                <div className="flex flex-col space-y-2">
-                                    <Link
-                                        href="/"
-                                        className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <Home className="w-5 h-5" />
-                                        <span>Home</span>
-                                    </Link>
-                                    <Link
-                                        href="/comics"
-                                        className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <Book className="w-5 h-5" />
-                                        <span>Explore</span>
-                                    </Link>
-                                    <Link
-                                        href="/library"
-                                        className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-emerald-500/30"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <LibraryIcon className="w-5 h-5" />
-                                        <span>Library</span>
-                                    </Link>
-
-                                    {/* Mobile Search */}
-                                    <div className="px-4 py-2">
-                                        <div className="relative">
-                                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search library..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Mobile User Menu */}
-                                    {auth.user && (
-                                        <UserMobileMenu user={auth.user} onClose={() => setIsMenuOpen(false)} />
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </header>
+                <NavBar 
+                    auth={auth} 
+                    currentPage="library"
+                    searchValue={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onSearch={(query) => {
+                        // Library search functionality can be added here
+                        console.log('Library search:', query);
+                    }}
+                />
 
                 {/* Main Content */}
                 <main className="container mx-auto px-4 py-8">
