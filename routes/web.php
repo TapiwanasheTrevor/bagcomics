@@ -114,6 +114,15 @@ Route::get('/reseed-sample-comic', function() {
         
         $comic = \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first();
         
+        if (!$comic) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Comic was not created by seeder',
+                'total_comics_after_seed' => \App\Models\Comic::count(),
+                'all_comics' => \App\Models\Comic::select('id', 'title', 'slug')->get()
+            ]);
+        }
+        
         return response()->json([
             'success' => true,
             'message' => 'Sample comic reseeded successfully',
@@ -123,6 +132,50 @@ Route::get('/reseed-sample-comic', function() {
                 'pdf_file_path' => $comic->pdf_file_path,
                 'getPdfUrl' => $comic->getPdfUrl(),
                 'file_exists' => file_exists(public_path($comic->pdf_file_path)) ? 'YES' : 'NO'
+            ]
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+});
+
+// Simple direct comic creation
+Route::get('/create-sample-comic', function() {
+    try {
+        // Clear existing comics
+        \App\Models\Comic::query()->delete();
+        
+        // Create sample comic directly
+        $comic = new \App\Models\Comic();
+        $comic->title = 'Ubuntu Tales: Community Stories';
+        $comic->slug = 'ubuntu-tales-community';
+        $comic->author = 'Community Contributors';
+        $comic->genre = 'sci-fi';
+        $comic->description = 'A sample comic for testing.';
+        $comic->page_count = 20;
+        $comic->language = 'en';
+        $comic->pdf_file_path = 'sample-comic.pdf';
+        $comic->pdf_file_name = 'sample-comic.pdf';
+        $comic->is_pdf_comic = true;
+        $comic->is_free = true;
+        $comic->is_visible = true;
+        $comic->published_at = now();
+        $comic->tags = ['ubuntu', 'community'];
+        $comic->average_rating = 4.5;
+        $comic->save();
+        
+        return response()->json([
+            'success' => true,
+            'comic' => [
+                'id' => $comic->id,
+                'title' => $comic->title,
+                'slug' => $comic->slug,
+                'pdf_file_path' => $comic->pdf_file_path,
+                'getPdfUrl' => $comic->getPdfUrl(),
             ]
         ]);
     } catch (Exception $e) {
