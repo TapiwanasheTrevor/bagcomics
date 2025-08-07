@@ -138,13 +138,24 @@ class Comic extends Model
             return null;
         }
 
+        // Special handling for sample files - check public directory first
+        if ($this->pdf_file_path === 'sample-comic.pdf') {
+            return asset($this->pdf_file_path);
+        }
+        
+        // Check if it's a file directly in public (sample files)
+        if (file_exists(public_path($this->pdf_file_path))) {
+            return asset($this->pdf_file_path);
+        }
+        
         // Check if it's a file in storage/public (admin uploads)
         if (file_exists(storage_path('app/public/' . $this->pdf_file_path))) {
             return asset('storage/' . $this->pdf_file_path);
         }
         
-        // Check if it's a file directly in public (sample files)
-        if (file_exists(public_path($this->pdf_file_path))) {
+        // Default to public path for sample files, storage path for uploads
+        if (strpos($this->pdf_file_path, '/') === false && !str_starts_with($this->pdf_file_path, 'comics/')) {
+            // Simple filename without path - likely a public file
             return asset($this->pdf_file_path);
         }
         
