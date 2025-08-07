@@ -9,7 +9,9 @@
 /vendor
 .env
 .env.backup
-.env.production
+# Allow template environment files
+!.env.local
+!.env.production
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
