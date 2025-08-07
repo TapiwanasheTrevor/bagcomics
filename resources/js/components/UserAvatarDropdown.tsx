@@ -19,17 +19,17 @@ export default function UserAvatarDropdown({ user, className = "" }: UserAvatarD
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className={`flex items-center space-x-2 px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg transition-all duration-300 hover:bg-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${className}`}>
+                <button className={`flex items-center space-x-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-all duration-300 hover:bg-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500/50 ${className}`}>
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold text-sm">
+                        <AvatarFallback className="bg-gradient-to-r from-red-500 to-purple-500 text-white font-semibold text-sm">
                             {getInitials(user.name)}
                         </AvatarFallback>
                     </Avatar>
                     <ChevronDown className="h-4 w-4 opacity-70" />
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuContent className="w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" align="end">
                 <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium">{user.name}</p>
