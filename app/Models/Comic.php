@@ -134,7 +134,22 @@ class Comic extends Model
 
     public function getPdfUrl(): ?string
     {
-        return $this->pdf_file_path ? asset('storage/' . $this->pdf_file_path) : null;
+        if (!$this->pdf_file_path) {
+            return null;
+        }
+
+        // Check if it's a file in storage/public (admin uploads)
+        if (file_exists(storage_path('app/public/' . $this->pdf_file_path))) {
+            return asset('storage/' . $this->pdf_file_path);
+        }
+        
+        // Check if it's a file directly in public (sample files)
+        if (file_exists(public_path($this->pdf_file_path))) {
+            return asset($this->pdf_file_path);
+        }
+        
+        // Default to storage path for new uploads
+        return asset('storage/' . $this->pdf_file_path);
     }
 
     public function updateRating(): void

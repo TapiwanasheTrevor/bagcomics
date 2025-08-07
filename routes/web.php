@@ -34,11 +34,10 @@ Route::get('/comics/{comic:slug}', function (Comic $comic) {
     $comicData['reading_time_estimate'] = $comic->getReadingTimeEstimate();
     $comicData['is_new_release'] = $comic->isNewRelease();
 
-    // Add PDF-related fields - use direct public path for sample PDFs
+    // Add PDF-related fields - use proper PDF URL method
     if ($comic->is_pdf_comic && $comic->pdf_file_path) {
-        // For now, use direct public path to bypass streaming issues
-        $comicData['pdf_stream_url'] = asset($comic->pdf_file_path);
-        $comicData['pdf_download_url'] = asset($comic->pdf_file_path);
+        $comicData['pdf_stream_url'] = $comic->getPdfUrl();
+        $comicData['pdf_download_url'] = $comic->getPdfUrl();
     }
 
     // Add user-specific data if authenticated
@@ -71,9 +70,9 @@ Route::get('/comics/{comic:slug}/read', function (Comic $comic) {
         }
     }])->toArray();
 
-    // Add computed fields - use direct public path for sample PDFs
+    // Add computed fields - use proper PDF URL method
     $comicData['cover_image_url'] = $comic->getCoverImageUrl();
-    $comicData['pdf_stream_url'] = asset($comic->pdf_file_path);
+    $comicData['pdf_stream_url'] = $comic->getPdfUrl();
     
     return Inertia::render('comics/reader', [
         'comic' => $comicData
