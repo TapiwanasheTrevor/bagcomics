@@ -53,26 +53,22 @@ composer run-script post-autoload-dump || echo "Composer scripts completed with 
 # Wait a moment for any file system operations
 sleep 2
 
-# Clear and cache config
-echo "Optimizing application..."
-php artisan config:clear
-php artisan config:cache
-
-# Only cache routes and views if not in debug mode
-if [ "$APP_DEBUG" != "true" ]; then
-    php artisan route:cache
-    php artisan view:cache
-fi
-
-# Set database connection details from Render environment
+# Set database connection details from Render environment BEFORE caching config
 echo "Configuring database connection..."
 
-# Check if DATABASE_URL is provided (Render style)
+# Force PostgreSQL connection settings for Render
+export DB_CONNECTION="pgsql"
+export DB_HOST="${DB_HOST:-dpg-d2a2nrh5pdvs73aaf51g-a}"
+export DB_PORT="${DB_PORT:-5432}"
+export DB_DATABASE="${DB_DATABASE:-bagcomics_db}"
+export DB_USERNAME="${DB_USERNAME:-bagcomics}"
+export DB_PASSWORD="${DB_PASSWORD:-fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6}"
+
+# Also handle DATABASE_URL if provided (Render style)
 if [ -n "$DATABASE_URL" ]; then
-    echo "Using DATABASE_URL for connection"
+    echo "DATABASE_URL provided: parsing components"
     # Parse DATABASE_URL for PostgreSQL
     # Format: postgresql://username:password@host:port/database
-    export DB_CONNECTION="pgsql"
     
     # Extract components from DATABASE_URL
     # Remove postgresql:// prefix
@@ -99,17 +95,57 @@ if [ -n "$DATABASE_URL" ]; then
     
     # Extract database name
     export DB_DATABASE="${DB_HOST_PORT_DB##*/}"
-    
-    echo "Database config: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
-else
-    # Use individual environment variables if DATABASE_URL not provided
-    export DB_CONNECTION="${DB_CONNECTION:-pgsql}"
-    export DB_HOST="${DB_HOST:-dpg-d2a2nrh5pdvs73aaf51g-a}"
-    export DB_PORT="${DB_PORT:-5432}"
-    export DB_DATABASE="${DB_DATABASE:-bagcomics_db}"
-    export DB_USERNAME="${DB_USERNAME:-bagcomics}"
-    export DB_PASSWORD="${DB_PASSWORD:-fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6}"
-    echo "Using individual DB env vars: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
+fi
+
+echo "Final database config: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
+
+# Write database config to .env file to ensure Laravel uses correct values
+echo "Writing database configuration to .env..."
+
+# Create base .env from production template if it doesn't exist
+if [ ! -f /var/www/html/.env ]; then
+    if [ -f /var/www/html/.env.production ]; then
+        echo "Copying .env.production to .env"
+        cp /var/www/html/.env.production /var/www/html/.env
+    else
+        echo "Creating basic .env file"
+        cat > /var/www/html/.env << 'EOF'
+APP_NAME="BAG Comics"
+APP_ENV=production
+APP_DEBUG=false
+LOG_CHANNEL=stack
+LOG_LEVEL=error
+EOF
+    fi
+fi
+
+# Update database configuration in .env
+echo "Updating database settings in .env..."
+# Remove existing DB_ lines and add new ones
+grep -v '^DB_' /var/www/html/.env > /var/www/html/.env.temp 2>/dev/null || touch /var/www/html/.env.temp
+cat >> /var/www/html/.env.temp << EOF
+DB_CONNECTION=$DB_CONNECTION
+DB_HOST=$DB_HOST
+DB_PORT=$DB_PORT
+DB_DATABASE=$DB_DATABASE
+DB_USERNAME=$DB_USERNAME
+DB_PASSWORD=$DB_PASSWORD
+EOF
+mv /var/www/html/.env.temp /var/www/html/.env
+
+# Debug: show current .env database config
+echo "Current .env database configuration:"
+grep '^DB_' /var/www/html/.env || echo "No DB_ variables found in .env"
+
+# Clear and cache config AFTER setting database configuration
+echo "Optimizing application..."
+php artisan config:clear
+php artisan config:cache
+
+# Only cache routes and views if not in debug mode
+if [ "$APP_DEBUG" != "true" ]; then
+    php artisan route:cache
+    php artisan view:cache
 fi
 
 # Wait for database to be ready (if using PostgreSQL)
