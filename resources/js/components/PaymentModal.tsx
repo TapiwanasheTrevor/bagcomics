@@ -59,64 +59,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ comic, onSuccess, onClose }) 
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<PaymentError | null>(null);
-    const [clientSecret, setClientSecret] = useState<string | null>(null);
-    const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
     const [retryCount, setRetryCount] = useState(0);
     const [useModernPaymentElement, setUseModernPaymentElement] = useState(true);
-
-    // Create payment intent when component mounts
-    useEffect(() => {
-        createPaymentIntent();
-    }, []);
-
-    const createPaymentIntent = async () => {
-        try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            
-            const response = await fetch(`/api/payments/comics/${comic.slug}/intent`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken || ''
-                },
-                body: JSON.stringify({
-                    return_url: window.location.href
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                const errorCode = data.error_code || 'PAYMENT_INTENT_FAILED';
-                const retryable = ['NETWORK_ERROR', 'TEMPORARY_FAILURE'].includes(errorCode);
-                
-                setError({
-                    code: errorCode,
-                    message: data.error || 'Failed to create payment intent',
-                    retryable
-                });
-                return;
-            }
-
-            setClientSecret(data.client_secret);
-            setPaymentIntentId(data.payment_intent_id);
-            setError(null);
-        } catch (err) {
-            setError({
-                code: 'NETWORK_ERROR',
-                message: err instanceof Error ? err.message : 'Failed to initialize payment',
-                retryable: true
-            });
-        }
-    };
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
 
-        if (!stripe || !elements || !clientSecret) {
+        if (!stripe || !elements) {
             return;
         }
 
@@ -142,6 +91,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ comic, onSuccess, onClose }) 
                     throw new Error('Payment element not found');
                 }
 
+                // Get client secret from the Elements context
+                const { error: retrieveError, clientSecret } = await stripe.retrievePaymentIntent(
+                    elements.getElement(PaymentElement)?.clientSecret || ''
+                );
+                
+                if (retrieveError || !clientSecret) {
+                    throw new Error('Unable to retrieve payment details');
+                }
+                
                 result = await stripe.confirmCardPayment(clientSecret, {
                     payment_method: {
                         card: cardElement,
@@ -210,7 +168,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ comic, onSuccess, onClose }) 
         return data;
     };
 
-    const handleRetry = async () => {
+    const handleRetry = () => {
         if (retryCount >= 3) {
             setError({
                 code: 'MAX_RETRIES_EXCEEDED',
@@ -424,6 +382,51 @@ const PurchaseConfirmation: React.FC<PurchaseConfirmationProps> = ({
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ comic, isOpen, onClose, onSuccess }) => {
     const [purchaseResult, setPurchaseResult] = useState<PaymentResult | null>(null);
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [isLoadingIntent, setIsLoadingIntent] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Create payment intent when modal opens
+    useEffect(() => {
+        if (isOpen && !clientSecret) {
+            createPaymentIntent();
+        }
+    }, [isOpen]);
+
+    const createPaymentIntent = async () => {
+        setIsLoadingIntent(true);
+        setError(null);
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const response = await fetch(`/api/payments/comics/${comic.slug}/intent`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken || ''
+                },
+                body: JSON.stringify({
+                    return_url: window.location.href
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.error || 'Failed to create payment intent');
+                return;
+            }
+
+            setClientSecret(data.client_secret);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to initialize payment');
+        } finally {
+            setIsLoadingIntent(false);
+        }
+    };
 
     const handlePaymentSuccess = (payment: PaymentResult) => {
         setPurchaseResult(payment);
@@ -434,6 +437,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ comic, isOpen, onClose, onS
 
     const handleClose = () => {
         setPurchaseResult(null);
+        setClientSecret(null);
+        setError(null);
         onClose();
     };
 
@@ -464,10 +469,32 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ comic, isOpen, onClose, onS
                             comic={comic}
                             onClose={handleClose}
                         />
-                    ) : (
+                    ) : isLoadingIntent ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mb-4"></div>
+                            <p className="text-gray-400">Initializing secure payment...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="space-y-4">
+                            <div className="bg-red-900/20 p-4 rounded-lg border border-red-800">
+                                <div className="flex items-center space-x-2 text-red-400 mb-2">
+                                    <AlertCircle className="h-5 w-5" />
+                                    <span className="font-medium">Payment Initialization Failed</span>
+                                </div>
+                                <p className="text-red-300 text-sm">{error}</p>
+                            </div>
+                            <button
+                                onClick={createPaymentIntent}
+                                className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    ) : clientSecret ? (
                         <Elements 
                             stripe={stripePromise}
                             options={{
+                                clientSecret,
                                 appearance: {
                                     theme: 'night',
                                     variables: {
@@ -488,7 +515,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ comic, isOpen, onClose, onS
                                 onClose={handleClose}
                             />
                         </Elements>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </div>
