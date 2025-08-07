@@ -717,14 +717,18 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                         )}
 
                         <Document
-                            file={{
+                            file={useMemo(() => ({
                                 url: fileUrl,
                                 httpHeaders: {
                                     'Accept': 'application/pdf',
                                     'Cache-Control': 'no-cache',
                                 },
                                 withCredentials: true,
-                            }}
+                            }), [fileUrl])}
+                            options={useMemo(() => ({
+                                cMapUrl: '/js/pdfjs/cmaps/',
+                                cMapPacked: true,
+                            }), [])}
                             onLoadSuccess={onDocumentLoadSuccess}
                             onLoadError={onDocumentLoadError}
                             loading={null}

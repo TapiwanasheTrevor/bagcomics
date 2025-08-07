@@ -96,7 +96,7 @@ class AnalyticsService
         // Reading completion rates
         $completionStats = UserComicProgress::select(
                 DB::raw('COUNT(*) as total_reading_sessions'),
-                DB::raw('SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as completed_sessions'),
+                DB::raw('SUM(CASE WHEN is_completed = true THEN 1 ELSE 0 END) as completed_sessions'),
                 DB::raw('AVG(progress_percentage) as average_progress'),
                 DB::raw('AVG(reading_time_minutes) as average_reading_time')
             )

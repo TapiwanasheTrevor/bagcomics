@@ -187,7 +187,7 @@ class DatabaseOptimizationService
                     comic_id,
                     COUNT(*) as completion_count
                 FROM user_comic_progress 
-                WHERE is_completed = 1
+                WHERE is_completed = true
                 GROUP BY comic_id
             ) progress_stats ON c.id = progress_stats.comic_id
             ON DUPLICATE KEY UPDATE
@@ -225,7 +225,7 @@ class DatabaseOptimizationService
                 SELECT 
                     user_id,
                     COUNT(DISTINCT comic_id) as total_comics_read,
-                    SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as total_comics_completed,
+                    SUM(CASE WHEN is_completed = true THEN 1 ELSE 0 END) as total_comics_completed,
                     SUM(reading_time_minutes) as total_reading_time_minutes,
                     MAX(DATE(last_read_at)) as last_reading_date
                 FROM user_comic_progress 

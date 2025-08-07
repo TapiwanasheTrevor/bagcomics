@@ -39,7 +39,7 @@ class UserOverviewWidget extends BaseStatsOverviewWidget
         
         $subscribedUsers = User::where('subscription_status', 'active')->count();
         $totalRevenue = Payment::where('status', 'completed')->sum('amount');
-        $averageReadingTime = User::avg('total_reading_time_minutes') ?? 0;
+        $averageReadingTime = \App\Models\UserComicProgress::avg('reading_time_minutes') ?? 0;
 
         return [
             BaseStatsOverviewWidget\Stat::make('Total Users', number_format($totalUsers))

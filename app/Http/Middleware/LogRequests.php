@@ -17,15 +17,19 @@ class LogRequests
      */
     public function handle(Request $request, Closure $next)
     {
-        if (str_contains($request->getRequestUri(), 'livewire')) {
-            Log::info('Livewire request received:', [
-                'url' => $request->fullUrl(),
-                'method' => $request->method(),
-                'session_id' => session()->getId(),
-                'csrf_token_session' => session()->token(),
-                'csrf_token_header' => $request->header('x-csrf-token'),
-                'headers' => $request->headers->all(),
-            ]);
+        try {
+            if (str_contains($request->getRequestUri(), 'livewire')) {
+                Log::info('Livewire request received:', [
+                    'url' => $request->fullUrl(),
+                    'method' => $request->method(),
+                    'session_id' => session()->getId(),
+                    'csrf_token_session' => session()->token(),
+                    'csrf_token_header' => $request->header('x-csrf-token'),
+                    'headers' => $request->headers->all(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('LogRequests middleware error: ' . $e->getMessage());
         }
 
         return $next($request);

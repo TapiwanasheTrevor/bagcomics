@@ -534,5 +534,43 @@ if (!app()->environment('production')) {
     })->name('debug.livewire.upload');
 }
 
+// Test authentication route
+Route::get('/test-auth', function() {
+    try {
+        // Test auth provider
+        $guard = auth()->guard('web');
+        $provider = $guard->getProvider();
+        
+        // Test finding a user
+        $user = App\Models\User::where('is_admin', true)->first();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No admin users found'
+            ]);
+        }
+        
+        // Test auth provider retrieveByCredentials method
+        $credentials = ['email' => $user->email];
+        $retrievedUser = $provider->retrieveByCredentials($credentials);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Authentication test successful',
+            'provider' => get_class($provider),
+            'model' => $provider->getModel(),
+            'test_user' => $user->email,
+            'retrieved_user' => $retrievedUser ? $retrievedUser->email : 'null'
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

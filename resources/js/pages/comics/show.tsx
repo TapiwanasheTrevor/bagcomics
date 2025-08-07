@@ -6,7 +6,6 @@ import { Star, Clock, BookOpen, Heart, Download, Play, Bookmark, Home, Library, 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useInitials } from '@/hooks/use-initials';
-import SmartPdfViewer from '@/components/SmartPdfViewer';
 import EnhancedPdfReader from '@/components/EnhancedPdfReader';
 
 import PaymentModal from '@/components/PaymentModal';
@@ -470,7 +469,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                     ) : (
                                         <Link
                                             href="/login"
-                                            className="mx-4 flex items-center justify-center space-x-2 px-4 py-3 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg transition-all duration-300"
+                                            className="mx-4 flex items-center justify-center space-x-2 px-4 py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-all duration-300"
                                             onClick={() => setIsMenuOpen(false)}
                                         >
                                             <User className="w-5 h-5" />
@@ -622,7 +621,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
 
                                     <div className="flex flex-wrap items-center gap-4 mb-6">
                                         {comic.genre && (
-                                            <span className="px-3 py-1 bg-orange-500/20 text-orange-300 text-sm rounded-full border border-orange-500/30">
+                                            <span className="px-3 py-1 bg-red-500/20 text-red-300 text-sm rounded-full border border-red-500/30">
                                                 {comic.genre}
                                             </span>
                                         )}
@@ -701,7 +700,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                         </div>
                                         {comic.publication_year && (
                                             <div className="flex items-center space-x-3">
-                                                <Calendar className="w-5 h-5 text-orange-400" />
+                                                <Calendar className="w-5 h-5 text-red-400" />
                                                 <div>
                                                     <span className="text-gray-400 text-sm">Year</span>
                                                     <p className="text-white font-semibold">{comic.publication_year}</p>
@@ -710,7 +709,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                         )}
                                         {comic.publisher && (
                                             <div className="flex items-center space-x-3">
-                                                <BookOpen className="w-5 h-5 text-purple-400" />
+                                                <BookOpen className="w-5 h-5 text-red-400" />
                                                 <div>
                                                     <span className="text-gray-400 text-sm">Publisher</span>
                                                     <p className="text-white font-semibold">{comic.publisher}</p>
@@ -727,14 +726,14 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                             </div>
                                         )}
                                         <div className="flex items-center space-x-3">
-                                            <Globe className="w-5 h-5 text-orange-400" />
+                                            <Globe className="w-5 h-5 text-red-400" />
                                             <div>
                                                 <span className="text-gray-400 text-sm">Language</span>
                                                 <p className="text-white font-semibold">{comic.language.toUpperCase()}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <Eye className="w-5 h-5 text-purple-400" />
+                                            <Eye className="w-5 h-5 text-red-400" />
                                             <div>
                                                 <span className="text-gray-400 text-sm">Total Readers</span>
                                                 <p className="text-white font-semibold">{comic.total_readers.toLocaleString()}</p>
@@ -748,57 +747,6 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                 </main>
             </div>
 
-            {/* PDF Viewer Modal */}
-            {showPdfViewer && comic.is_pdf_comic && comic.pdf_file_path && (
-                <div className="fixed inset-0 z-50 bg-black bg-opacity-90">
-                    <div className="w-full h-full bg-black flex flex-col">
-                        <div className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700 flex-shrink-0">
-                            <h2 className="text-xl font-bold text-white">{comic.title}</h2>
-                            <button
-                                onClick={() => setShowPdfViewer(false)}
-                                className="p-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-                        <div className="flex-1 min-h-0">
-
-                                <SmartPdfViewer
-                                    fileUrl={comic.pdf_stream_url || `/comics/${comic.slug}/stream`}
-                                    fileName={comic.pdf_file_name || `${comic.title}.pdf`}
-                                    downloadUrl={comic.user_has_access ? (comic.pdf_download_url || `/comics/${comic.slug}/download`) : undefined}
-                                    initialPage={comic.user_progress?.current_page || 1}
-                                    userHasDownloadAccess={comic.user_has_access}
-                                    comicSlug={comic.slug}
-                                    onPageChange={async (page) => {
-                                    if (auth.user) {
-                                        try {
-                                            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-                                            await fetch(`/api/progress/comics/${comic.slug}`, {
-                                                method: 'PATCH',
-                                                credentials: 'include',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'X-Requested-With': 'XMLHttpRequest',
-                                                    'Accept': 'application/json',
-                                                    'X-CSRF-TOKEN': csrfToken || ''
-                                                },
-                                                body: JSON.stringify({
-                                                    current_page: page,
-                                                    total_pages: comic.page_count,
-                                                }),
-                                            });
-                                        } catch (error) {
-                                            console.error('Error updating progress:', error);
-                                        }
-                                    }
-                                }}
-                                />
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Payment Modal */}
             <PaymentModal
@@ -809,17 +757,37 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
             />
 
             {/* Enhanced PDF Reader */}
-            {showPdfViewer && comic.pdf_stream_url && (
+            {showPdfViewer && comic.is_pdf_comic && (comic.pdf_stream_url || comic.pdf_file_path) && (
                 <EnhancedPdfReader
-                    fileUrl={comic.pdf_stream_url}
-                    fileName={comic.pdf_file_name || comic.title}
-                    downloadUrl={comic.pdf_download_url}
+                    fileUrl={comic.pdf_stream_url || `/comics/${comic.slug}/stream`}
+                    fileName={comic.pdf_file_name || `${comic.title}.pdf`}
+                    downloadUrl={comic.user_has_access ? (comic.pdf_download_url || `/comics/${comic.slug}/download`) : undefined}
                     userHasDownloadAccess={comic.user_has_access}
                     comicSlug={comic.slug}
                     initialPage={comic.user_progress?.current_page || 1}
-                    onPageChange={(page) => {
-                        // Update local state if needed
-                        console.log('Page changed to:', page);
+                    onPageChange={async (page) => {
+                        if (auth.user) {
+                            try {
+                                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                                await fetch(`/api/progress/comics/${comic.slug}`, {
+                                    method: 'PATCH',
+                                    credentials: 'include',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': csrfToken || ''
+                                    },
+                                    body: JSON.stringify({
+                                        current_page: page,
+                                        total_pages: comic.page_count,
+                                    }),
+                                });
+                            } catch (error) {
+                                console.error('Error updating progress:', error);
+                            }
+                        }
                     }}
                     onClose={() => setShowPdfViewer(false)}
                 />
