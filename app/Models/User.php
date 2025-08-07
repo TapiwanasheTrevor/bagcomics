@@ -33,6 +33,7 @@ class User extends Authenticatable
         'subscription_type',
         'subscription_status',
         'subscription_expires_at',
+        'is_admin',
     ];
 
     /**
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'social_profiles' => 'array',
             'achievements' => 'array',
             'subscription_expires_at' => 'datetime',
+            'is_admin' => 'boolean',
         ];
     }
 
@@ -854,5 +856,13 @@ class User extends Authenticatable
         }
         
         return max($longestStreak, $currentStreak);
+    }
+
+    /**
+     * Determine if the user can access Filament admin panel
+     */
+    public function canAccessPanel(\Filament\Panel $panel): bool
+    {
+        return $this->is_admin ?? false;
     }
 }

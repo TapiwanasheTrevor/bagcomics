@@ -186,6 +186,51 @@ Route::get('/create-sample-comic', function() {
     }
 });
 
+// Add is_admin column and make user admin
+Route::get('/make-admin/{email?}', function($email = null) {
+    try {
+        // First, add the is_admin column if it doesn't exist
+        if (!\Schema::hasColumn('users', 'is_admin')) {
+            \Schema::table('users', function ($table) {
+                $table->boolean('is_admin')->default(false);
+            });
+        }
+        
+        $email = $email ?: 'admin@bagcomics.com'; // Default admin email
+        
+        $user = \App\Models\User::where('email', $email)->first();
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'User not found with email: ' . $email,
+                'suggestion' => 'Try: /make-admin/your-actual-email@domain.com',
+                'existing_users' => \App\Models\User::select('email')->take(5)->get()
+            ]);
+        }
+        
+        // Set user as admin
+        $user->is_admin = true;
+        $user->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'User ' . $user->email . ' is now an admin',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_admin' => $user->is_admin
+            ]
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+});
+
 // Test streaming directly without model binding  
 Route::get('/test-stream/{slug}', function($slug) {
     $comic = \App\Models\Comic::where('slug', $slug)->first();
