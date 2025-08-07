@@ -140,6 +140,9 @@ grep '^DB_' /var/www/html/.env || echo "No DB_ variables found in .env"
 # Clear and cache config AFTER setting database configuration
 echo "Optimizing application..."
 php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan cache:clear
 php artisan config:cache
 
 # Only cache routes and views if not in debug mode
