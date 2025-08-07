@@ -1,0 +1,384 @@
+const CACHE_NAME = 'bag-comics-v1';
+const STATIC_CACHE = 'static-v1';
+const DYNAMIC_CACHE = 'dynamic-v1';
+
+// Assets to cache immediately
+const STATIC_ASSETS = [
+    '/',
+    '/favicon.ico',
+    '/favicon.svg',
+    '/favicon.png',
+    '/apple-touch-icon.png',
+    '/offline.html',
+    '/manifest.json',
+    '/images/image.png'
+];
+
+// Install event - cache static assets
+self.addEventListener('install', (event) => {
+    console.log('Service Worker: Installing...');
+    event.waitUntil(
+        caches.open(STATIC_CACHE)
+            .then((cache) => {
+                console.log('Service Worker: Caching static assets');
+                return cache.addAll(STATIC_ASSETS);
+            })
+            .catch((error) => {
+                console.error('Service Worker: Failed to cache static assets', error);
+            })
+    );
+    self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+    console.log('Service Worker: Activating...');
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+                        console.log('Service Worker: Deleting old cache', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+    self.clients.claim();
+});
+
+// Fetch event - serve from cache or network
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    const url = new URL(request.url);
+
+    // Skip non-GET requests
+    if (request.method !== 'GET') {
+        return;
+    }
+
+    // Skip chrome-extension and other non-http requests
+    if (!url.protocol.startsWith('http')) {
+        return;
+    }
+
+    // Handle API requests
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(handleApiRequest(request));
+        return;
+    }
+
+    // Handle comic PDF files
+    if (url.pathname.includes('/comics/') && url.pathname.endsWith('.pdf')) {
+        event.respondWith(handleComicPdfRequest(request));
+        return;
+    }
+
+    // Handle static assets
+    if (isStaticAsset(url.pathname)) {
+        event.respondWith(handleStaticAsset(request));
+        return;
+    }
+
+    // Handle navigation requests
+    if (request.mode === 'navigate') {
+        event.respondWith(handleNavigationRequest(request));
+        return;
+    }
+
+    // Default: network first, then cache
+    event.respondWith(
+        fetch(request)
+            .then((response) => {
+                // Clone response for caching
+                const responseClone = response.clone();
+                
+                // Cache successful responses
+                if (response.status === 200) {
+                    caches.open(DYNAMIC_CACHE).then((cache) => {
+                        cache.put(request, responseClone);
+                    });
+                }
+                
+                return response;
+            })
+            .catch(() => {
+                // Fallback to cache
+                return caches.match(request);
+            })
+    );
+});
+
+// Handle API requests with network-first strategy
+async function handleApiRequest(request) {
+    try {
+        const response = await fetch(request);
+        
+        // Cache successful GET requests
+        if (response.status === 200 && request.method === 'GET') {
+            const cache = await caches.open(DYNAMIC_CACHE);
+            cache.put(request, response.clone());
+        }
+        
+        return response;
+    } catch (error) {
+        // Try to serve from cache
+        const cachedResponse = await caches.match(request);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+        
+        // Return offline response for specific endpoints
+        if (request.url.includes('/comics')) {
+            return new Response(JSON.stringify({
+                data: [],
+                message: 'Offline - cached data not available'
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        throw error;
+    }
+}
+
+// Handle comic PDF requests with cache-first strategy
+async function handleComicPdfRequest(request) {
+    // Check cache first for PDFs
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+    
+    try {
+        const response = await fetch(request);
+        
+        // Cache PDF files for offline reading
+        if (response.status === 200) {
+            const cache = await caches.open(DYNAMIC_CACHE);
+            cache.put(request, response.clone());
+        }
+        
+        return response;
+    } catch (error) {
+        // Return offline message if PDF not cached
+        return new Response('Comic not available offline', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+    }
+}
+
+// Handle static assets with cache-first strategy
+async function handleStaticAsset(request) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+    
+    try {
+        const response = await fetch(request);
+        
+        if (response.status === 200) {
+            const cache = await caches.open(STATIC_CACHE);
+            cache.put(request, response.clone());
+        }
+        
+        return response;
+    } catch (error) {
+        throw error;
+    }
+}
+
+// Handle navigation requests
+async function handleNavigationRequest(request) {
+    try {
+        const response = await fetch(request);
+        return response;
+    } catch (error) {
+        // Serve offline page for navigation requests when offline
+        const offlineResponse = await caches.match('/offline.html');
+        if (offlineResponse) {
+            return offlineResponse;
+        }
+        
+        // Fallback offline page
+        return new Response(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Offline - BAG Comics</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body { 
+                        font-family: system-ui, sans-serif; 
+                        text-align: center; 
+                        padding: 2rem;
+                        background: #1f2937;
+                        color: white;
+                    }
+                    .offline-icon { font-size: 4rem; margin-bottom: 1rem; }
+                    .retry-btn { 
+                        background: #ef4444; 
+                        color: white; 
+                        border: none; 
+                        padding: 0.75rem 1.5rem; 
+                        border-radius: 0.5rem; 
+                        cursor: pointer;
+                        margin-top: 1rem;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="offline-icon">📚</div>
+                <h1>You're Offline</h1>
+                <p>Check your internet connection and try again.</p>
+                <button class="retry-btn" onclick="window.location.reload()">Retry</button>
+            </body>
+            </html>
+        `, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' }
+        });
+    }
+}
+
+// Check if URL is a static asset
+function isStaticAsset(pathname) {
+    const staticExtensions = ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2'];
+    return staticExtensions.some(ext => pathname.endsWith(ext));
+}
+
+// Handle background sync for offline actions
+self.addEventListener('sync', (event) => {
+    console.log('Service Worker: Background sync', event.tag);
+    
+    if (event.tag === 'reading-progress-sync') {
+        event.waitUntil(syncReadingProgress());
+    }
+    
+    if (event.tag === 'bookmark-sync') {
+        event.waitUntil(syncBookmarks());
+    }
+});
+
+// Sync reading progress when back online
+async function syncReadingProgress() {
+    try {
+        const cache = await caches.open('offline-actions');
+        const requests = await cache.keys();
+        
+        for (const request of requests) {
+            if (request.url.includes('reading-progress-offline')) {
+                const response = await cache.match(request);
+                const data = await response.json();
+                
+                // Attempt to sync with server
+                try {
+                    await fetch('/api/comics/' + data.comicSlug + '/progress', {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': data.csrfToken
+                        },
+                        body: JSON.stringify(data.progressData)
+                    });
+                    
+                    // Remove from offline cache after successful sync
+                    await cache.delete(request);
+                } catch (error) {
+                    console.error('Failed to sync reading progress:', error);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Background sync failed:', error);
+    }
+}
+
+// Sync bookmarks when back online
+async function syncBookmarks() {
+    try {
+        const cache = await caches.open('offline-actions');
+        const requests = await cache.keys();
+        
+        for (const request of requests) {
+            if (request.url.includes('bookmark-offline')) {
+                const response = await cache.match(request);
+                const data = await response.json();
+                
+                try {
+                    const method = data.action === 'add' ? 'POST' : 'DELETE';
+                    const url = data.action === 'add' 
+                        ? `/api/comics/${data.comicSlug}/bookmarks`
+                        : `/api/comics/${data.comicSlug}/bookmarks/${data.bookmarkId}`;
+                    
+                    await fetch(url, {
+                        method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': data.csrfToken
+                        },
+                        body: data.action === 'add' ? JSON.stringify(data.bookmarkData) : undefined
+                    });
+                    
+                    await cache.delete(request);
+                } catch (error) {
+                    console.error('Failed to sync bookmark:', error);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Bookmark sync failed:', error);
+    }
+}
+
+// Handle push notifications
+self.addEventListener('push', (event) => {
+    console.log('Service Worker: Push notification received');
+    
+    const options = {
+        body: 'New comic releases available!',
+        icon: '/favicon-192.png',
+        badge: '/favicon-192.png',
+        vibrate: [200, 100, 200],
+        data: {
+            url: '/comics'
+        },
+        actions: [
+            {
+                action: 'view',
+                title: 'View Comics'
+            },
+            {
+                action: 'dismiss',
+                title: 'Dismiss'
+            }
+        ]
+    };
+    
+    if (event.data) {
+        const data = event.data.json();
+        options.body = data.body || options.body;
+        options.data.url = data.url || options.data.url;
+    }
+    
+    event.waitUntil(
+        self.registration.showNotification('BAG Comics', options)
+    );
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+    console.log('Service Worker: Notification clicked');
+    
+    event.notification.close();
+    
+    if (event.action === 'view') {
+        event.waitUntil(
+            clients.openWindow(event.notification.data.url)
+        );
+    }
+});
