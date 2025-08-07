@@ -1,144 +1,141 @@
-# BAG Comics - Render Deployment Guide
+# BAG Comics - Production Deployment Guide
 
-This guide will help you deploy your BAG Comics Laravel application to Render using Docker.
+## Environment Configuration for Render
 
-## Prerequisites
+### Required Environment Variables
 
-1. A GitHub repository with your code
-2. A Render account (free tier available)
-3. Your Stripe API keys (for production)
+Set these environment variables in your Render dashboard:
 
-## Deployment Steps
-
-### 1. Prepare Your Repository
-
-Make sure all the Docker configuration files are committed to your repository:
-- `Dockerfile`
-- `docker/apache.conf`
-- `docker/entrypoint.sh`
-- `render.yaml`
-- `.dockerignore`
-
-### 2. Deploy to Render
-
-#### Option A: Using render.yaml (Recommended)
-
-1. Push your code to GitHub
-2. Go to [Render Dashboard](https://dashboard.render.com)
-3. Click "New" → "Blueprint"
-4. Connect your GitHub repository
-5. Render will automatically detect the `render.yaml` file and configure your service
-
-#### Option B: Manual Setup
-
-1. Go to [Render Dashboard](https://dashboard.render.com)
-2. Click "New" → "Web Service"
-3. Connect your GitHub repository
-4. Configure the service:
-   - **Name**: `bagcomics`
-   - **Environment**: `Docker`
-   - **Region**: Choose your preferred region
-   - **Branch**: `main` (or your default branch)
-   - **Dockerfile Path**: `./Dockerfile`
-
-### 3. Environment Variables
-
-Set these environment variables in Render:
-
-#### Required Variables:
-```
-APP_NAME=BAG Comics
+```bash
+# Application Settings
+APP_NAME="BagComics"
 APP_ENV=production
 APP_DEBUG=false
-APP_KEY=[Will be auto-generated]
-APP_URL=[Will be auto-set by Render]
-DB_CONNECTION=sqlite
-DB_DATABASE=/var/www/html/database/database.sqlite
+APP_URL=https://bagcomics.onrender.com
+ASSET_URL=https://bagcomics.onrender.com
+
+# Database (Auto-configured by Render PostgreSQL add-on)
+DB_CONNECTION=pgsql
+DB_HOST=your-postgres-host.oregon-postgres.render.com
+DB_PORT=5432
+DB_DATABASE=your_database_name
+DB_USERNAME=your_database_user
+DB_PASSWORD=your_database_password
+
+# Session Configuration
 SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+SESSION_DOMAIN=bagcomics.onrender.com
+
+# Mail Configuration
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_FROM_ADDRESS="noreply@bagcomics.com"
+MAIL_FROM_NAME="BagComics"
+
+# Security
+SANCTUM_STATEFUL_DOMAINS=bagcomics.onrender.com
+SPA_URL=https://bagcomics.onrender.com
+FRONTEND_URL=https://bagcomics.onrender.com
+LIVEWIRE_SECURE=true
+FORCE_HTTPS=true
+
+# Search (Use database driver for production)
+SCOUT_DRIVER=database
+
+# Cache & Queue
 CACHE_STORE=database
 QUEUE_CONNECTION=database
-LOG_LEVEL=error
+
+# Stripe (Replace with your actual Stripe keys)
+STRIPE_KEY=pk_test_your_stripe_publishable_key_here
+STRIPE_SECRET=sk_test_your_stripe_secret_key_here
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
+
+# Authentication Model
+AUTH_MODEL=App\\Models\\User
 ```
 
-#### Stripe Configuration:
-**Important**: You must replace these placeholders with your actual Stripe keys:
+## Post-Deployment Steps
+
+### 1. Create Admin User
+
+Visit the following URL to create an admin user (replace with your email):
 ```
-STRIPE_KEY=pk_test_... (your Stripe publishable key)
-STRIPE_SECRET=sk_test_... (your Stripe secret key)
-STRIPE_WEBHOOK_SECRET=whsec_... (your webhook secret)
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_... (same as STRIPE_KEY)
+https://bagcomics.onrender.com/make-admin/your-email@domain.com
 ```
 
-**To get your Stripe keys:**
-1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
-2. Navigate to Developers → API keys
-3. Copy your publishable and secret keys
-4. For webhooks: Go to Developers → Webhooks → Add endpoint
+### 2. Access Admin Dashboard
 
-### 4. Post-Deployment
+Once you have admin privileges, you can access the admin dashboard at:
+```
+https://bagcomics.onrender.com/admin
+```
 
-After successful deployment:
+### 3. Clear Caches (if needed)
 
-1. **Access your app**: Your app will be available at `https://your-app-name.onrender.com`
+If you need to clear caches in production, you can run:
+```bash
+php artisan config:clear
+php artisan view:clear
+php artisan route:clear
+```
 
-2. **Create admin user**: SSH into your container or use Render's shell to create an admin user:
-   ```bash
-   php artisan make:filament-user
-   ```
+Then re-cache for performance:
+```bash
+php artisan config:cache
+php artisan route:cache
+```
 
-3. **Access admin panel**: Go to `https://your-app-name.onrender.com/admin`
+## Production Features
 
-4. **Configure CMS content**: Use the admin panel to customize your frontend content
+✅ **Filament Admin Dashboard** - Full admin interface with analytics widgets
+✅ **PDF Comic Reader** - Enhanced PDF viewer with progress tracking  
+✅ **Payment Processing** - Stripe integration for comic purchases
+✅ **User Authentication** - Complete user management system
+✅ **Responsive Design** - Mobile-optimized interface
+✅ **Progressive Web App** - PWA features for mobile installation
 
-## Important Notes
+## Security Features
 
-### Database
-- Uses SQLite for simplicity on Render's free tier
-- Database file is stored in the container (data will persist between deployments)
-- For production, consider upgrading to PostgreSQL
+- HTTPS enforcement
+- Secure session cookies
+- CSRF protection
+- SQL injection protection
+- XSS protection
+- Content Security Policy headers
+- Trusted proxy configuration
 
-### File Storage
-- Uses local storage (files stored in container)
-- For production, consider using AWS S3 or similar cloud storage
+## Database
 
-### SSL/HTTPS
-- Render automatically provides SSL certificates
-- Your app will be accessible via HTTPS
+- **PostgreSQL** on Render
+- **Migrations** run automatically on deploy
+- **Session storage** in database
+- **Cache storage** in database for better performance
 
-### Custom Domain
-- You can add a custom domain in Render's dashboard
-- Update `APP_URL` environment variable when using custom domain
+## File Storage
 
-## Troubleshooting
+- Comics stored in `/public/storage`
+- Cover images in `/public/images`
+- PDF files protected with access control
 
-### Build Failures
-- Check the build logs in Render dashboard
-- Ensure all dependencies are properly specified
-- Verify Docker configuration
+## Performance Optimizations
 
-### Runtime Issues
-- Check application logs in Render dashboard
-- Verify environment variables are set correctly
-- Ensure database migrations ran successfully
+- Configuration caching
+- Route caching
+- View compilation
+- Asset versioning
+- Database query optimization
+- Lazy loading for comic grids
 
-### Performance
-- Free tier has limitations (sleeps after 15 minutes of inactivity)
-- Consider upgrading to paid plan for production use
+## Monitoring & Logs
 
-## Scaling Considerations
+- Laravel logs available in Render dashboard
+- Application metrics tracking
+- Error reporting and debugging (disabled in production)
+- Performance monitoring through built-in analytics
 
-For production deployment:
+---
 
-1. **Database**: Migrate to PostgreSQL
-2. **File Storage**: Use AWS S3 or similar
-3. **Caching**: Add Redis for better performance
-4. **Monitoring**: Set up application monitoring
-5. **Backups**: Implement database backup strategy
-
-## Support
-
-If you encounter issues:
-1. Check Render's documentation
-2. Review application logs
-3. Verify environment configuration
-4. Test locally with Docker first
+**Note**: Remember to update Stripe keys to live keys when ready for actual payments!
