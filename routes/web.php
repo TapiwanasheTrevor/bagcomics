@@ -249,6 +249,48 @@ Route::get('/check-admins', function() {
     ]);
 });
 
+// Fix admin panel setup
+Route::get('/fix-admin', function() {
+    try {
+        // Run migrations to ensure all tables exist
+        Artisan::call('migrate', ['--force' => true]);
+        
+        // Clear all caches
+        Artisan::call('config:clear');
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
+        Artisan::call('route:clear');
+        
+        // Add is_admin column if it doesn't exist
+        if (!Schema::hasColumn('users', 'is_admin')) {
+            Schema::table('users', function ($table) {
+                $table->boolean('is_admin')->default(false);
+            });
+        }
+        
+        // Create admin user
+        $user = \App\Models\User::firstOrCreate(
+            ['email' => 'admin@bagcomics.com'],
+            ['name' => 'Admin User', 'password' => bcrypt('password')]
+        );
+        $user->is_admin = true;
+        $user->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin panel setup complete',
+            'admin_user' => $user->email,
+            'login_url' => url('/admin'),
+            'credentials' => 'Email: admin@bagcomics.com, Password: password'
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+});
+
 // Test streaming directly without model binding  
 Route::get('/test-stream/{slug}', function($slug) {
     $comic = \App\Models\Comic::where('slug', $slug)->first();

@@ -38,12 +38,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                \App\Filament\Widgets\PlatformMetricsWidget::class,
-                \App\Filament\Widgets\RevenueChartWidget::class,
-                \App\Filament\Widgets\UserEngagementWidget::class,
-                \App\Filament\Widgets\GenrePopularityWidget::class,
-                \App\Filament\Widgets\TopComicsWidget::class,
-                \App\Filament\Widgets\RecentActivityWidget::class,
+                // Temporarily disabled widgets to fix dashboard issues
+                // \App\Filament\Widgets\PlatformMetricsWidget::class,
+                // \App\Filament\Widgets\RevenueChartWidget::class,
+                // \App\Filament\Widgets\UserEngagementWidget::class,
+                // \App\Filament\Widgets\GenrePopularityWidget::class,
+                // \App\Filament\Widgets\TopComicsWidget::class,
+                // \App\Filament\Widgets\RecentActivityWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
