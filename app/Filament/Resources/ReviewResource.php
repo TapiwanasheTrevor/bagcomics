@@ -264,7 +264,9 @@ class ReviewResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::where('is_flagged', true)->count() ?: null;
+        // Return null for now since is_flagged column doesn't exist
+        // Can be updated when review moderation is implemented
+        return null;
     }
 
     public static function getNavigationBadgeColor(): ?string
