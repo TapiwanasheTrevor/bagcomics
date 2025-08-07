@@ -89,6 +89,52 @@ Route::get('/test-simple', function() {
     return 'Simple route works - ' . now();
 });
 
+// Debug PDF URL generation
+Route::get('/debug-pdf-url', function() {
+    $comic = \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first();
+    if (!$comic) {
+        return response()->json(['error' => 'Comic not found']);
+    }
+    
+    $comicData = $comic->toArray();
+    $comicData['pdf_stream_url'] = $comic->getPdfUrl();
+    $comicData['pdf_download_url'] = $comic->getPdfUrl();
+    
+    return response()->json([
+        'comic_title' => $comic->title,
+        'pdf_file_path_in_db' => $comic->pdf_file_path,
+        'getPdfUrl_returns' => $comic->getPdfUrl(),
+        'file_exists_public' => file_exists(public_path($comic->pdf_file_path)) ? 'YES' : 'NO',
+        'file_exists_storage' => file_exists(storage_path('app/public/' . $comic->pdf_file_path)) ? 'YES' : 'NO',
+        'public_path_check' => public_path($comic->pdf_file_path),
+        'storage_path_check' => storage_path('app/public/' . $comic->pdf_file_path),
+        'asset_public' => asset($comic->pdf_file_path),
+        'asset_storage' => asset('storage/' . $comic->pdf_file_path),
+        'frontend_data' => [
+            'pdf_stream_url' => $comicData['pdf_stream_url'],
+            'pdf_download_url' => $comicData['pdf_download_url'],
+        ]
+    ]);
+});
+
+// Fix PDF path route
+Route::get('/fix-pdf-path', function() {
+    $comic = \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first();
+    if (!$comic) {
+        return response()->json(['error' => 'Comic not found']);
+    }
+    
+    $before = $comic->pdf_file_path;
+    $comic->pdf_file_path = 'sample-comic.pdf';
+    $comic->save();
+    
+    return response()->json([
+        'before' => $before,
+        'after' => $comic->pdf_file_path,
+        'getPdfUrl_now_returns' => $comic->getPdfUrl(),
+    ]);
+});
+
 // Test streaming directly without model binding  
 Route::get('/test-stream/{slug}', function($slug) {
     $comic = \App\Models\Comic::where('slug', $slug)->first();
