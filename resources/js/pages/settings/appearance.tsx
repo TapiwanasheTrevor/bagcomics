@@ -16,16 +16,23 @@ export default function Appearance() {
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
-            <div className="min-h-screen bg-gray-900 text-white">
+            <div className="min-h-screen bg-black text-white">
                 {/* Header */}
                 <header className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             {/* Logo */}
                             <div className="flex items-center space-x-4">
-                                <div className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
-                                    BAG Comics
-                                </div>
+                                <Link href="/" className="flex items-center space-x-3">
+                                    <img 
+                                        src="/images/image.png" 
+                                        alt="BAG Comics Logo" 
+                                        className="h-8 w-auto"
+                                    />
+                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
+                                        BAG Comics
+                                    </div>
+                                </Link>
                             </div>
 
                             {/* Navigation */}
@@ -62,7 +69,7 @@ export default function Appearance() {
                                 ) : (
                                     <Link
                                         href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-all duration-300"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
                                     >
                                         <User className="w-4 h-4" />
                                         <span className="text-sm">Sign In</span>
@@ -112,10 +119,10 @@ export default function Appearance() {
 
                                     {auth.user && (
                                         <div className="mx-4 space-y-2">
-                                            <div className="flex items-center space-x-3 px-4 py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg">
+                                            <div className="flex items-center space-x-3 px-4 py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg">
                                                 <div>
                                                     <p className="font-semibold">{auth.user.name || 'User'}</p>
-                                                    <p className="text-xs text-emerald-300">{auth.user.email}</p>
+                                                    <p className="text-xs text-red-300">{auth.user.email}</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-1">

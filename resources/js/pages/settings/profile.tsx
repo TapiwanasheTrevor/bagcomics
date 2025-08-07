@@ -37,16 +37,23 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
-            <div className="min-h-screen bg-gray-900 text-white">
+            <div className="min-h-screen bg-black text-white">
                 {/* Header */}
                 <header className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             {/* Logo */}
                             <div className="flex items-center space-x-4">
-                                <div className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
-                                    BAG Comics
-                                </div>
+                                <Link href="/" className="flex items-center space-x-3">
+                                    <img 
+                                        src="/images/image.png" 
+                                        alt="BAG Comics Logo" 
+                                        className="h-8 w-auto"
+                                    />
+                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
+                                        BAG Comics
+                                    </div>
+                                </Link>
                             </div>
 
                             {/* Desktop Navigation */}
@@ -85,7 +92,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                         placeholder="Search comics..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                     />
                                 </div>
 
@@ -95,7 +102,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 ) : (
                                     <Link
                                         href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-all duration-300"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
                                     >
                                         <User className="w-4 h-4" />
                                         <span className="text-sm">Sign In</span>
@@ -152,7 +159,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                                 placeholder="Search comics..."
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                             />
                                         </div>
                                     </div>
@@ -195,7 +202,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 <input
                                     id="name"
                                     type="text"
-                                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     required
@@ -214,7 +221,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 <input
                                     id="email"
                                     type="email"
-                                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}
                                     required
@@ -252,7 +259,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold rounded-lg hover:from-emerald-600 hover:to-purple-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {processing ? 'Saving...' : 'Save Changes'}
                                 </button>
@@ -264,7 +271,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                     leave="transition ease-in-out"
                                     leaveTo="opacity-0"
                                 >
-                                    <p className="text-sm text-emerald-400 font-medium">Saved successfully!</p>
+                                    <p className="text-sm text-red-400 font-medium">Saved successfully!</p>
                                 </Transition>
                             </div>
                         </form>

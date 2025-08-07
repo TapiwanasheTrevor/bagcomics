@@ -57,14 +57,21 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
-            <div className="min-h-screen bg-gray-900 text-white">
+            <div className="min-h-screen bg-black text-white">
                 <header className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <div className="flex items-center space-x-4">
-                                <div className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
-                                    BAG Comics
-                                </div>
+                                <Link href="/" className="flex items-center space-x-3">
+                                    <img 
+                                        src="/images/image.png" 
+                                        alt="BAG Comics Logo" 
+                                        className="h-8 w-auto"
+                                    />
+                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
+                                        BAG Comics
+                                    </div>
+                                </Link>
                             </div>
 
                             {/* Desktop Navigation */}
@@ -103,7 +110,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         placeholder="Search comics..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                     />
                                 </div>
 
@@ -113,7 +120,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                 ) : (
                                     <Link
                                         href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-all duration-300"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
                                     >
                                         <User className="w-4 h-4" />
                                         <span className="text-sm">Sign In</span>
@@ -168,7 +175,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                                 placeholder="Search comics..."
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                             />
                                         </div>
                                     </div>
@@ -211,7 +218,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <select
                                             value={data.reading_view_mode}
                                             onChange={(e) => setData('reading_view_mode', e.target.value as 'single' | 'continuous')}
-                                            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         >
                                             <option value="single">Single Page</option>
                                             <option value="continuous">Continuous Scroll</option>
@@ -225,7 +232,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <select
                                             value={data.reading_direction}
                                             onChange={(e) => setData('reading_direction', e.target.value as 'ltr' | 'rtl')}
-                                            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         >
                                             <option value="ltr">Left to Right</option>
                                             <option value="rtl">Right to Left</option>
@@ -248,7 +255,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                             />
                                             <div className="flex justify-between text-xs text-gray-400">
                                                 <span>50%</span>
-                                                <span className="text-emerald-400 font-medium">{data.reading_zoom_level}%</span>
+                                                <span className="text-red-400 font-medium">{data.reading_zoom_level}%</span>
                                                 <span>200%</span>
                                             </div>
                                         </div>
@@ -270,7 +277,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                             />
                                             <div className="flex justify-between text-xs text-gray-400">
                                                 <span>1s</span>
-                                                <span className="text-emerald-400 font-medium">{data.control_hide_delay}s</span>
+                                                <span className="text-red-400 font-medium">{data.control_hide_delay}s</span>
                                                 <span>10s</span>
                                             </div>
                                         </div>
@@ -289,8 +296,8 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <button
                                             type="button"
                                             onClick={() => setData('auto_hide_controls', !data.auto_hide_controls)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.auto_hide_controls ? 'bg-emerald-500' : 'bg-gray-600'
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                                data.auto_hide_controls ? 'bg-red-500' : 'bg-gray-600'
                                             }`}
                                         >
                                             <span
@@ -309,8 +316,8 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <button
                                             type="button"
                                             onClick={() => setData('reduce_motion', !data.reduce_motion)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.reduce_motion ? 'bg-emerald-500' : 'bg-gray-600'
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                                data.reduce_motion ? 'bg-red-500' : 'bg-gray-600'
                                             }`}
                                         >
                                             <span
@@ -329,8 +336,8 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <button
                                             type="button"
                                             onClick={() => setData('high_contrast', !data.high_contrast)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.high_contrast ? 'bg-emerald-500' : 'bg-gray-600'
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                                data.high_contrast ? 'bg-red-500' : 'bg-gray-600'
                                             }`}
                                         >
                                             <span
@@ -356,8 +363,8 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <button
                                             type="button"
                                             onClick={() => setData('email_notifications', !data.email_notifications)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.email_notifications ? 'bg-emerald-500' : 'bg-gray-600'
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                                data.email_notifications ? 'bg-red-500' : 'bg-gray-600'
                                             }`}
                                         >
                                             <span
@@ -376,8 +383,8 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <button
                                             type="button"
                                             onClick={() => setData('new_releases_notifications', !data.new_releases_notifications)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.new_releases_notifications ? 'bg-emerald-500' : 'bg-gray-600'
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                                data.new_releases_notifications ? 'bg-red-500' : 'bg-gray-600'
                                             }`}
                                         >
                                             <span
@@ -396,8 +403,8 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         <button
                                             type="button"
                                             onClick={() => setData('reading_reminders', !data.reading_reminders)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.reading_reminders ? 'bg-emerald-500' : 'bg-gray-600'
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                                data.reading_reminders ? 'bg-red-500' : 'bg-gray-600'
                                             }`}
                                         >
                                             <span
@@ -415,7 +422,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="px-6 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                                        className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                                     >
                                         {processing ? 'Saving Preferences...' : 'Save Preferences'}
                                     </button>
@@ -427,7 +434,7 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                         leave="transition ease-in-out"
                                         leaveTo="opacity-0"
                                     >
-                                        <p className="text-sm text-emerald-400 font-medium">Preferences saved successfully!</p>
+                                        <p className="text-sm text-red-400 font-medium">Preferences saved successfully!</p>
                                     </Transition>
                                 </div>
 

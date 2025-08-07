@@ -39,8 +39,8 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Comics">
         <meta name="mobile-web-app-capable" content="yes">
-        <meta name="theme-color" content="#10b981">
-        <meta name="msapplication-TileColor" content="#10b981">
+        <meta name="theme-color" content="#ef4444">
+        <meta name="msapplication-TileColor" content="#ef4444">
         <meta name="msapplication-tap-highlight" content="no">
 
         <!-- Icons -->
@@ -113,13 +113,13 @@
                 // Show install button or banner
                 const installBanner = document.createElement('div');
                 installBanner.innerHTML = `
-                    <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: #10b981; color: white; padding: 1rem; border-radius: 0.5rem; z-index: 1000; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                    <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: #ef4444; color: white; padding: 1rem; border-radius: 0.5rem; z-index: 1000; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
                         <div>
-                            <strong>Install Comic Platform</strong>
+                            <strong>Install BAG Comics</strong>
                             <p style="margin: 0; font-size: 0.875rem; opacity: 0.9;">Get the full app experience!</p>
                         </div>
                         <div>
-                            <button id="install-btn" style="background: white; color: #10b981; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; font-weight: 500; margin-right: 0.5rem; cursor: pointer;">Install</button>
+                            <button id="install-btn" style="background: white; color: #ef4444; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; font-weight: 500; margin-right: 0.5rem; cursor: pointer;">Install</button>
                             <button id="dismiss-btn" style="background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer;">Dismiss</button>
                         </div>
                     </div>

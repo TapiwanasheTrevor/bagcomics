@@ -164,7 +164,7 @@ export default function Library() {
                             <p className="text-gray-400 mb-8">Please log in to view your comic collection.</p>
                             <Link
                                 href="/login"
-                                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-purple-600 transition-all duration-300"
+                                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300"
                             >
                                 <User className="w-5 h-5" />
                                 <span>Login</span>
@@ -177,7 +177,7 @@ export default function Library() {
     }
 
     const LibraryGridCard: React.FC<{ entry: LibraryEntry }> = ({ entry }) => (
-        <div className="group cursor-pointer bg-gray-800 rounded-xl overflow-hidden border border-gray-700/50 hover:border-emerald-500/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/20">
+        <div className="group cursor-pointer bg-gray-800 rounded-xl overflow-hidden border border-gray-700/50 hover:border-red-500/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/20">
             <Link href={`/comics/${entry.comic.slug}`} className="block">
                 <div className="relative">
                     {entry.comic.cover_image_url ? (
@@ -195,7 +195,7 @@ export default function Library() {
                     {/* Overlay with actions */}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <div className="flex space-x-2">
-                            <button className="p-2 bg-emerald-500 rounded-full text-white hover:bg-emerald-600 transition-colors">
+                            <button className="p-2 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors">
                                 <Play className="h-4 w-4" />
                             </button>
                             {entry.comic.is_pdf_comic && (
@@ -219,7 +219,7 @@ export default function Library() {
                             entry.access_type === 'free'
                                 ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                 : entry.access_type === 'purchased'
-                                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                                ? 'bg-red-600/20 text-red-400 border border-red-600/30'
                                 : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
                         }`}>
                             {entry.access_type === 'free' ? 'Free' : entry.access_type === 'purchased' ? 'Owned' : 'Subscription'}
@@ -228,7 +228,7 @@ export default function Library() {
                 </div>
 
                 <div className="p-4">
-                    <h3 className="font-semibold text-white mb-1 line-clamp-2 group-hover:text-emerald-400 transition-colors">
+                    <h3 className="font-semibold text-white mb-1 line-clamp-2 group-hover:text-red-400 transition-colors">
                         {entry.comic.title}
                     </h3>
                     {entry.comic.author && (
@@ -241,7 +241,7 @@ export default function Library() {
                             <span className="text-xs text-gray-400">{Number(entry.comic.average_rating || 0).toFixed(1)}</span>
                         </div>
                         {entry.comic.is_pdf_comic && (
-                            <span className="text-xs text-emerald-400 font-medium">PDF</span>
+                            <span className="text-xs text-red-400 font-medium">PDF</span>
                         )}
                     </div>
 
@@ -266,7 +266,7 @@ export default function Library() {
     );
 
     const LibraryListCard: React.FC<{ entry: LibraryEntry }> = ({ entry }) => (
-        <div className="bg-gray-800 rounded-xl border border-gray-700/50 hover:border-emerald-500/50 transition-all duration-300 p-4">
+        <div className="bg-gray-800 rounded-xl border border-gray-700/50 hover:border-red-500/50 transition-all duration-300 p-4">
             <div className="flex items-center space-x-4">
                 <Link href={`/comics/${entry.comic.slug}`} className="flex-shrink-0">
                     {entry.comic.cover_image_url ? (
@@ -286,7 +286,7 @@ export default function Library() {
                     <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                             <Link href={`/comics/${entry.comic.slug}`}>
-                                <h3 className="font-semibold text-white hover:text-emerald-400 transition-colors line-clamp-1">
+                                <h3 className="font-semibold text-white hover:text-red-400 transition-colors line-clamp-1">
                                     {entry.comic.title}
                                 </h3>
                             </Link>
@@ -304,14 +304,14 @@ export default function Library() {
                                     entry.access_type === 'free'
                                         ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                         : entry.access_type === 'purchased'
-                                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                                        ? 'bg-red-600/20 text-red-400 border border-red-600/30'
                                         : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
                                 }`}>
                                     {entry.access_type === 'free' ? 'Free' : entry.access_type === 'purchased' ? 'Owned' : 'Subscription'}
                                 </span>
 
                                 {entry.comic.is_pdf_comic && (
-                                    <span className="text-xs text-emerald-400 font-medium">PDF</span>
+                                    <span className="text-xs text-red-400 font-medium">PDF</span>
                                 )}
 
                                 <span className="text-xs text-gray-500">
@@ -343,7 +343,7 @@ export default function Library() {
 
                             <Link
                                 href={`/comics/${entry.comic.slug}`}
-                                className="px-3 py-1 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 transition-colors"
+                                className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
                             >
                                 Read
                             </Link>
@@ -363,16 +363,23 @@ export default function Library() {
     return (
         <>
             <Head title="Library - BagComics" />
-            <div className="min-h-screen bg-gray-900 text-white">
+            <div className="min-h-screen bg-black text-white">
                 {/* Header */}
                 <header className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             {/* Logo */}
                             <div className="flex items-center space-x-4">
-                                <div className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
-                                    BAG Comics
-                                </div>
+                                <Link href="/" className="flex items-center space-x-3">
+                                    <img 
+                                        src="/images/image.png" 
+                                        alt="BAG Comics Logo" 
+                                        className="h-8 w-auto"
+                                    />
+                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
+                                        BAG Comics
+                                    </div>
+                                </Link>
                             </div>
 
                             {/* Desktop Navigation */}
@@ -393,7 +400,7 @@ export default function Library() {
                                 </Link>
                                 <Link
                                     href="/library"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-emerald-500/30"
                                 >
                                     <LibraryIcon className="w-4 h-4" />
                                     <span>Library</span>
@@ -409,7 +416,7 @@ export default function Library() {
                                         placeholder="Search library..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                     />
                                 </div>
 
@@ -419,7 +426,7 @@ export default function Library() {
                                 ) : (
                                     <Link
                                         href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-all duration-300"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 rounded-lg transition-all duration-300"
                                     >
                                         <User className="w-4 h-4" />
                                         <span className="text-sm">Sign In</span>
@@ -458,7 +465,7 @@ export default function Library() {
                                     </Link>
                                     <Link
                                         href="/library"
-                                        className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                        className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-emerald-500/30"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <LibraryIcon className="w-5 h-5" />
@@ -474,7 +481,7 @@ export default function Library() {
                                                 placeholder="Search library..."
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                             />
                                         </div>
                                     </div>
@@ -493,7 +500,7 @@ export default function Library() {
                 <main className="container mx-auto px-4 py-8">
                     {/* Page Header */}
                     <div className="mb-8">
-                        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-purple-400 bg-clip-text text-transparent">
+                        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-red-500 to-red-300 bg-clip-text text-transparent">
                             My Library
                         </h1>
                         <p className="text-gray-400">Your personal collection of comics</p>
@@ -511,7 +518,7 @@ export default function Library() {
                                         onClick={() => setActiveTab(tab.id as any)}
                                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
                                             activeTab === tab.id
-                                                ? 'bg-emerald-500 text-white'
+                                                ? 'bg-red-500 text-white'
                                                 : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                                         }`}
                                     >
@@ -526,7 +533,7 @@ export default function Library() {
                                     onClick={() => setViewMode('grid')}
                                     className={`p-2 rounded-lg transition-colors ${
                                         viewMode === 'grid'
-                                            ? 'bg-emerald-500 text-white'
+                                            ? 'bg-red-500 text-white'
                                             : 'bg-gray-800 text-gray-400 hover:text-white'
                                     }`}
                                 >
@@ -536,7 +543,7 @@ export default function Library() {
                                     onClick={() => setViewMode('list')}
                                     className={`p-2 rounded-lg transition-colors ${
                                         viewMode === 'list'
-                                            ? 'bg-emerald-500 text-white'
+                                            ? 'bg-red-500 text-white'
                                             : 'bg-gray-800 text-gray-400 hover:text-white'
                                     }`}
                                 >
@@ -553,7 +560,7 @@ export default function Library() {
                                 placeholder="Search your library..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                             />
                         </div>
                     </div>
@@ -602,7 +609,7 @@ export default function Library() {
                             {!search && (
                                 <Link
                                     href="/comics"
-                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-purple-600 transition-all duration-300"
+                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300"
                                 >
                                     <Book className="w-5 h-5" />
                                     <span>Explore Comics</span>

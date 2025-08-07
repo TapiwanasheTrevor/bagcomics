@@ -32,10 +32,10 @@ function UserAvatarDropdown({ user }: UserAvatarDropdownProps) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className="flex items-center space-x-2 px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg transition-all duration-300 hover:bg-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                <button className="flex items-center space-x-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-all duration-300 hover:bg-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500/50">
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold text-sm">
+                        <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
                             {getInitials(user.name)}
                         </AvatarFallback>
                     </Avatar>
@@ -247,15 +247,22 @@ export default function ComicsIndex() {
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
-            <div className="min-h-screen bg-gray-900 text-white">
+            <div className="min-h-screen bg-black text-white">
                 {/* Header */}
-                <header className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
+                <header className="bg-black/95 backdrop-blur-sm border-b border-red-900/30 sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             {/* Logo */}
                             <div className="flex items-center space-x-4">
-                                <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
-                                    BAG Comics
+                                <Link href="/" className="flex items-center space-x-3">
+                                    <img 
+                                        src="/images/image.png" 
+                                        alt="BAG Comics Logo" 
+                                        className="h-8 w-auto"
+                                    />
+                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
+                                        BAG Comics
+                                    </div>
                                 </Link>
                             </div>
 
@@ -270,7 +277,7 @@ export default function ComicsIndex() {
                                 </Link>
                                 <Link
                                     href="/comics"
-                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 bg-red-500/20 text-red-400 border border-red-500/30"
                                 >
                                     <Book className="w-4 h-4" />
                                     <span>Explore</span>
@@ -305,7 +312,7 @@ export default function ComicsIndex() {
                                 ) : (
                                     <Link
                                         href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-all duration-300"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
                                     >
                                         <User className="w-4 h-4" />
                                         <span className="text-sm">Sign In</span>
@@ -327,7 +334,7 @@ export default function ComicsIndex() {
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
                     <div className="mb-8">
-                        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-purple-400 bg-clip-text text-transparent">
+                        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-red-500 to-red-300 bg-clip-text text-transparent">
                             Explore Comics
                         </h1>
                         <p className="text-gray-300 text-lg">
@@ -387,7 +394,7 @@ export default function ComicsIndex() {
                                         variant={viewMode === 'grid' ? 'default' : 'outline'}
                                         size="sm"
                                         onClick={() => setViewMode('grid')}
-                                        className="p-2"
+                                        className={`p-2 ${viewMode === 'grid' ? 'bg-red-500 hover:bg-red-600 text-white' : ''}`}
                                     >
                                         <Grid className="w-4 h-4" />
                                     </Button>
@@ -395,7 +402,7 @@ export default function ComicsIndex() {
                                         variant={viewMode === 'list' ? 'default' : 'outline'}
                                         size="sm"
                                         onClick={() => setViewMode('list')}
-                                        className="p-2"
+                                        className={`p-2 ${viewMode === 'list' ? 'bg-red-500 hover:bg-red-600 text-white' : ''}`}
                                     >
                                         <List className="w-4 h-4" />
                                     </Button>

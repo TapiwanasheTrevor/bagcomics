@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Filter, X, ChevronDown, ChevronUp, Star, DollarSign, Calendar, Tag, Globe, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -133,10 +133,10 @@ const FilterContent: React.FC<{
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                    <Filter className="h-5 w-5 text-emerald-400" />
+                    <Filter className="h-5 w-5 text-red-400" />
                     <h3 className="font-semibold text-lg">Filters</h3>
                     {activeFiltersCount > 0 && (
-                        <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400">
+                        <Badge variant="secondary" className="bg-red-500/20 text-red-400">
                             {activeFiltersCount}
                         </Badge>
                     )}
@@ -171,7 +171,7 @@ const FilterContent: React.FC<{
                             }
                         />
                         <Label htmlFor="new-releases" className="text-sm">
-                            New Releases (Last 30 days)
+                            New (Last 30 days)
                         </Label>
                     </div>
                     
@@ -184,7 +184,7 @@ const FilterContent: React.FC<{
                             }
                         />
                         <Label htmlFor="mature-content" className="text-sm">
-                            Include Mature Content (18+)
+                            Mature Content (18+)
                         </Label>
                     </div>
                 </div>
@@ -355,7 +355,7 @@ const FilterContent: React.FC<{
                                 <Badge
                                     key={`genre-${genre}`}
                                     variant="secondary"
-                                    className="text-xs bg-emerald-500/20 text-emerald-400"
+                                    className="text-xs bg-red-500/20 text-red-400"
                                 >
                                     {genre}
                                     <Button
@@ -416,6 +416,72 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
     loading,
     isMobile = false
 }) => {
+    const sidebarRef = useRef<HTMLDivElement>(null);
+    const [stickyStyle, setStickyStyle] = useState<React.CSSProperties>({});
+
+    useEffect(() => {
+        if (isMobile) return;
+
+        let ticking = false;
+        let resizeTimeout: NodeJS.Timeout;
+
+        const updatePosition = () => {
+            if (!sidebarRef.current) return;
+
+            const sidebar = sidebarRef.current;
+            const viewportHeight = window.innerHeight;
+            const bottomBuffer = 55; // 55px from bottom as requested
+            const topOffset = 96; // equivalent to top-24 (24 * 4px = 96px)
+
+            // Get sidebar height directly to avoid getBoundingClientRect during scroll
+            const sidebarHeight = sidebar.offsetHeight;
+            
+            // If sidebar fits entirely in viewport with buffers
+            if (sidebarHeight <= viewportHeight - topOffset - bottomBuffer) {
+                setStickyStyle({
+                    position: 'sticky',
+                    top: `${topOffset}px`
+                });
+            }
+            // If sidebar is too tall, calculate adjusted top position
+            else {
+                const adjustedTop = Math.max(topOffset, viewportHeight - bottomBuffer - sidebarHeight);
+                setStickyStyle({
+                    position: 'sticky',
+                    top: `${adjustedTop}px`
+                });
+            }
+
+            ticking = false;
+        };
+
+        const handleScroll = () => {
+            if (!ticking) {
+                requestAnimationFrame(updatePosition);
+                ticking = true;
+            }
+        };
+
+        const handleResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(updatePosition, 100);
+        };
+
+        // Initial calculation
+        updatePosition();
+
+        // Add listeners
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', handleResize);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout);
+        };
+    }, [isMobile]);
+
     if (isMobile) {
         return (
             <Sheet>
@@ -424,13 +490,13 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
                         <Filter className="h-4 w-4" />
                         <span>Filters</span>
                         {getActiveFiltersCount(filters) > 0 && (
-                            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400">
+                            <Badge variant="secondary" className="bg-red-500/20 text-red-400">
                                 {getActiveFiltersCount(filters)}
                             </Badge>
                         )}
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-80 bg-gray-900 border-gray-700">
+                <SheetContent side="left" className="w-64 bg-black border-red-900/30">
                     <SheetHeader>
                         <SheetTitle className="text-white">Filter Comics</SheetTitle>
                     </SheetHeader>
@@ -448,7 +514,11 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
     }
 
     return (
-        <div className="w-80 bg-gray-800/50 rounded-xl border border-gray-700/50 p-4 h-fit sticky top-24">
+        <div 
+            ref={sidebarRef}
+            className="w-64 bg-gray-900/70 rounded-xl border border-gray-800/50 p-4 h-fit"
+            style={stickyStyle}
+        >
             <FilterContent
                 filters={filters}
                 onFiltersChange={onFiltersChange}

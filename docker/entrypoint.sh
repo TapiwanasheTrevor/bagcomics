@@ -194,12 +194,66 @@ fi
 echo "Running database migrations..."
 php artisan migrate --force
 
-# Seed the database if needed
-echo "Seeding database..."
-php artisan db:seed --class=CmsContentSeeder --force || echo "CMS seeding failed or already completed"
+# Seed the database with all data
+echo "Seeding database with sample data..."
+# Check if database seeding is needed
+echo "Checking if database seeding is required..."
+SEED_CHECK=$(php -r "
+require '/var/www/html/vendor/autoload.php';
+\$app = require '/var/www/html/bootstrap/app.php';
+\$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
-echo "Creating admin users..."
-php artisan db:seed --class=AdminUserSeeder --force || echo "Admin user seeding failed or already completed"
+try {
+    \$comicCount = \App\Models\Comic::count();
+    \$userCount = \App\Models\User::where('email', '!=', 'test@example.com')->count();
+    echo \"comics:\$comicCount,users:\$userCount\";
+} catch (Exception \$e) {
+    echo 'error:' . \$e->getMessage();
+}
+" 2>/dev/null || echo "error:database_connection_failed")
+
+echo "Seed check result: $SEED_CHECK"
+
+if [[ "$SEED_CHECK" == comics:0* ]] || [[ "$SEED_CHECK" == *users:0* ]]; then
+    echo "Database appears empty, running full seeding..."
+    
+    # Check if sample PDF exists for comics
+    if [ -f "/var/www/html/public/sample-comic.pdf" ]; then
+        echo "Sample comic PDF found, proceeding with seeding..."
+    else
+        echo "Warning: sample-comic.pdf not found, creating placeholder..."
+        echo "This is a placeholder PDF for demo purposes" > /var/www/html/public/sample-comic.pdf
+    fi
+    
+    # Run database seeding with error handling
+    if php artisan db:seed --force; then
+        echo "Database seeding completed successfully!"
+        
+        # Verify seeding completed successfully
+        VERIFICATION=$(php -r "
+        require '/var/www/html/vendor/autoload.php';
+        \$app = require '/var/www/html/bootstrap/app.php';
+        \$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+        
+        try {
+            \$comics = \App\Models\Comic::count();
+            \$users = \App\Models\User::count();
+            echo \"Success: \$comics comics and \$users users created\";
+        } catch (Exception \$e) {
+            echo 'Error: ' . \$e->getMessage();
+        }
+        " 2>/dev/null || echo "Verification failed")
+        
+        echo "Seeding verification: $VERIFICATION"
+    else
+        echo "Warning: Database seeding failed, but continuing deployment..."
+        echo "Application will work but may have no initial content."
+        echo "You can manually run 'php artisan db:seed' later."
+    fi
+else
+    echo "Database already contains data, skipping seeding."
+    echo "Current state: $SEED_CHECK"
+fi
 
 # Create storage link
 echo "Creating storage link..."

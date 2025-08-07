@@ -55,7 +55,7 @@ const ComicCard: React.FC<{
 
     const formatRating = (rating: number | string) => {
         const numRating = Number(rating || 0);
-        return numRating > 0 ? numRating.toFixed(1) : 'No ratings';
+        return numRating > 0 ? numRating.toFixed(1) : 'Nil';
     };
 
     const formatReadingTime = (minutes: number) => {
@@ -67,7 +67,7 @@ const ComicCard: React.FC<{
 
     if (viewMode === 'list') {
         return (
-            <div className="flex bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 hover:border-emerald-500/50 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-emerald-500/10 group">
+            <div className="flex bg-gray-900/70 rounded-xl overflow-hidden border border-gray-800/50 hover:border-red-500/50 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-red-500/20 group">
                 <Link href={`/comics/${comic.slug}`} className="flex w-full">
                     <div className="relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 flex-shrink-0">
                         {comic.cover_image_url ? (
@@ -87,7 +87,7 @@ const ComicCard: React.FC<{
                         {comic.user_progress && comic.user_progress.progress_percentage > 0 && (
                             <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
                                 <div 
-                                    className="h-full bg-emerald-500 transition-all duration-300"
+                                    className="h-full bg-red-500 transition-all duration-300"
                                     style={{ width: `${comic.user_progress.progress_percentage}%` }}
                                 />
                             </div>
@@ -98,7 +98,7 @@ const ComicCard: React.FC<{
                         <div>
                             <div className="flex items-start justify-between mb-2">
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-lg mb-1 truncate group-hover:text-emerald-400 transition-colors">
+                                    <h3 className="font-bold text-lg mb-1 truncate group-hover:text-red-400 transition-colors">
                                         {comic.title}
                                     </h3>
                                     <p className="text-gray-400 text-sm truncate">{comic.author || 'Unknown Author'}</p>
@@ -155,12 +155,12 @@ const ComicCard: React.FC<{
                             
                             <div className="flex items-center space-x-2">
                                 {comic.is_new_release && (
-                                    <Badge className="bg-emerald-500 hover:bg-emerald-600">NEW</Badge>
+                                    <Badge className="bg-red-600 hover:bg-red-700">NEW</Badge>
                                 )}
                                 {comic.is_free && (
-                                    <Badge className="bg-purple-500 hover:bg-purple-600">FREE</Badge>
+                                    <Badge className="bg-red-500 hover:bg-red-600">FREE</Badge>
                                 )}
-                                <div className="text-emerald-400 font-semibold">
+                                <div className="text-red-400 font-semibold">
                                     {formatPrice(comic.price)}
                                 </div>
                             </div>
@@ -173,7 +173,7 @@ const ComicCard: React.FC<{
 
     // Grid view
     return (
-        <div className="group cursor-pointer bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 hover:border-emerald-500/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/20">
+        <div className="group cursor-pointer bg-gray-900/70 rounded-xl overflow-hidden border border-gray-800/50 hover:border-red-500/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/20">
             <Link href={`/comics/${comic.slug}`} className="block">
                 <div className="relative">
                     {comic.cover_image_url ? (
@@ -194,10 +194,10 @@ const ComicCard: React.FC<{
                     {/* Badges */}
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1">
                         {comic.is_free && (
-                            <Badge className="bg-emerald-500 hover:bg-emerald-600">FREE</Badge>
+                            <Badge className="bg-red-500 hover:bg-red-600">FREE</Badge>
                         )}
                         {comic.is_new_release && (
-                            <Badge className="bg-orange-500 hover:bg-orange-600">NEW</Badge>
+                            <Badge className="bg-red-600 hover:bg-red-700">NEW</Badge>
                         )}
                         {comic.has_mature_content && (
                             <Badge variant="destructive">18+</Badge>
@@ -208,7 +208,7 @@ const ComicCard: React.FC<{
                     <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1 sm:gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                             size="sm"
-                            className="p-1 sm:p-2 h-6 w-6 sm:h-8 sm:w-8 bg-emerald-500 hover:bg-emerald-600"
+                            className="p-1 sm:p-2 h-6 w-6 sm:h-8 sm:w-8 bg-red-500 hover:bg-red-600"
                             onClick={(e) => {
                                 e.preventDefault();
                                 window.location.href = `/comics/${comic.slug}`;
@@ -244,7 +244,7 @@ const ComicCard: React.FC<{
                     {comic.user_progress && comic.user_progress.progress_percentage > 0 && (
                         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
                             <div 
-                                className="h-full bg-emerald-500 transition-all duration-300"
+                                className="h-full bg-red-500 transition-all duration-300"
                                 style={{ width: `${comic.user_progress.progress_percentage}%` }}
                             />
                         </div>
@@ -252,7 +252,7 @@ const ComicCard: React.FC<{
                 </div>
 
                 <div className="p-2 sm:p-3 md:p-4">
-                    <h3 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-emerald-400 transition-colors">
+                    <h3 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-red-400 transition-colors">
                         {comic.title}
                     </h3>
                     <p className="text-gray-400 text-sm mb-2 truncate">{comic.author || 'Unknown Author'}</p>
@@ -266,7 +266,7 @@ const ComicCard: React.FC<{
                             <span className="text-sm text-gray-300">{formatRating(comic.average_rating)}</span>
                             <span className="text-gray-500 text-sm">({comic.page_count || 0} pages)</span>
                         </div>
-                        <div className="text-emerald-400 font-semibold">
+                        <div className="text-red-400 font-semibold">
                             {formatPrice(comic.price)}
                         </div>
                     </div>
@@ -377,7 +377,7 @@ export const ComicGrid: React.FC<ComicGridProps> = ({
         <div className="space-y-6">
             <div className={
                 viewMode === 'grid' 
-                    ? "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6"
+                    ? "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
                     : "space-y-3 sm:space-y-4"
             }>
                 {comics.map((comic) => (
@@ -394,7 +394,7 @@ export const ComicGrid: React.FC<ComicGridProps> = ({
             {loading && (
                 <div className={
                     viewMode === 'grid' 
-                        ? "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6"
+                        ? "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
                         : "space-y-3 sm:space-y-4"
                 }>
                     {Array.from({ length: 8 }).map((_, index) => (

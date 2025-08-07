@@ -67,10 +67,10 @@ function UserAvatarDropdown({ user }: UserAvatarDropdownProps) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className="flex items-center space-x-2 px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg transition-all duration-300 hover:bg-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                <button className="flex items-center space-x-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-all duration-300 hover:bg-red-500/30 focus:outline-none focus:ring-2 focus:ring-red-500/50">
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold text-sm">
+                        <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
                             {getInitials(user.name)}
                         </AvatarFallback>
                     </Avatar>
@@ -315,15 +315,22 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
-            <div className="min-h-screen bg-gray-900 text-white">
+            <div className="min-h-screen bg-black text-white">
                 {/* Header */}
-                <header className="bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
+                <header className="bg-black/95 backdrop-blur-sm border-b border-red-900/30 sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             {/* Logo */}
                             <div className="flex items-center space-x-4">
-                                <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
-                                    BAG Comics
+                                <Link href="/" className="flex items-center space-x-3">
+                                    <img 
+                                        src="/images/image.png" 
+                                        alt="BAG Comics Logo" 
+                                        className="h-8 w-auto"
+                                    />
+                                    <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
+                                        BAG Comics
+                                    </div>
                                 </Link>
                             </div>
 
@@ -361,7 +368,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                 ) : (
                                     <Link
                                         href="/login"
-                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-all duration-300"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
                                     >
                                         <User className="w-4 h-4" />
                                         <span className="text-sm">Sign In</span>
@@ -411,16 +418,16 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
 
                                     {auth.user ? (
                                         <div className="mx-4 space-y-2">
-                                            <div className="flex items-center space-x-3 px-4 py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg">
+                                            <div className="flex items-center space-x-3 px-4 py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg">
                                                 <Avatar className="h-8 w-8">
                                                     <AvatarImage src={auth.user.avatar} alt={auth.user.name} />
-                                                    <AvatarFallback className="bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold text-sm">
+                                                    <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
                                                         {useInitials()(auth.user.name)}
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div>
                                                     <p className="font-semibold">{auth.user.name || 'User'}</p>
-                                                    <p className="text-xs text-emerald-300">{auth.user.email}</p>
+                                                    <p className="text-xs text-red-300">{auth.user.email}</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
@@ -480,9 +487,9 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Breadcrumb */}
                     <div className="flex items-center space-x-2 text-sm text-gray-400 mb-8">
-                        <Link href="/" className="hover:text-emerald-400 transition-colors">Home</Link>
+                        <Link href="/" className="hover:text-red-400 transition-colors">Home</Link>
                         <span>/</span>
-                        <Link href="/comics" className="hover:text-emerald-400 transition-colors">Comics</Link>
+                        <Link href="/comics" className="hover:text-red-400 transition-colors">Comics</Link>
                         <span>/</span>
                         <span className="text-gray-300">{comic.title}</span>
                     </div>
@@ -507,12 +514,12 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                     {/* Badges */}
                                     <div className="absolute top-4 left-4 flex flex-col gap-2">
                                         {comic.is_new_release && (
-                                            <span className="px-3 py-1 bg-emerald-500/90 text-emerald-100 text-sm font-semibold rounded-full">
+                                            <span className="px-3 py-1 bg-red-500/90 text-red-100 text-sm font-semibold rounded-full">
                                                 New Release
                                             </span>
                                         )}
                                         {comic.is_free && (
-                                            <span className="px-3 py-1 bg-purple-500/90 text-purple-100 text-sm font-semibold rounded-full">
+                                            <span className="px-3 py-1 bg-red-600/90 text-red-100 text-sm font-semibold rounded-full">
                                                 Free
                                             </span>
                                         )}
@@ -531,7 +538,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                         <>
                                             {comic.user_has_access ? (
                                                 <button
-                                                    className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                                                    className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
                                                     onClick={() => comic.is_pdf_comic ? setShowPdfViewer(true) : null}
                                                 >
                                                     <Play className="w-5 h-5" />
@@ -539,7 +546,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                                 </button>
                                             ) : (
                                                 <button
-                                                    className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-emerald-500 to-purple-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                                    className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                                     onClick={addToLibrary}
                                                     disabled={loading}
                                                 >
@@ -566,7 +573,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                     ) : (
                                         <Link
                                             href="/login"
-                                            className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                                            className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold rounded-xl hover:from-red-700 hover:to-red-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
                                         >
                                             <User className="w-5 h-5" />
                                             <span>Login to Read</span>
@@ -585,7 +592,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                             </div>
                                             <Progress value={Number(comic.user_progress?.progress_percentage || 0)} className="h-2" />
                                             {comic.user_progress?.is_completed && (
-                                                <div className="flex items-center justify-center space-x-2 px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg">
+                                                <div className="flex items-center justify-center space-x-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg">
                                                     <BookOpen className="w-4 h-4" />
                                                     <span className="font-semibold">Completed</span>
                                                 </div>
@@ -606,7 +613,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                             <div className="space-y-8">
                                 {/* Title and Basic Info */}
                                 <div>
-                                    <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
+                                    <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
                                         {comic.title}
                                     </h1>
                                     {comic.author && (
@@ -640,7 +647,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                         </div>
                                     </div>
 
-                                    <div className="text-3xl font-bold text-emerald-400 mb-6">
+                                    <div className="text-3xl font-bold text-red-400 mb-6">
                                         {formatPrice(comic.price)}
                                     </div>
                                 </div>
@@ -672,7 +679,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                             {comic.tags.map((tag, index) => (
                                                 <span
                                                     key={index}
-                                                    className="px-3 py-2 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg text-sm font-medium hover:bg-purple-500/30 transition-colors cursor-pointer"
+                                                    className="px-3 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors cursor-pointer"
                                                 >
                                                     #{tag}
                                                 </span>
@@ -686,7 +693,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                     <h2 className="text-2xl font-bold text-white mb-6">Publication Details</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="flex items-center space-x-3">
-                                            <Calendar className="w-5 h-5 text-emerald-400" />
+                                            <Calendar className="w-5 h-5 text-red-400" />
                                             <div>
                                                 <span className="text-gray-400 text-sm">Published</span>
                                                 <p className="text-white font-semibold">{formatDate(comic.published_at)}</p>
@@ -712,7 +719,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                         )}
                                         {comic.isbn && (
                                             <div className="flex items-center space-x-3">
-                                                <BookOpen className="w-5 h-5 text-emerald-400" />
+                                                <BookOpen className="w-5 h-5 text-red-400" />
                                                 <div>
                                                     <span className="text-gray-400 text-sm">ISBN</span>
                                                     <p className="text-white font-semibold">{comic.isbn}</p>
@@ -744,7 +751,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
             {/* PDF Viewer Modal */}
             {showPdfViewer && comic.is_pdf_comic && comic.pdf_file_path && (
                 <div className="fixed inset-0 z-50 bg-black bg-opacity-90">
-                    <div className="w-full h-full bg-gray-900 flex flex-col">
+                    <div className="w-full h-full bg-black flex flex-col">
                         <div className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700 flex-shrink-0">
                             <h2 className="text-xl font-bold text-white">{comic.title}</h2>
                             <button

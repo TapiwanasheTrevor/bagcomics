@@ -117,14 +117,14 @@ export default function Dashboard() {
 
     if (!auth.user) {
         return (
-            <div className="min-h-screen bg-gray-900 text-white">
+            <div className="min-h-screen bg-black text-white">
                 <Head title="Dashboard" />
                 <div className="container mx-auto px-4 py-8">
                     <div className="text-center">
                         <h1 className="text-3xl font-bold mb-4">Welcome to BagComics</h1>
                         <p className="text-gray-300 mb-8">Please log in to access your reading dashboard.</p>
                         <Link href="/login">
-                            <Button className="bg-emerald-500 hover:bg-emerald-600">Login</Button>
+                            <Button className="bg-red-500 hover:bg-red-600">Login</Button>
                         </Link>
                     </div>
                 </div>
@@ -133,7 +133,7 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white">
+        <div className="min-h-screen bg-black text-white">
             <Head title="Dashboard" />
 
             {/* Navigation Header */}
@@ -142,9 +142,16 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
                         <div className="flex items-center space-x-4">
-                            <div className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-orange-400 to-purple-400 bg-clip-text text-transparent">
-                                BAG Comics
-                            </div>
+                            <Link href="/" className="flex items-center space-x-3">
+                                <img 
+                                    src="/images/image.png" 
+                                    alt="BAG Comics Logo" 
+                                    className="h-8 w-auto"
+                                />
+                                <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
+                                    BAG Comics
+                                </div>
+                            </Link>
                         </div>
 
                         {/* Desktop Navigation */}
@@ -181,7 +188,7 @@ export default function Dashboard() {
                                     placeholder="Search comics..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                    className="bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                 />
                             </div>
 
@@ -191,7 +198,7 @@ export default function Dashboard() {
                             ) : (
                                 <Link
                                     href="/login"
-                                    className="flex items-center space-x-2 px-4 py-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 rounded-lg transition-all duration-300"
+                                    className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
                                 >
                                     <User className="w-4 h-4" />
                                     <span className="text-sm">Sign In</span>
@@ -246,7 +253,7 @@ export default function Dashboard() {
                                             placeholder="Search comics..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                                            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
                                         />
                                     </div>
                                 </div>
@@ -265,7 +272,7 @@ export default function Dashboard() {
 
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-purple-400 bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-red-500 to-red-300 bg-clip-text text-transparent">
                         Welcome back, {auth.user.name}!
                     </h1>
                     <p className="text-gray-300 text-lg">
@@ -288,17 +295,17 @@ export default function Dashboard() {
                     </div>
                 ) : stats && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                        <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 rounded-xl p-6">
+                        <div className="bg-gradient-to-r from-red-500/20 to-red-600/20 border border-red-500/30 rounded-xl p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-emerald-400 text-sm font-medium">Comics Read</p>
+                                    <p className="text-red-400 text-sm font-medium">Comics Read</p>
                                     <p className="text-2xl font-bold text-white">{stats.total_comics_read}</p>
                                 </div>
-                                <BookOpen className="w-8 h-8 text-emerald-400" />
+                                <BookOpen className="w-8 h-8 text-red-400" />
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 border border-purple-500/30 rounded-xl p-6">
+                        <div className="bg-gradient-to-r from-red-600/20 to-red-700/20 border border-red-600/30 rounded-xl p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-purple-400 text-sm font-medium">In Progress</p>
@@ -344,10 +351,10 @@ export default function Dashboard() {
                 <div className="mb-12">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center space-x-3">
-                            <Clock className="w-6 h-6 text-emerald-500" />
+                            <Clock className="w-6 h-6 text-red-500" />
                             <h2 className="text-3xl font-bold">Continue Reading</h2>
                         </div>
-                        <Link href="/library" className="text-emerald-400 hover:text-emerald-300 font-semibold">
+                        <Link href="/library" className="text-red-400 hover:text-red-300 font-semibold">
                             View All
                         </Link>
                     </div>
@@ -355,7 +362,7 @@ export default function Dashboard() {
                     {continueReading.length > 0 ? (
                         <div className="space-y-4">
                             {continueReading.slice(0, 3).map((progress) => (
-                                <div key={progress.id} className="flex bg-gray-800 rounded-xl overflow-hidden border border-gray-700/50 hover:border-emerald-500/50 transition-all duration-300 group">
+                                <div key={progress.id} className="flex bg-gray-800 rounded-xl overflow-hidden border border-gray-700/50 hover:border-red-500/50 transition-all duration-300 group">
                                     <div className="relative w-32 h-48 flex-shrink-0">
                                         {progress.comic.cover_image_url ? (
                                             <img
@@ -372,7 +379,7 @@ export default function Dashboard() {
                                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                                             <div className="w-full bg-gray-600 rounded-full h-1.5">
                                                 <div
-                                                    className="bg-gradient-to-r from-emerald-500 to-purple-500 h-1.5 rounded-full transition-all duration-300"
+                                                    className="bg-gradient-to-r from-red-500 to-red-600 h-1.5 rounded-full transition-all duration-300"
                                                     style={{ width: `${Number(progress.progress_percentage || 0)}%` }}
                                                 />
                                             </div>
@@ -384,7 +391,7 @@ export default function Dashboard() {
                                         <div>
                                             <div className="flex items-start justify-between mb-2">
                                                 <div>
-                                                    <h3 className="font-bold text-lg mb-1 group-hover:text-emerald-400 transition-colors cursor-pointer">
+                                                    <h3 className="font-bold text-lg mb-1 group-hover:text-red-400 transition-colors cursor-pointer">
                                                         {progress.comic.title}
                                                     </h3>
                                                     {progress.comic.author && (
@@ -397,7 +404,7 @@ export default function Dashboard() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center space-x-3">
                                                 <Link href={`/comics/${progress.comic.slug}`}>
-                                                    <button className="flex items-center space-x-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors text-sm font-medium">
+                                                    <button className="flex items-center space-x-1 px-3 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors text-sm font-medium">
                                                         <Play className="w-4 h-4" />
                                                         <span>Continue</span>
                                                     </button>
@@ -424,7 +431,7 @@ export default function Dashboard() {
                                 Start reading some comics to see them here
                             </p>
                             <Link href="/comics">
-                                <button className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 rounded-lg font-semibold transition-colors">
+                                <button className="px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg font-semibold transition-colors">
                                     Browse Comics
                                 </button>
                             </Link>
@@ -436,7 +443,7 @@ export default function Dashboard() {
                 <div className="mb-12">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center space-x-3">
-                            <BookOpen className="w-6 h-6 text-purple-500" />
+                            <BookOpen className="w-6 h-6 text-red-600" />
                             <h2 className="text-3xl font-bold">Recently Read</h2>
                         </div>
                         <Link href="/library" className="text-purple-400 hover:text-purple-300 font-semibold">
@@ -447,7 +454,7 @@ export default function Dashboard() {
                     {recentlyRead.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {recentlyRead.slice(0, 6).map((progress) => (
-                                <div key={progress.id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700/50 hover:border-purple-500/50 transition-all duration-300 group">
+                                <div key={progress.id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700/50 hover:border-red-600/50 transition-all duration-300 group">
                                     <div className="relative aspect-[2/3] overflow-hidden">
                                         {progress.comic.cover_image_url ? (
                                             <img
@@ -462,7 +469,7 @@ export default function Dashboard() {
                                         )}
 
                                         {progress.is_completed && (
-                                            <div className="absolute top-2 right-2 bg-emerald-500 text-xs px-2 py-1 rounded-full font-semibold">
+                                            <div className="absolute top-2 right-2 bg-red-500 text-xs px-2 py-1 rounded-full font-semibold">
                                                 COMPLETED
                                             </div>
                                         )}
@@ -480,7 +487,7 @@ export default function Dashboard() {
                                         </p>
 
                                         <Link href={`/comics/${progress.comic.slug}`}>
-                                            <button className="w-full px-3 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors text-sm font-medium">
+                                            <button className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm font-medium">
                                                 {progress.is_completed ? 'Read Again' : 'Continue Reading'}
                                             </button>
                                         </Link>
@@ -500,7 +507,7 @@ export default function Dashboard() {
                                 Start exploring our comics to build your reading history
                             </p>
                             <Link href="/comics">
-                                <button className="px-6 py-3 bg-purple-500 hover:bg-purple-600 rounded-lg font-semibold transition-colors">
+                                <button className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors">
                                     Browse Comics
                                 </button>
                             </Link>
@@ -594,7 +601,7 @@ export default function Dashboard() {
                                 </p>
                             </div>
                             <div className="text-right">
-                                <div className="text-3xl font-bold text-emerald-400">
+                                <div className="text-3xl font-bold text-red-400">
                                     {stats ? stats.total_comics_read : 0}/{stats && stats.total_comics_read > 25 ? 100 : 50}
                                 </div>
                                 <div className="text-sm text-gray-400">Comics read</div>
@@ -605,7 +612,7 @@ export default function Dashboard() {
                             <>
                                 <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
                                     <div
-                                        className="bg-gradient-to-r from-emerald-500 to-purple-500 h-3 rounded-full transition-all duration-1000"
+                                        className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-1000"
                                         style={{
                                             width: `${Math.min((stats.total_comics_read / (stats.total_comics_read > 25 ? 100 : 50)) * 100, 100)}%`
                                         }}
@@ -660,7 +667,7 @@ export default function Dashboard() {
                                                 {stats.favorite_genres.slice(0, 3).map((genre, index) => (
                                                     <span
                                                         key={index}
-                                                        className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm border border-emerald-500/30"
+                                                        className="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-sm border border-emerald-500/30"
                                                     >
                                                         {genre}
                                                     </span>
@@ -675,7 +682,7 @@ export default function Dashboard() {
                                     <p className="text-lg mb-2">No reading activity yet</p>
                                     <p className="text-sm">Start reading comics to unlock insights!</p>
                                     <Link href="/comics">
-                                        <button className="mt-4 px-6 py-2 bg-emerald-500 hover:bg-emerald-600 rounded-lg font-semibold text-white transition-colors">
+                                        <button className="mt-4 px-6 py-2 bg-red-500 hover:bg-red-600 rounded-lg font-semibold text-white transition-colors">
                                             Explore Comics
                                         </button>
                                     </Link>
