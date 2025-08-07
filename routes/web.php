@@ -84,6 +84,17 @@ Route::match(['GET', 'OPTIONS'], '/comics/{comic:slug}/stream', [PdfStreamContro
 Route::get('/comics/{comic:slug}/stream-secure', [PdfStreamController::class, 'streamSecure'])->name('comics.stream.secure');
 Route::get('/comics/{comic:slug}/download', [PdfStreamController::class, 'download'])->name('comics.download');
 
+// Debug route to test deployment
+Route::get('/debug-stream-test', function() {
+    return response()->json([
+        'status' => 'Route working',
+        'timestamp' => now(),
+        'sample_comic' => \App\Models\Comic::where('slug', 'ubuntu-tales-community')->first(['slug', 'pdf_file_path', 'is_pdf_comic']),
+        'file_exists' => file_exists(public_path('sample-comic.pdf')),
+        'file_size' => file_exists(public_path('sample-comic.pdf')) ? filesize(public_path('sample-comic.pdf')) : null,
+    ]);
+});
+
 // PDF.js worker route with correct MIME type
 Route::get('/js/pdfjs/pdf.worker.min.js', function () {
     $path = public_path('js/pdfjs/pdf.worker.min.js');

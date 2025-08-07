@@ -29,29 +29,29 @@ export default function UserAvatarDropdown({ user, className = "" }: UserAvatarD
                     <ChevronDown className="h-4 w-4 opacity-70" />
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" align="end">
+            <DropdownMenuContent className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 shadow-lg" align="end">
                 <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                        <Link href="/dashboard" className="flex items-center cursor-pointer">
+                        <Link href="/dashboard" className="flex items-center cursor-pointer text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
                             <User className="mr-2 h-4 w-4" />
                             <span>Profile</span>
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                        <Link href="/settings/profile" className="flex items-center cursor-pointer">
+                        <Link href="/settings/profile" className="flex items-center cursor-pointer text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Settings</span>
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                        <Link href="/library" className="flex items-center cursor-pointer">
+                        <Link href="/library" className="flex items-center cursor-pointer text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
                             <Library className="mr-2 h-4 w-4" />
                             <span>My Library</span>
                         </Link>
@@ -63,7 +63,7 @@ export default function UserAvatarDropdown({ user, className = "" }: UserAvatarD
                         href={route('logout')}
                         method="post"
                         as="button"
-                        className="flex items-center cursor-pointer w-full"
+                        className="flex items-center cursor-pointer w-full text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                     >
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>

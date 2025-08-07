@@ -31,7 +31,7 @@
             }
         </style>
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'BAG Comics') }}</title>
 
         <!-- PWA Meta Tags -->
         <meta name="application-name" content="Comic Platform">
