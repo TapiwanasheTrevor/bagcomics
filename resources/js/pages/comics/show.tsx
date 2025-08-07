@@ -764,9 +764,9 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                         <div className="flex-1 min-h-0">
 
                                 <SmartPdfViewer
-                                    fileUrl={`/comics/${comic.slug}/stream`}
+                                    fileUrl={comic.pdf_stream_url || `/comics/${comic.slug}/stream`}
                                     fileName={comic.pdf_file_name || `${comic.title}.pdf`}
-                                    downloadUrl={comic.user_has_access ? `/comics/${comic.slug}/download` : undefined}
+                                    downloadUrl={comic.user_has_access ? (comic.pdf_download_url || `/comics/${comic.slug}/download`) : undefined}
                                     initialPage={comic.user_progress?.current_page || 1}
                                     userHasDownloadAccess={comic.user_has_access}
                                     comicSlug={comic.slug}
