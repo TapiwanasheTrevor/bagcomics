@@ -172,6 +172,45 @@ Route::get('/debug-recent-logs', function() {
            '</pre>';
 });
 
+Route::get('/debug-storage', function() {
+    if (!auth()->check()) {
+        return 'Authentication required';
+    }
+    
+    $storageInfo = [
+        'storage_app_public_path' => storage_path('app/public'),
+        'storage_app_public_exists' => is_dir(storage_path('app/public')),
+        'public_storage_path' => public_path('storage'),
+        'public_storage_exists' => is_link(public_path('storage')) || is_dir(public_path('storage')),
+        'storage_link_target' => is_link(public_path('storage')) ? readlink(public_path('storage')) : 'Not a symlink',
+        'comics_dir_exists' => is_dir(storage_path('app/public/comics')),
+        'comics_files' => is_dir(storage_path('app/public/comics')) ? scandir(storage_path('app/public/comics')) : 'Directory does not exist',
+    ];
+    
+    // Check database comics
+    $comics = \App\Models\Comic::whereNotNull('pdf_file_path')->get(['id', 'title', 'slug', 'pdf_file_path']);
+    
+    $comicsInfo = $comics->map(function($comic) {
+        $filePath = storage_path('app/public/' . $comic->pdf_file_path);
+        return [
+            'id' => $comic->id,
+            'title' => $comic->title,
+            'slug' => $comic->slug,
+            'pdf_file_path' => $comic->pdf_file_path,
+            'full_file_path' => $filePath,
+            'file_exists' => file_exists($filePath),
+            'file_size' => file_exists($filePath) ? filesize($filePath) : 'File not found',
+            'pdf_url' => $comic->getPdfUrl(),
+        ];
+    });
+    
+    return response()->json([
+        'storage_info' => $storageInfo,
+        'comics_with_pdfs' => $comicsInfo,
+        'timestamp' => now()
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
 // Test route without model binding
 Route::get('/test-simple', function() {
     return 'Simple route works - ' . now();

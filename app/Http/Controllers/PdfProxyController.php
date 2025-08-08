@@ -25,7 +25,16 @@ class PdfProxyController extends Controller
         
         // Check if file exists and is readable
         if (!file_exists($filePath) || !is_readable($filePath)) {
-            abort(404);
+            // Log the missing file for debugging
+            \Log::warning('PDF file not found', [
+                'requested_path' => $path,
+                'full_path' => $filePath,
+                'storage_path' => storage_path('app/public'),
+                'files_in_comics_dir' => is_dir(storage_path('app/public/comics')) ? 
+                    scandir(storage_path('app/public/comics')) : 'Directory does not exist'
+            ]);
+            
+            abort(404, 'PDF file not found: ' . $path);
         }
         
         // Verify it's actually a PDF
