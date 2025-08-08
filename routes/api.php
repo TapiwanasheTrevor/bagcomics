@@ -59,7 +59,8 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
 
         // Payment API Routes
         Route::prefix('payments')->group(function () {
-            Route::post('/comics/{comic}/intent', [PaymentController::class, 'createPaymentIntent']);
+            Route::post('/comics/{comic:slug}/intent', [PaymentController::class, 'createPaymentIntent']);
+            Route::post('/confirm', [PaymentController::class, 'confirmPayment']);
             Route::post('/process', [PaymentController::class, 'processPayment']);
             Route::get('/history', [PaymentController::class, 'history']);
             Route::get('/{payment}', [PaymentController::class, 'show']);

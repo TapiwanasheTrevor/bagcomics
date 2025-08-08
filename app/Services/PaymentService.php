@@ -429,4 +429,76 @@ class PaymentService
                 ->delete();
         }
     }
+
+    /**
+     * Confirm a payment intent and complete the purchase
+     */
+    public function confirmPaymentIntent(User $user, string $paymentIntentId): Payment
+    {
+        try {
+            // Retrieve the payment intent from Stripe
+            $paymentIntent = $this->stripe->paymentIntents->retrieve($paymentIntentId);
+
+            // Find the corresponding payment record
+            $payment = Payment::where('stripe_payment_intent_id', $paymentIntentId)->first();
+
+            if (!$payment) {
+                throw new \Exception('Payment record not found for payment intent: ' . $paymentIntentId);
+            }
+
+            // Verify the payment belongs to the user
+            if ($payment->user_id !== $user->id) {
+                throw new \Exception('Payment does not belong to the authenticated user');
+            }
+
+            // Check if payment intent was successful
+            if ($paymentIntent->status !== 'succeeded') {
+                throw new \Exception('Payment intent has not succeeded: ' . $paymentIntent->status);
+            }
+
+            // Update payment record
+            $payment->update([
+                'status' => 'completed',
+                'stripe_payment_intent_id' => $paymentIntent->id,
+                'payment_method' => $paymentIntent->charges->data[0]->payment_method_details->type ?? 'card',
+                'transaction_id' => $paymentIntent->charges->data[0]->id ?? null,
+                'processed_at' => now(),
+            ]);
+
+            // Add comic to user's library
+            if ($payment->comic) {
+                UserLibrary::firstOrCreate([
+                    'user_id' => $user->id,
+                    'comic_id' => $payment->comic_id,
+                ], [
+                    'access_type' => 'purchased',
+                    'purchase_price' => $payment->amount,
+                    'purchased_at' => now(),
+                ]);
+
+                Log::info('Comic added to user library', [
+                    'user_id' => $user->id,
+                    'comic_id' => $payment->comic_id,
+                    'payment_id' => $payment->id,
+                ]);
+            }
+
+            return $payment;
+
+        } catch (ApiErrorException $e) {
+            Log::error('Stripe API error during payment confirmation', [
+                'payment_intent_id' => $paymentIntentId,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \Exception('Failed to confirm payment with Stripe: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Payment confirmation failed', [
+                'payment_intent_id' => $paymentIntentId,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
 }

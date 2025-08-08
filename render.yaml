@@ -64,13 +64,13 @@ services:
       - key: FILESYSTEM_DISK
         value: public
       - key: STRIPE_KEY
-        value: your_stripe_publishable_key_here
+        value: pk_test_51H0LkYH5gAovQC3PEyptqm0gdcEmIUlOzBA8Mtv9C3LvHFVHr273e5z3ZLggyg9vQFGVwZt4bBpACJC6SV16Nnqe00HVabhZkM
       - key: STRIPE_SECRET
-        value: your_stripe_secret_key_here
+        value: sk_test_51H0LkYH5gAovQC3PMmaik3EMalCkTnQbyvNpws51IDvRT0NJ0tGwF3ofBdyNkq2xHFcdeP2uadejL89KBe2CoHOP00IRW2KkhE
       - key: STRIPE_WEBHOOK_SECRET
-        value: your_stripe_webhook_secret_here
+        value: whsec_test_webhook_secret_here
       - key: VITE_STRIPE_PUBLISHABLE_KEY
-        value: your_stripe_publishable_key_here
+        value: pk_test_51H0LkYH5gAovQC3PEyptqm0gdcEmIUlOzBA8Mtv9C3LvHFVHr273e5z3ZLggyg9vQFGVwZt4bBpACJC6SV16Nnqe00HVabhZkM
       - key: AUTH_MODEL
         value: App\Models\User
       - key: ADMIN_EMAILS

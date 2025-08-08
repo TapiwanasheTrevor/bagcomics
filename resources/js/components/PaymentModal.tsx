@@ -9,8 +9,12 @@ import {
 } from '@stripe/react-stripe-js';
 import { X, CreditCard, Lock, AlertCircle, CheckCircle, RefreshCw, Receipt, Download } from 'lucide-react';
 
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51H0LkYH5gAovQC3PEyptqm0gdcEmIUlOzBA8Mtv9C3LvHFVHr273e5z3ZLggyg9vQFGVwZt4bBpACJC6SV16Nnqe00HVabhZkM');
+// Initialize Stripe - ensure the key is properly loaded
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+if (!stripePublishableKey) {
+    console.error('Stripe publishable key not found in environment variables');
+}
+const stripePromise = loadStripe(stripePublishableKey!);
 
 interface Comic {
     id: number;
@@ -62,6 +66,24 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ comic, clientSecret, onSucces
     const [error, setError] = useState<PaymentError | null>(null);
     const [retryCount, setRetryCount] = useState(0);
     const [useModernPaymentElement, setUseModernPaymentElement] = useState(true);
+    const [stripeLoadError, setStripeLoadError] = useState<string | null>(null);
+
+    // Check if Stripe loaded properly
+    useEffect(() => {
+        if (!stripePublishableKey) {
+            setStripeLoadError('Stripe configuration is missing. Please check environment variables.');
+            return;
+        }
+        
+        // Check if Stripe promise resolves to null (invalid key)
+        stripePromise.then((stripeInstance) => {
+            if (!stripeInstance) {
+                setStripeLoadError('Failed to load Stripe. Please check your Stripe publishable key.');
+            }
+        }).catch((err) => {
+            setStripeLoadError(`Stripe loading error: ${err.message}`);
+        });
+    }, []);
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -186,6 +208,30 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ comic, clientSecret, onSucces
             currency: 'USD'
         }).format(price);
     };
+
+    // Show Stripe loading error
+    if (stripeLoadError) {
+        return (
+            <div className="space-y-4">
+                <div className="bg-red-900/20 p-4 rounded-lg border border-red-800">
+                    <div className="flex items-center space-x-2 text-red-400 mb-2">
+                        <AlertCircle className="h-5 w-5" />
+                        <span className="font-medium">Payment System Error</span>
+                    </div>
+                    <p className="text-red-300 text-sm">{stripeLoadError}</p>
+                    <p className="text-red-300/70 text-xs mt-2">
+                        This is usually a configuration issue. Please try refreshing the page.
+                    </p>
+                </div>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                    Refresh Page
+                </button>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">

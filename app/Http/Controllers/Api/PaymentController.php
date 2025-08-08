@@ -72,6 +72,43 @@ class PaymentController extends Controller
     }
 
     /**
+     * Confirm a payment after successful payment intent confirmation.
+     */
+    public function confirmPayment(Request $request): JsonResponse
+    {
+        $request->validate([
+            'payment_intent_id' => 'required|string',
+        ]);
+
+        try {
+            $payment = $this->paymentService->confirmPaymentIntent(
+                $request->user(),
+                $request->payment_intent_id
+            );
+
+            return response()->json([
+                'payment' => [
+                    'id' => $payment->id,
+                    'type' => $payment->payment_method ?? 'card',
+                    'amount' => '$' . number_format($payment->amount, 2),
+                ],
+                'message' => 'Payment confirmed successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Payment confirmation failed', [
+                'user_id' => $request->user()->id,
+                'payment_intent_id' => $request->payment_intent_id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to confirm payment: ' . $e->getMessage(),
+                'code' => 'PAYMENT_CONFIRMATION_FAILED',
+            ], 400);
+        }
+    }
+
+    /**
      * Get user's payment history.
      */
     public function history(Request $request): JsonResponse
