@@ -2,6 +2,7 @@
 
 use App\Models\Comic;
 use App\Http\Controllers\PdfStreamController;
+use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -83,6 +84,93 @@ Route::get('/comics/{comic:slug}/read', function (Comic $comic) {
 Route::match(['GET', 'OPTIONS'], '/comics/{comic:slug}/stream', [PdfStreamController::class, 'stream'])->name('comics.stream');
 Route::get('/comics/{comic:slug}/stream-secure', [PdfStreamController::class, 'streamSecure'])->name('comics.stream.secure');
 Route::get('/comics/{comic:slug}/download', [PdfStreamController::class, 'download'])->name('comics.download');
+
+// PDF proxy route with CORS headers
+Route::match(['GET', 'HEAD', 'OPTIONS'], '/pdf-proxy/{path}', [PdfProxyController::class, 'servePdf'])
+    ->where('path', '.*')
+    ->name('pdf.proxy');
+
+// Debug routes for troubleshooting
+Route::get('/debug-logs', function() {
+    if (!auth()->check()) {
+        return response()->json([
+            'error' => 'Not authenticated',
+            'login_url' => route('login')
+        ]);
+    }
+    
+    $user = auth()->user();
+    
+    return response()->json([
+        'user' => [
+            'id' => $user->id,
+            'email' => $user->email,
+            'is_admin' => $user->is_admin,
+            'created_at' => $user->created_at,
+        ],
+        'admin_config' => [
+            'admin_emails_env' => env('ADMIN_EMAILS', 'Not set'),
+            'app_environment' => app()->environment(),
+            'auth_model' => env('AUTH_MODEL', 'Not set'),
+        ],
+        'panel_access' => [
+            'can_access_admin_panel' => $user->canAccessPanel(app(\Filament\Panel::class)),
+            'has_admin_access_helper' => method_exists($user, 'hasAdminAccess') ? $user->hasAdminAccess() : 'Method not found',
+            'implements_filament_user' => $user instanceof \Filament\Models\Contracts\FilamentUser,
+        ],
+        'session' => [
+            'session_driver' => config('session.driver'),
+            'session_domain' => config('session.domain'),
+        ],
+        'app_config' => [
+            'app_url' => config('app.url'),
+            'app_debug' => config('app.debug'),
+        ]
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
+Route::get('/debug-admin-check', function() {
+    if (!auth()->check()) {
+        return 'Please log in first: <a href="' . route('login') . '">Login</a>';
+    }
+    
+    $user = auth()->user();
+    $adminEmails = explode(',', env('ADMIN_EMAILS', ''));
+    
+    $output = [
+        'User Email: ' . $user->email,
+        'Is Admin Field: ' . ($user->is_admin ? 'Yes' : 'No'),
+        'Admin Emails Env: ' . env('ADMIN_EMAILS', 'Not set'),
+        'Admin Emails Array: ' . json_encode($adminEmails),
+        'Email in Admin List: ' . (in_array($user->email, $adminEmails) ? 'Yes' : 'No'),
+        'App Environment: ' . app()->environment(),
+        'Can Access Panel: ' . ($user->canAccessPanel(app(\Filament\Panel::class)) ? 'Yes' : 'No'),
+        'Has Admin Access (Helper): ' . ($user->hasAdminAccess() ? 'Yes' : 'No'),
+        '',
+        'Admin Panel URL: <a href="/admin">/admin</a>',
+    ];
+    
+    return '<pre>' . implode("\n", $output) . '</pre>';
+});
+
+Route::get('/debug-recent-logs', function() {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return 'Unauthorized - Admin access required';
+    }
+    
+    $logPath = storage_path('logs/laravel.log');
+    if (!file_exists($logPath)) {
+        return 'Log file not found';
+    }
+    
+    // Get last 50 lines of the log file
+    $lines = array_slice(file($logPath), -100);
+    $content = implode('', $lines);
+    
+    return '<pre style="font-size: 12px; background: #f5f5f5; padding: 20px;">' . 
+           htmlspecialchars($content) . 
+           '</pre>';
+});
 
 // Test route without model binding
 Route::get('/test-simple', function() {

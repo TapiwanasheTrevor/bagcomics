@@ -16,7 +16,11 @@
       "Bash(cp:*)",
       "Bash(convert:*)",
       "Bash(ls:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(true)",
+      "Bash(grep:*)",
+      "Bash(composer:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }

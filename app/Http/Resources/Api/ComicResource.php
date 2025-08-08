@@ -19,7 +19,7 @@ class ComicResource extends JsonResource
             'author' => $this->author,
             'publisher' => $this->publisher,
             'genre' => $this->genre,
-            'tags' => $this->tags,
+            'tags' => $this->getTagsArray(),
             'description' => $this->description,
             'page_count' => $this->page_count,
             'language' => $this->language,

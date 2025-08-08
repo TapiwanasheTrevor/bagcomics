@@ -13,9 +13,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Carbon\Carbon;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, Billable, HasApiTokens;
@@ -870,18 +872,60 @@ class User extends Authenticatable
     /**
      * Determine if the user can access Filament admin panel
      */
-    public function canAccessPanel(\Filament\Panel $panel): bool
+    public function canAccessPanel(Panel $panel): bool
+    {
+        try {
+            // Log the access attempt for debugging
+            \Log::info('Admin panel access attempt', [
+                'user_id' => $this->id,
+                'email' => $this->email,
+                'is_admin' => $this->is_admin ?? false,
+                'environment' => app()->environment(),
+                'admin_emails_env' => env('ADMIN_EMAILS', 'Not set'),
+                'panel_id' => $panel->getId() ?? 'unknown',
+            ]);
+            
+            return $this->hasAdminAccess();
+        } catch (\Exception $e) {
+            \Log::error('Error in canAccessPanel', [
+                'user_id' => $this->id,
+                'email' => $this->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return false;
+        }
+    }
+
+    /**
+     * Check if user has admin access (helper method)
+     */
+    public function hasAdminAccess(): bool
     {
         // Check if user is marked as admin
         if ($this->is_admin) {
+            \Log::info('Admin access granted via is_admin field', ['user' => $this->email]);
             return true;
         }
         
-        // For production, also allow specific email addresses from environment variable
-        if (app()->environment('production')) {
-            $adminEmails = explode(',', env('ADMIN_EMAILS', ''));
-            return in_array($this->email, $adminEmails);
+        // Check ADMIN_EMAILS environment variable
+        $adminEmails = array_map('trim', explode(',', env('ADMIN_EMAILS', '')));
+        $adminEmails = array_filter($adminEmails); // Remove empty values
+        
+        if (!empty($adminEmails) && in_array($this->email, $adminEmails)) {
+            \Log::info('Admin access granted via ADMIN_EMAILS', [
+                'user' => $this->email,
+                'admin_emails' => $adminEmails,
+            ]);
+            return true;
         }
+        
+        \Log::info('Admin access denied', [
+            'user' => $this->email,
+            'is_admin' => $this->is_admin ?? false,
+            'admin_emails' => $adminEmails,
+        ]);
         
         return false;
     }

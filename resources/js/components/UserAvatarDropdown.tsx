@@ -3,6 +3,7 @@ import { User, Settings, LogOut, ChevronDown, Library } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useInitials } from '@/hooks/use-initials';
+import { useLogout } from '@/hooks/use-logout';
 
 interface UserAvatarDropdownProps {
     user: {
@@ -15,6 +16,7 @@ interface UserAvatarDropdownProps {
 
 export default function UserAvatarDropdown({ user, className = "" }: UserAvatarDropdownProps) {
     const getInitials = useInitials();
+    const handleLogout = useLogout();
 
     return (
         <DropdownMenu>
@@ -59,15 +61,13 @@ export default function UserAvatarDropdown({ user, className = "" }: UserAvatarD
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild variant="destructive">
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
+                    <button
+                        onClick={handleLogout}
                         className="flex items-center cursor-pointer w-full text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                     >
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>
-                    </Link>
+                    </button>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

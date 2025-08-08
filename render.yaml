@@ -72,9 +72,11 @@ services:
       - key: VITE_STRIPE_PUBLISHABLE_KEY
         value: your_stripe_publishable_key_here
       - key: AUTH_MODEL
-        value: App\Models\FilamentUser
+        value: App\Models\User
+      - key: ADMIN_EMAILS
+        value: admin@bagcomics.com
       - key: SESSION_DOMAIN
-        value: ".bagcomics.onrender.com"
+        value: ".bagcomics.shop"
       - key: SESSION_SECURE_COOKIE
         value: "true"
       - key: REDIS_CACHE
