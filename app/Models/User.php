@@ -246,7 +246,7 @@ class User extends Authenticatable
             ->toArray();
     }
 
-    private function getCurrentReadingStreak(): int
+    public function getCurrentReadingStreak(): int
     {
         $streak = 0;
         $currentDate = now()->startOfDay();
@@ -860,10 +860,29 @@ class User extends Authenticatable
     }
 
     /**
+     * Get total reading time in minutes from UserComicProgress
+     */
+    public function getTotalReadingTimeMinutes(): int
+    {
+        return $this->comicProgress()->sum('reading_time_minutes') ?? 0;
+    }
+
+    /**
      * Determine if the user can access Filament admin panel
      */
     public function canAccessPanel(\Filament\Panel $panel): bool
     {
-        return $this->is_admin ?? false;
+        // Check if user is marked as admin
+        if ($this->is_admin) {
+            return true;
+        }
+        
+        // For production, also allow specific email addresses from environment variable
+        if (app()->environment('production')) {
+            $adminEmails = explode(',', env('ADMIN_EMAILS', ''));
+            return in_array($this->email, $adminEmails);
+        }
+        
+        return false;
     }
 }

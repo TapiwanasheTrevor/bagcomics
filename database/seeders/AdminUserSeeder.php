@@ -22,6 +22,7 @@ class AdminUserSeeder extends Seeder
                 'email' => 'admin@bagcomics.com',
                 'password' => Hash::make('admin123'),
                 'email_verified_at' => now(),
+                'is_admin' => true,
             ]
         );
 
@@ -33,6 +34,7 @@ class AdminUserSeeder extends Seeder
                 'email' => 'admin@example.com',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
+                'is_admin' => true,
             ]
         );
 
