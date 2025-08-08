@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { type SharedData } from '@/types';
 import { Progress } from '@/components/ui/progress';
-import { Star, Clock, BookOpen, Heart, Download, Play, Bookmark, ArrowLeft, Share2, Eye, Calendar, Globe, ShoppingCart } from 'lucide-react';
+import { Star, Clock, BookOpen, Heart, Download, Play, Bookmark, ArrowLeft, Share2, Eye, Calendar, Globe, ShoppingCart, User } from 'lucide-react';
 import EnhancedPdfReader from '@/components/EnhancedPdfReader';
 import PaymentModal from '@/components/PaymentModal';
 import NavBar from '@/components/NavBar';

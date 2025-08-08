@@ -26,6 +26,14 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         e.preventDefault();
         post(route('login'), {
             onFinish: () => reset('password'),
+            onError: (errors) => {
+                // If we get a 419 error or CSRF token mismatch, refresh the page
+                if (Object.keys(errors).length === 0 || errors.message?.includes('419') || errors.message?.includes('CSRF')) {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+            }
         });
     };
 
