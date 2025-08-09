@@ -285,9 +285,9 @@ export default function Welcome() {
                             <div className="col-span-1 md:col-span-2">
                                 <Link href="/" className="flex items-center space-x-3 mb-4">
                                     <img 
-                                        src="/images/image.png" 
+                                        src="/images/bagcomics.jpeg" 
                                         alt="BAG Comics Logo" 
-                                        className="h-10 w-auto"
+                                        className="h-10 w-10 object-cover rounded-md"
                                     />
                                     <div className="text-2xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
                                         BAG Comics

@@ -117,9 +117,9 @@ export default function NavBar({ auth, currentPage = 'home', className = '', onS
                     <div className="flex items-center space-x-4">
                         <Link href="/" className="flex items-center space-x-3">
                             <img 
-                                src="/images/image.png" 
+                                src="/images/bagcomics.jpeg" 
                                 alt="BAG Comics Logo" 
-                                className="h-8 w-auto"
+                                className="h-8 w-8 object-cover rounded-md"
                             />
                             <div className="text-xl font-bold bg-gradient-to-r from-red-500 via-red-400 to-red-300 bg-clip-text text-transparent">
                                 BAG Comics

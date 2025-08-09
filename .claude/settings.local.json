@@ -20,7 +20,8 @@
       "Bash(true)",
       "Bash(grep:*)",
       "Bash(composer:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(sips:*)"
     ],
     "deny": []
   }

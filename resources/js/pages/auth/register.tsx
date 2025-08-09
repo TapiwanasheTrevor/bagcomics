@@ -99,9 +99,9 @@ export default function Register() {
                             {/* Prominent Logo */}
                             <Link href="/" className="block mb-8 group">
                                 <img 
-                                    src="/images/image.png" 
+                                    src="/images/bagcomics.jpeg" 
                                     alt="BAG Comics Logo" 
-                                    className="h-32 w-auto mx-auto transition-transform duration-300 group-hover:scale-105 rounded-2xl"
+                                    className="h-32 w-32 object-cover mx-auto transition-transform duration-300 group-hover:scale-105 rounded-2xl"
                                 />
                             </Link>
                             <p className="text-2xl text-gray-300 mb-8">
