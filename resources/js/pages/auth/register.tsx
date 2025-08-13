@@ -7,14 +7,18 @@ type RegisterForm = {
     email: string;
     password: string;
     password_confirmation: string;
+    email_notifications?: boolean;
+    new_releases_notifications?: boolean;
 };
 
 export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm<Required<RegisterForm>>({
+    const { data, setData, post, processing, errors, reset } = useForm<RegisterForm>({
         name: '',
         email: '',
         password: '',
         password_confirmation: '',
+        email_notifications: true,
+        new_releases_notifications: true,
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -308,6 +312,41 @@ export default function Register() {
                                     {errors.password_confirmation && (
                                         <p className="mt-1 text-sm text-red-400">{errors.password_confirmation}</p>
                                     )}
+                                </div>
+
+                                {/* Communication Preferences */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-3">
+                                        Communication Preferences
+                                    </label>
+                                    <div className="space-y-3">
+                                        <label className="flex items-start space-x-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.email_notifications}
+                                                onChange={(e) => setData('email_notifications', e.target.checked)}
+                                                className="mt-0.5 w-4 h-4 text-red-600 bg-gray-700/50 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
+                                            />
+                                            <div>
+                                                <span className="text-gray-300 text-sm">Email notifications</span>
+                                                <p className="text-gray-400 text-xs">Receive important updates and account information via email</p>
+                                            </div>
+                                        </label>
+                                        
+                                        <label className="flex items-start space-x-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.new_releases_notifications}
+                                                onChange={(e) => setData('new_releases_notifications', e.target.checked)}
+                                                disabled={!data.email_notifications}
+                                                className="mt-0.5 w-4 h-4 text-red-600 bg-gray-700/50 border-gray-600 rounded focus:ring-red-500 focus:ring-2 disabled:opacity-50"
+                                            />
+                                            <div>
+                                                <span className="text-gray-300 text-sm">New comic notifications</span>
+                                                <p className="text-gray-400 text-xs">Get notified when new comics are added to the platform</p>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 {/* Submit Button */}

@@ -122,6 +122,15 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             });
         });
 
+        // User Preferences API Routes
+        Route::prefix('preferences')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\UserPreferencesController::class, 'getPreferences']);
+            Route::put('/', [App\Http\Controllers\Api\UserPreferencesController::class, 'updatePreferences']);
+            Route::post('/reset', [App\Http\Controllers\Api\UserPreferencesController::class, 'resetPreferences']);
+            Route::get('/notifications', [App\Http\Controllers\Api\UserPreferencesController::class, 'getNotificationPreferences']);
+            Route::put('/notifications', [App\Http\Controllers\Api\UserPreferencesController::class, 'updateNotificationPreferences']);
+        });
+
         // Reviews API Routes
         Route::prefix('reviews')->group(function () {
             Route::get('/comics/{comic}', [App\Http\Controllers\Api\ReviewController::class, 'index']);
@@ -172,6 +181,14 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             Route::get('/statistics', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'statistics']);
         });
         
+        // Comic Notification Admin Routes
+        Route::prefix('notifications')->group(function () {
+            Route::get('/statistics', [App\Http\Controllers\Api\Admin\ComicNotificationController::class, 'getStatistics']);
+            Route::get('/recipients', [App\Http\Controllers\Api\Admin\ComicNotificationController::class, 'getRecipients']);
+            Route::post('/test', [App\Http\Controllers\Api\Admin\ComicNotificationController::class, 'sendTestNotification']);
+            Route::post('/comics/{comic}/trigger', [App\Http\Controllers\Api\Admin\ComicNotificationController::class, 'triggerNotifications']);
+        });
+
         // CMS Admin API Routes
         Route::prefix('cms')->group(function () {
             // Content management

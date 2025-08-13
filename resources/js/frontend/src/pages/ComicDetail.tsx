@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
-import { Star, Play, Bookmark, Share2, Download, ShoppingCart, Eye, Clock, Users } from 'lucide-react';
+import { Star, Play, Bookmark, Share2, Download, ShoppingCart, Eye, Clock, Users, Facebook, Twitter, Instagram, Link, MessageCircle } from 'lucide-react';
 import { getComicById } from '../data/mockComics';
 import type { Page } from '../App';
+
+// TypeScript declarations for global axios
+declare global {
+  interface Window {
+    axios?: {
+      post: (url: string, data: any) => Promise<any>;
+      [key: string]: any;
+    };
+  }
+}
 
 interface ComicDetailProps {
   comicId: string | null;
@@ -12,8 +22,138 @@ const ComicDetail: React.FC<ComicDetailProps> = ({ comicId, onNavigate }) => {
   const [selectedEpisode, setSelectedEpisode] = useState(1);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const comic = comicId ? getComicById(comicId) : null;
+
+  // Helper function to generate slug from title (basic implementation)
+  const generateSlug = (title: string): string => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  };
+
+  // Share functionality
+  const shareComic = async (platform: string) => {
+    if (!comic) return;
+
+    const comicSlug = generateSlug(comic.title);
+    const shareUrl = `${window.location.origin}/comics/${comicSlug}`;
+    const shareMessage = `Check out this amazing comic: "${comic.title}" by ${comic.creator}`;
+
+    try {
+      // Track the share via API
+      if (window.axios) {
+        await window.axios.post(`/api/social/comics/${comic.id}/share`, {
+          platform: platform.toLowerCase(),
+          share_type: 'discovery',
+          metadata: {
+            title: comic.title,
+            url: shareUrl,
+            message: shareMessage
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to track share:', error);
+      // Continue with sharing even if tracking fails
+    }
+
+    // Generate platform-specific URLs
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const encodedMessage = encodeURIComponent(shareMessage);
+    
+    let platformUrl = '';
+    switch (platform.toLowerCase()) {
+      case 'facebook':
+        platformUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedMessage}`;
+        break;
+      case 'twitter':
+        platformUrl = `https://twitter.com/intent/tweet?text=${encodedMessage}&url=${encodedUrl}`;
+        break;
+      case 'whatsapp':
+        platformUrl = `https://wa.me/?text=${encodedMessage} ${encodedUrl}`;
+        break;
+      case 'instagram':
+        // Instagram doesn't support direct URL sharing
+        platformUrl = 'https://www.instagram.com/';
+        break;
+      default:
+        return;
+    }
+
+    // Open share window
+    window.open(platformUrl, '_blank', 'width=600,height=400');
+    setShowShareMenu(false);
+  };
+
+  const copyShareLink = async () => {
+    if (!comic) return;
+
+    const comicSlug = generateSlug(comic.title);
+    const shareUrl = `${window.location.origin}/comics/${comicSlug}`;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopySuccess(true);
+      
+      // Track the copy action
+      if (window.axios) {
+        await window.axios.post(`/api/social/comics/${comic.id}/share`, {
+          platform: 'copy_link',
+          share_type: 'discovery',
+          metadata: {
+            title: comic.title,
+            url: shareUrl,
+            message: `Check out "${comic.title}"`
+          }
+        });
+      }
+
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+    }
+    setShowShareMenu(false);
+  };
+
+  const handleNativeShare = async () => {
+    if (!comic || !navigator.share) return;
+
+    const comicSlug = generateSlug(comic.title);
+    const shareUrl = `${window.location.origin}/comics/${comicSlug}`;
+    const shareMessage = `Check out this amazing comic: "${comic.title}" by ${comic.creator}`;
+
+    try {
+      await navigator.share({
+        title: comic.title,
+        text: shareMessage,
+        url: shareUrl
+      });
+
+      // Track the native share
+      if (window.axios) {
+        await window.axios.post(`/api/social/comics/${comic.id}/share`, {
+          platform: 'native',
+          share_type: 'discovery',
+          metadata: {
+            title: comic.title,
+            url: shareUrl,
+            message: shareMessage
+          }
+        });
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Failed to share:', error);
+      }
+    }
+    setShowShareMenu(false);
+  };
 
   if (!comic) {
     return (
@@ -202,10 +342,96 @@ const ComicDetail: React.FC<ComicDetailProps> = ({ comicId, onNavigate }) => {
                   <span>{isBookmarked ? 'Bookmarked' : 'Add to Library'}</span>
                 </button>
                 
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">
-                  <Share2 className="w-5 h-5" />
-                  <span>Share Comic</span>
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+                        handleNativeShare();
+                      } else {
+                        setShowShareMenu(!showShareMenu);
+                      }
+                    }}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    <span>Share Comic</span>
+                  </button>
+
+                  {/* Share Menu */}
+                  {showShareMenu && (
+                    <>
+                      {/* Backdrop */}
+                      <div 
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowShareMenu(false)}
+                      />
+                      
+                      {/* Share Menu */}
+                      <div className="absolute top-full mt-2 right-0 z-50 w-64 bg-gray-800 rounded-xl border border-gray-700 shadow-xl">
+                        <div className="p-4">
+                          <h4 className="font-medium mb-3 text-white">Share this comic</h4>
+                          
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => shareComic('facebook')}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                            >
+                              <Facebook className="w-5 h-5" />
+                              <span>Share on Facebook</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => shareComic('twitter')}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white transition-colors"
+                            >
+                              <Twitter className="w-5 h-5" />
+                              <span>Share on Twitter</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => shareComic('whatsapp')}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors"
+                            >
+                              <MessageCircle className="w-5 h-5" />
+                              <span>Share on WhatsApp</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => shareComic('instagram')}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white transition-colors"
+                            >
+                              <Instagram className="w-5 h-5" />
+                              <span>Open Instagram</span>
+                            </button>
+                            
+                            <button
+                              onClick={copyShareLink}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white transition-colors"
+                            >
+                              <Link className="w-5 h-5" />
+                              <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+                            </button>
+                          </div>
+
+                          {/* Comic Preview */}
+                          <div className="mt-4 p-3 bg-gray-900 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={comic.coverImage}
+                                alt={comic.title}
+                                className="w-12 h-16 object-cover rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h5 className="font-medium text-sm text-white truncate">{comic.title}</h5>
+                                <p className="text-xs text-gray-400 mt-1">by {comic.creator}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
                 
                 {!comic.isFree && (
                   <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">

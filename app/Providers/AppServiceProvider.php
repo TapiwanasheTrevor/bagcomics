@@ -23,5 +23,8 @@ class AppServiceProvider extends ServiceProvider
         if (app()->environment('production')) {
             URL::forceScheme('https');
         }
+
+        // Register model observers
+        \App\Models\Comic::observe(\App\Observers\ComicObserver::class);
     }
 }
