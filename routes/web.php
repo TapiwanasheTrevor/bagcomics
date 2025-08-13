@@ -47,8 +47,20 @@ Route::get('/comics/{comic:slug}', function (Comic $comic) {
         $comicData['user_progress'] = $comic->userProgress->first();
     }
 
+    // Prepare sharing data for server-side meta tags
+    $shareData = [
+        'title' => $comic->title . ' - BagComics',
+        'description' => $comic->description ?: "Discover \"{$comic->title}\" by " . ($comic->author ?: 'Unknown Author') . ". Read this amazing comic now!",
+        'image' => $comic->getCoverImageUrl() ? url($comic->getCoverImageUrl()) : null,
+        'url' => url("/comics/{$comic->slug}"),
+        'type' => 'article',
+    ];
+
     return Inertia::render('comics/show', [
-        'comic' => $comicData
+        'comic' => $comicData,
+        'shareData' => $shareData
+    ])->withViewData([
+        'shareData' => $shareData
     ]);
 })->name('comics.show');
 

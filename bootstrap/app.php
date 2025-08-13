@@ -46,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'api.rate_limit' => \App\Http\Middleware\ApiRateLimit::class,
+            'optional.auth' => \App\Http\Middleware\OptionalAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -5,6 +5,43 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        {{-- Open Graph and Social Media Meta Tags --}}
+        @if(isset($shareData))
+            <meta property="og:title" content="{{ $shareData['title'] }}">
+            <meta property="og:description" content="{{ $shareData['description'] }}">
+            <meta property="og:url" content="{{ $shareData['url'] }}">
+            <meta property="og:type" content="{{ $shareData['type'] }}">
+            <meta property="og:site_name" content="BagComics">
+            @if($shareData['image'])
+                <meta property="og:image" content="{{ $shareData['image'] }}">
+                <meta property="og:image:width" content="400">
+                <meta property="og:image:height" content="600">
+                <meta property="og:image:type" content="image/jpeg">
+                <meta property="og:image:alt" content="Cover of {{ $shareData['title'] }}">
+            @endif
+            
+            {{-- Twitter Card Meta Tags --}}
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="{{ $shareData['title'] }}">
+            <meta name="twitter:description" content="{{ $shareData['description'] }}">
+            @if($shareData['image'])
+                <meta name="twitter:image" content="{{ $shareData['image'] }}">
+            @endif
+            
+            {{-- WhatsApp and general sharing --}}
+            <meta property="og:locale" content="en_US">
+        @else
+            {{-- Default meta tags --}}
+            <meta property="og:title" content="{{ config('app.name', 'BAG Comics') }} - Digital Comic Platform">
+            <meta property="og:description" content="Discover, read, and enjoy amazing digital comics. Your ultimate comic reading platform.">
+            <meta property="og:url" content="{{ url()->current() }}">
+            <meta property="og:type" content="website">
+            <meta property="og:site_name" content="BagComics">
+            <meta name="twitter:card" content="summary">
+            <meta name="twitter:title" content="{{ config('app.name', 'BAG Comics') }}">
+            <meta name="twitter:description" content="Your ultimate digital comic reading platform.">
+        @endif
+
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
             (function() {

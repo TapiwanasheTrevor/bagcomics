@@ -37,6 +37,13 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
         Route::get('/analytics', [ComicSearchController::class, 'analytics'])->middleware('auth:sanctum');
     });
 
+    // Public Social Sharing API Routes
+    Route::prefix('social')->group(function () {
+        Route::post('/comics/{comic}/share', [App\Http\Controllers\Api\SocialSharingController::class, 'shareComic'])->middleware('optional.auth');
+        Route::get('/comics/{comic}/metadata', [App\Http\Controllers\Api\SocialSharingController::class, 'getSharingMetadata']);
+        Route::get('/comics/{comic}/stats', [App\Http\Controllers\Api\SocialSharingController::class, 'getComicSharingStats']);
+    });
+
     // Authenticated routes (stricter rate limiting)
     Route::middleware(['auth:sanctum', 'api.rate_limit:300,1'])->group(function () {
         
@@ -73,11 +80,8 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             Route::get('/reading-behavior', [AnalyticsController::class, 'readingBehavior']);
         });
 
-        // Social Sharing API Routes
+        // Social Sharing API Routes (User-specific)
         Route::prefix('social')->group(function () {
-            Route::post('/comics/{comic}/share', [App\Http\Controllers\Api\SocialSharingController::class, 'shareComic']);
-            Route::get('/comics/{comic}/metadata', [App\Http\Controllers\Api\SocialSharingController::class, 'getSharingMetadata']);
-            Route::get('/comics/{comic}/stats', [App\Http\Controllers\Api\SocialSharingController::class, 'getComicSharingStats']);
             Route::get('/history', [App\Http\Controllers\Api\SocialSharingController::class, 'getSharingHistory']);
             Route::get('/platforms', [App\Http\Controllers\Api\SocialSharingController::class, 'getAvailablePlatforms']);
             Route::post('/connect', [App\Http\Controllers\Api\SocialSharingController::class, 'connectSocialAccount']);

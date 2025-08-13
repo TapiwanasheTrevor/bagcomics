@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { type SharedData } from '@/types';
 import { Progress } from '@/components/ui/progress';
-import { Star, Clock, BookOpen, Heart, Download, Play, Bookmark, ArrowLeft, Share2, Eye, Calendar, Globe, ShoppingCart, User } from 'lucide-react';
+import { Star, Clock, BookOpen, Heart, Download, Play, Bookmark, ArrowLeft, Eye, Calendar, Globe, ShoppingCart, User } from 'lucide-react';
 import EnhancedPdfReader from '@/components/EnhancedPdfReader';
 import PaymentModal from '@/components/PaymentModal';
 import NavBar from '@/components/NavBar';
+import { SocialShareButtons } from '@/components/SocialShareButtons';
 
 interface Comic {
     id: number;
+    slug: string;
     title: string;
     author?: string;
     genre?: string;
@@ -239,6 +241,27 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
         return new Date(dateString).toLocaleDateString();
     };
 
+    const getShareMessage = () => {
+        return `Discovered an awesome comic: "${comic.title}"`;
+    };
+
+    const getAbsoluteImageUrl = (imageUrl?: string) => {
+        if (!imageUrl) return '';
+        if (imageUrl.startsWith('http')) return imageUrl;
+        // Use a safe approach for both client and server side
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        return `${origin}${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
+    };
+
+    const getShareUrl = () => {
+        if (typeof window !== 'undefined') {
+            return `${window.location.origin}/comics/${comic.slug}`;
+        }
+        return `/comics/${comic.slug}`;
+    };
+    
+    const shareUrl = getShareUrl();
+
     return (
         <>
             <Head title={`${comic.title} - BagComics`}>
@@ -313,7 +336,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                                     onClick={() => comic.is_pdf_comic ? setShowPdfViewer(true) : null}
                                                 >
                                                     <Play className="w-5 h-5" />
-                                                    <span>{comic.user_progress?.current_page > 1 ? 'Continue Reading' : 'Start Reading'}</span>
+                                                    <span>{(comic.user_progress?.current_page || 1) > 1 ? 'Continue Reading' : 'Start Reading'}</span>
                                                 </button>
                                             ) : (
                                                 <button
@@ -336,10 +359,16 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                                 </button>
                                             )}
 
-                                            <button className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gray-800/50 border border-gray-600 text-white rounded-xl hover:bg-gray-700/50 transition-all duration-300">
-                                                <Share2 className="w-5 h-5" />
-                                                <span>Share</span>
-                                            </button>
+                                            <div className="w-full">
+                                                <SocialShareButtons
+                                                    comicId={comic.id}
+                                                    comicTitle={comic.title}
+                                                    comicCover={getAbsoluteImageUrl(comic.cover_image_url)}
+                                                    shareUrl={shareUrl}
+                                                    shareType="discovery"
+                                                    className="w-full"
+                                                />
+                                            </div>
                                         </>
                                     ) : (
                                         <Link

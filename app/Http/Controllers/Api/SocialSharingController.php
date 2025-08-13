@@ -38,50 +38,60 @@ class SocialSharingController extends Controller
     public function shareComic(Request $request, Comic $comic): JsonResponse
     {
         $request->validate([
-            'platform' => ['required', Rule::in(['facebook', 'twitter', 'instagram'])],
-            'share_type' => ['required', Rule::in(['comic_discovery', 'reading_achievement', 'recommendation', 'review'])],
+            'platform' => ['required', Rule::in(['facebook', 'twitter', 'instagram', 'whatsapp', 'copy_link', 'native'])],
+            'share_type' => ['required', Rule::in(['discovery', 'achievement', 'recommendation', 'review', 'comic_discovery', 'reading_achievement'])],
             'message' => 'nullable|string|max:500',
+            'metadata' => 'nullable|array',
+            'metadata.title' => 'nullable|string',
+            'metadata.url' => 'nullable|url',
+            'metadata.message' => 'nullable|string',
+            'metadata.cover_image' => 'nullable|string',
             'include_image' => 'boolean',
             'auto_post' => 'boolean',
         ]);
 
-        $user = Auth::user();
+        $user = Auth::user(); // Can be null for guest users
         $platform = $request->input('platform');
         $shareType = $request->input('share_type');
         $customMessage = $request->input('message');
+        $metadata = $request->input('metadata', []);
         $includeImage = $request->boolean('include_image', true);
         $autoPost = $request->boolean('auto_post', false);
 
         try {
-            // Create social share record
-            $socialShare = $this->socialSharingService->shareComic(
-                $user,
-                $comic,
-                $platform,
-                $shareType,
-                [
-                    'custom_message' => $customMessage,
-                    'include_image' => $includeImage,
-                ]
-            );
+            // Create social share record only for authenticated users
+            $socialShare = null;
+            if ($user) {
+                $socialShare = $this->socialSharingService->shareComic(
+                    $user,
+                    $comic,
+                    $platform,
+                    $shareType,
+                    [
+                        'custom_message' => $customMessage,
+                        'include_image' => $includeImage,
+                        'metadata' => $metadata,
+                    ]
+                );
+            }
 
             // Generate sharing metadata
-            $metadata = $this->socialMetadataService->generateSharingPreview($comic, $shareType, [
+            $sharingMetadata = $this->socialMetadataService->generateSharingPreview($comic, $shareType, [
                 'custom_message' => $customMessage,
             ]);
 
             $response = [
                 'success' => true,
-                'share_id' => $socialShare->id,
-                'share_url' => $socialShare->getShareUrl(),
-                'metadata' => $metadata,
+                'share_id' => $socialShare?->id,
+                'share_url' => $socialShare?->getShareUrl() ?? route('comics.show', $comic),
+                'metadata' => $sharingMetadata,
                 'platform' => $platform,
                 'share_type' => $shareType,
             ];
 
             // Auto-post to social media if requested and user has connected account
-            if ($autoPost && $this->socialMediaApiService->verifySocialConnection($user, $platform)) {
-                $message = $customMessage ?: $metadata['description'];
+            if ($user && $autoPost && $this->socialMediaApiService->verifySocialConnection($user, $platform)) {
+                $message = $customMessage ?: $sharingMetadata['description'];
                 
                 $postResult = match ($platform) {
                     'facebook' => $this->socialMediaApiService->postToFacebook($user, $comic, $message, ['include_image' => $includeImage]),
@@ -98,14 +108,16 @@ class SocialSharingController extends Controller
                 }
             }
 
-            // Check for achievements
-            $achievements = $this->achievementService->checkAchievements($user, 'social_share', [
-                'comic' => $comic,
-                'platform' => $platform,
-            ]);
+            // Check for achievements (only for authenticated users)
+            if ($user) {
+                $achievements = $this->achievementService->checkAchievements($user, 'social_share', [
+                    'comic' => $comic,
+                    'platform' => $platform,
+                ]);
 
-            if (!empty($achievements)) {
-                $response['achievements'] = $achievements;
+                if (!empty($achievements)) {
+                    $response['achievements'] = $achievements;
+                }
             }
 
             return response()->json($response);
