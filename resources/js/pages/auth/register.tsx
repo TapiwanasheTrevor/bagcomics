@@ -72,7 +72,7 @@ export default function Register() {
 
     return (
         <>
-            <Head title="Register - BagComics">
+            <Head title="Sign Up - BagComics">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
@@ -157,7 +157,7 @@ export default function Register() {
 
                         <div className="bg-gray-800/80 backdrop-blur-md rounded-2xl p-8 border border-gray-700/50 shadow-2xl relative z-10">
                             <div className="text-center mb-8">
-                                <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
+                                <h2 className="text-3xl font-bold text-white mb-2">Sign Up</h2>
                                 <p className="text-gray-400">Join thousands of readers exploring African stories</p>
                             </div>
 
@@ -360,7 +360,7 @@ export default function Register() {
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            <span>Create Account</span>
+                                            <span>Sign Up</span>
                                             <ArrowRight className="w-5 h-5" />
                                         </>
                                     )}
@@ -376,7 +376,7 @@ export default function Register() {
                                         tabIndex={6}
                                         className="text-red-400 hover:text-red-300 font-semibold transition-colors"
                                     >
-                                        Sign in
+                                        Log in
                                     </Link>
                                 </p>
                             </div>

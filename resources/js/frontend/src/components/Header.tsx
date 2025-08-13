@@ -137,7 +137,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate, isLoggedIn, us
                 className="flex items-center space-x-2 px-4 py-2 bg-secondary/20 text-secondary border border-secondary/30 hover:bg-secondary/30 rounded-lg transition-all duration-300"
               >
                 <User className="w-4 h-4" />
-                <span className="text-sm">Sign In</span>
+                <span className="text-sm">Log In</span>
               </button>
             )}
           </div>
@@ -216,7 +216,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, onNavigate, isLoggedIn, us
                   className="mx-4 flex items-center justify-center space-x-2 px-4 py-3 bg-secondary/20 text-secondary border border-secondary/30 rounded-lg transition-all duration-300"
                 >
                   <User className="w-5 h-5" />
-                  <span>Sign In</span>
+                  <span>Log In</span>
                 </button>
               )}
             </div>

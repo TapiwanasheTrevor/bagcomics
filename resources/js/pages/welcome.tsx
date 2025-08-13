@@ -303,13 +303,13 @@ export default function Welcome() {
                                                 href="/register"
                                                 className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
                                             >
-                                                Get Started
+                                                Sign Up
                                             </Link>
                                             <Link
                                                 href="/login"
                                                 className="px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg border border-gray-600 hover:bg-gray-600 transition-all duration-300"
                                             >
-                                                Sign In
+                                                Log In
                                             </Link>
                                         </>
                                     )}
@@ -337,8 +337,8 @@ export default function Welcome() {
                                         </>
                                     ) : (
                                         <>
-                                            <li><Link href="/login" className="hover:text-white transition-colors">Sign In</Link></li>
-                                            <li><Link href="/register" className="hover:text-white transition-colors">Create Account</Link></li>
+                                            <li><Link href="/login" className="hover:text-white transition-colors">Log In</Link></li>
+                                            <li><Link href="/register" className="hover:text-white transition-colors">Sign Up</Link></li>
                                         </>
                                     )}
                                 </ul>

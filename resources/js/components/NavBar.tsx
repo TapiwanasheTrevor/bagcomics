@@ -158,17 +158,26 @@ export default function NavBar({ auth, currentPage = 'home', className = '', onS
                             />
                         </form>
 
-                        {/* User Account */}
+                        {/* User Account - Enhanced for visibility */}
                         {auth.user ? (
                             <UserAvatarDropdown user={auth.user} />
                         ) : (
-                            <Link
-                                href="/login"
-                                className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300"
-                            >
-                                <User className="w-4 h-4" />
-                                <span className="text-sm">Sign In</span>
-                            </Link>
+                            <div className="flex items-center space-x-3">
+                                <Link
+                                    href="/register"
+                                    className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                                >
+                                    <User className="w-4 h-4" />
+                                    <span className="text-sm">Sign Up</span>
+                                </Link>
+                                <Link
+                                    href="/login"
+                                    className="flex items-center space-x-2 px-4 py-2 bg-transparent text-red-400 border border-red-500/50 hover:bg-red-500/10 hover:border-red-400 rounded-lg transition-all duration-300"
+                                >
+                                    <User className="w-4 h-4" />
+                                    <span className="text-sm">Log In</span>
+                                </Link>
+                            </div>
                         )}
                     </div>
 
@@ -241,14 +250,24 @@ export default function NavBar({ auth, currentPage = 'home', className = '', onS
                                         </div>
                                     </div>
                                 ) : (
-                                    <Link
-                                        href="/login"
-                                        className="flex items-center space-x-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 rounded-lg transition-all duration-300 mx-3"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <User className="w-4 h-4" />
-                                        <span>Sign In</span>
-                                    </Link>
+                                    <div className="flex flex-col space-y-3 px-3">
+                                        <Link
+                                            href="/register"
+                                            className="flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <User className="w-4 h-4" />
+                                            <span>Sign Up</span>
+                                        </Link>
+                                        <Link
+                                            href="/login"
+                                            className="flex items-center justify-center space-x-2 px-4 py-3 bg-transparent text-red-400 border border-red-500/50 hover:bg-red-500/10 hover:border-red-400 rounded-lg transition-all duration-300"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <User className="w-4 h-4" />
+                                            <span>Log In</span>
+                                        </Link>
+                                    </div>
                                 )}
                             </div>
                         </div>

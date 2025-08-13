@@ -232,7 +232,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate, onLogin }) => {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Sign In</span>
+                    <span>Log In</span>
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}

@@ -209,7 +209,7 @@ const Register: React.FC<RegisterProps> = ({ onNavigate, onLogin }) => {
 
           <div className="bg-gray-800/80 backdrop-blur-md rounded-2xl p-8 border border-gray-700/50 shadow-2xl relative z-10">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">Sign Up</h2>
               <p className="text-gray-400">Join thousands of readers exploring African stories</p>
             </div>
 
@@ -426,7 +426,7 @@ const Register: React.FC<RegisterProps> = ({ onNavigate, onLogin }) => {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Create Account</span>
+                    <span>Sign Up</span>
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
