@@ -27,7 +27,13 @@
 }
 
 .pdf-continuous-container::-webkit-scrollbar {
-    width: 8px;
+    width: 4px;
+}
+
+@media (max-width: 768px) {
+    .pdf-continuous-container::-webkit-scrollbar {
+        width: 2px;
+    }
 }
 
 .pdf-continuous-container::-webkit-scrollbar-track {
@@ -160,6 +166,36 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+    
+    /* Global scrollbar improvements for mobile */
+    *::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    
+    *::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+        background: rgba(156, 163, 175, 0.5);
+        border-radius: 3px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+        background: rgba(156, 163, 175, 0.8);
+    }
+    
+    @media (max-width: 768px) {
+        *::-webkit-scrollbar {
+            width: 3px;
+            height: 3px;
+        }
+        
+        *::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.3);
+        }
     }
 }
 

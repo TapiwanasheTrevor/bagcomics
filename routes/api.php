@@ -146,6 +146,75 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             Route::delete('/{review}/vote', [App\Http\Controllers\Api\ReviewController::class, 'removeVote']);
             Route::post('/{review}/report', [App\Http\Controllers\Api\ReviewController::class, 'report']);
         });
+
+        // Recommendation API Routes
+        Route::prefix('recommendations')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\RecommendationController::class, 'getRecommendations']);
+            Route::get('/trending', [App\Http\Controllers\Api\RecommendationController::class, 'getTrending']);
+            Route::get('/comics/{comic}/similar', [App\Http\Controllers\Api\RecommendationController::class, 'getSimilarComics']);
+            Route::post('/track', [App\Http\Controllers\Api\RecommendationController::class, 'trackInteraction']);
+            Route::get('/stats', [App\Http\Controllers\Api\RecommendationController::class, 'getStats']);
+        });
+
+        // Gamification API Routes
+        Route::prefix('gamification')->group(function () {
+            Route::get('/streaks', [App\Http\Controllers\Api\GamificationController::class, 'getStreaks']);
+            Route::get('/goals', [App\Http\Controllers\Api\GamificationController::class, 'getGoals']);
+            Route::post('/goals', [App\Http\Controllers\Api\GamificationController::class, 'createGoal']);
+            Route::put('/goals/{goal}', [App\Http\Controllers\Api\GamificationController::class, 'updateGoal']);
+            Route::delete('/goals/{goal}', [App\Http\Controllers\Api\GamificationController::class, 'deleteGoal']);
+            Route::get('/goals/recommended', [App\Http\Controllers\Api\GamificationController::class, 'getRecommendedGoals']);
+            Route::get('/stats', [App\Http\Controllers\Api\GamificationController::class, 'getStats']);
+            Route::post('/track-activity', [App\Http\Controllers\Api\GamificationController::class, 'trackActivity']);
+            Route::get('/types', [App\Http\Controllers\Api\GamificationController::class, 'getGoalTypes']);
+        });
+
+        // Reading Lists API Routes
+        Route::prefix('lists')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\ReadingListController::class, 'index']);
+            Route::get('/public', [App\Http\Controllers\Api\ReadingListController::class, 'publicLists']);
+            Route::post('/', [App\Http\Controllers\Api\ReadingListController::class, 'create']);
+            Route::get('/{list}', [App\Http\Controllers\Api\ReadingListController::class, 'show']);
+            Route::put('/{list}', [App\Http\Controllers\Api\ReadingListController::class, 'update']);
+            Route::delete('/{list}', [App\Http\Controllers\Api\ReadingListController::class, 'delete']);
+            Route::post('/{list}/comics/{comic}', [App\Http\Controllers\Api\ReadingListController::class, 'addComic']);
+            Route::delete('/{list}/comics/{comic}', [App\Http\Controllers\Api\ReadingListController::class, 'removeComic']);
+            Route::post('/{list}/reorder', [App\Http\Controllers\Api\ReadingListController::class, 'reorderComics']);
+            Route::post('/{list}/follow', [App\Http\Controllers\Api\ReadingListController::class, 'follow']);
+            Route::delete('/{list}/follow', [App\Http\Controllers\Api\ReadingListController::class, 'unfollow']);
+            Route::post('/{list}/like', [App\Http\Controllers\Api\ReadingListController::class, 'like']);
+            Route::delete('/{list}/like', [App\Http\Controllers\Api\ReadingListController::class, 'unlike']);
+            Route::post('/{list}/duplicate', [App\Http\Controllers\Api\ReadingListController::class, 'duplicate']);
+        });
+
+        // Social API Routes
+        Route::prefix('social')->group(function () {
+            Route::post('/users/{user}/follow', [App\Http\Controllers\Api\SocialController::class, 'followUser']);
+            Route::delete('/users/{user}/follow', [App\Http\Controllers\Api\SocialController::class, 'unfollowUser']);
+            Route::get('/users/{user}/followers', [App\Http\Controllers\Api\SocialController::class, 'getUserFollowers']);
+            Route::get('/users/{user}/following', [App\Http\Controllers\Api\SocialController::class, 'getUserFollowing']);
+            Route::get('/users/{user}/profile', [App\Http\Controllers\Api\SocialController::class, 'getUserProfile']);
+            Route::get('/feed', [App\Http\Controllers\Api\SocialController::class, 'getActivityFeed']);
+            Route::get('/suggestions', [App\Http\Controllers\Api\SocialController::class, 'getSuggestedUsers']);
+        });
+
+        // Achievement API Routes
+        Route::prefix('achievements')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\AchievementController::class, 'getUserAchievements']);
+            Route::get('/all', [App\Http\Controllers\Api\AchievementController::class, 'getAllAchievements']);
+            Route::get('/unseen', [App\Http\Controllers\Api\AchievementController::class, 'getUnseenAchievements']);
+            Route::post('/check', [App\Http\Controllers\Api\AchievementController::class, 'checkAchievements']);
+            Route::post('/{achievement}/seen', [App\Http\Controllers\Api\AchievementController::class, 'markAchievementSeen']);
+            Route::get('/categories', [App\Http\Controllers\Api\AchievementController::class, 'getAchievementCategories']);
+        });
+    });
+
+    // Search and Discovery API Routes (Public)
+    Route::prefix('comics')->group(function () {
+        Route::get('/search', [App\Http\Controllers\Api\SearchController::class, 'search']);
+        Route::get('/autocomplete', [App\Http\Controllers\Api\SearchController::class, 'autocomplete']);
+        Route::get('/tags', [App\Http\Controllers\Api\SearchController::class, 'getTags']);
+        Route::get('/genres', [App\Http\Controllers\Api\SearchController::class, 'getGenres']);
     });
 
     // Admin routes (more restrictive rate limiting)

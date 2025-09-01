@@ -21,7 +21,8 @@
       "Bash(grep:*)",
       "Bash(composer:*)",
       "Bash(chmod:*)",
-      "Bash(sips:*)"
+      "Bash(sips:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

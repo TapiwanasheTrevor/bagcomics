@@ -16,6 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Carbon\Carbon;
+use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -108,6 +109,96 @@ class User extends Authenticatable implements FilamentUser
     public function getProgressForComic(Comic $comic): ?UserComicProgress
     {
         return $this->comicProgress()->where('comic_id', $comic->id)->first();
+    }
+
+    public function streaks(): HasMany
+    {
+        return $this->hasMany(UserStreak::class);
+    }
+
+    public function goals(): HasMany
+    {
+        return $this->hasMany(UserGoal::class);
+    }
+
+    public function readingLists(): HasMany
+    {
+        return $this->hasMany(ReadingList::class);
+    }
+
+    public function followedLists(): BelongsToMany
+    {
+        return $this->belongsToMany(ReadingList::class, 'reading_list_followers')
+            ->withTimestamps();
+    }
+
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_follows', 'following_id', 'follower_id')
+            ->withPivot('followed_at')
+            ->withTimestamps();
+    }
+
+    public function following(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_follows', 'follower_id', 'following_id')
+            ->withPivot('followed_at')
+            ->withTimestamps();
+    }
+
+    public function follow(User $user): void
+    {
+        if (!$this->isFollowing($user)) {
+            $this->following()->attach($user->id, ['followed_at' => now()]);
+        }
+    }
+
+    public function unfollow(User $user): void
+    {
+        $this->following()->detach($user->id);
+    }
+
+    public function isFollowing(User $user): bool
+    {
+        return $this->following()->where('following_id', $user->id)->exists();
+    }
+
+    public function isFollowedBy(User $user): bool
+    {
+        return $this->followers()->where('follower_id', $user->id)->exists();
+    }
+
+    public function achievements(): BelongsToMany
+    {
+        return $this->belongsToMany(Achievement::class, 'user_achievements')
+            ->withPivot('unlocked_at', 'progress_data', 'is_seen', 'notification_sent')
+            ->withTimestamps();
+    }
+
+    public function userAchievements(): HasMany
+    {
+        return $this->hasMany(UserAchievement::class);
+    }
+
+    public function hasAchievement(Achievement $achievement): bool
+    {
+        return $this->achievements()->where('achievement_id', $achievement->id)->exists();
+    }
+
+    public function unlockAchievement(Achievement $achievement, array $progressData = []): UserAchievement
+    {
+        if ($this->hasAchievement($achievement)) {
+            return $this->userAchievements()->where('achievement_id', $achievement->id)->first();
+        }
+
+        return UserAchievement::create([
+            'user_id' => $this->id,
+            'achievement_id' => $achievement->id,
+            'unlocked_at' => now(),
+            'progress_data' => $progressData,
+            'is_seen' => false,
+            'notification_sent' => false
+        ]);
     }
 
 
@@ -928,5 +1019,16 @@ class User extends Authenticatable implements FilamentUser
         ]);
         
         return false;
+    }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 }

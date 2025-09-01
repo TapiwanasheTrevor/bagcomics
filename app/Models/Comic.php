@@ -129,7 +129,12 @@ class Comic extends Model
 
     public function getCoverImageUrl(): ?string
     {
-        return $this->cover_image_path ? asset('storage/' . $this->cover_image_path) : null;
+        if ($this->cover_image_path) {
+            return asset('storage/' . $this->cover_image_path);
+        }
+        
+        // Return a default cover image if no cover image is set
+        return asset('images/default-comic-cover.svg');
     }
 
     public function getPdfUrl(): ?string

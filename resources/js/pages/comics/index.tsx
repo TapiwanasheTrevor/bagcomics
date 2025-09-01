@@ -194,9 +194,54 @@ export default function ComicsIndex() {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             
             if (action === 'bookmark') {
-                console.log('Bookmark comic:', comic.title);
+                // For paid comics, redirect to comic page for payment
+                if (!comic.is_free) {
+                    window.location.href = `/comics/${comic.slug}`;
+                    return;
+                }
+                
+                // Add free comic to library
+                const response = await fetch(`/api/library/comics/${comic.slug}/add`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken || ''
+                    },
+                    body: JSON.stringify({
+                        access_type: 'free',
+                        purchase_price: 0,
+                    }),
+                });
+                
+                if (response.ok) {
+                    // Show success message or update UI state
+                    console.log('Comic added to library successfully:', comic.title);
+                    // You could add toast notifications here
+                } else {
+                    const errorData = await response.json();
+                    console.error('Failed to add comic to library:', errorData.message || 'Unknown error');
+                }
             } else if (action === 'favorite') {
-                console.log('Favorite comic:', comic.title);
+                // Toggle favorite status (requires comic to be in library first)
+                const response = await fetch(`/api/library/comics/${comic.slug}/favorite`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken || ''
+                    },
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Favorite status updated:', data.is_favorite);
+                } else {
+                    console.error('Failed to update favorite status');
+                }
             }
         } catch (error) {
             console.error(`Error ${action}ing comic:`, error);

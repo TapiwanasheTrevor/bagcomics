@@ -237,16 +237,48 @@ export default function NavBar({ auth, currentPage = 'home', className = '', onS
 
                             <div className="pt-4 border-t border-red-900/30">
                                 {auth.user ? (
-                                    <div className="flex items-center space-x-3 px-3 py-2">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={auth.user.avatar} alt={auth.user.name} />
-                                            <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
-                                                {auth.user.name.slice(0, 2).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <p className="text-sm font-medium text-white">{auth.user.name}</p>
-                                            <p className="text-xs text-gray-400">{auth.user.email}</p>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center space-x-3 px-3 py-2">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={auth.user.avatar} alt={auth.user.name} />
+                                                <AvatarFallback className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold text-sm">
+                                                    {auth.user.name.slice(0, 2).toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="text-sm font-medium text-white">{auth.user.name}</p>
+                                                <p className="text-xs text-gray-400">{auth.user.email}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Mobile User Menu Items */}
+                                        <div className="space-y-2 px-3">
+                                            <Link
+                                                href="/dashboard"
+                                                className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                <User className="w-4 h-4" />
+                                                <span>Profile</span>
+                                            </Link>
+                                            <Link
+                                                href="/settings/profile"
+                                                className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-gray-300 hover:text-white hover:bg-gray-700/50"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                <Settings className="w-4 h-4" />
+                                                <span>Settings</span>
+                                            </Link>
+                                            <Link
+                                                href={route('logout')}
+                                                method="post"
+                                                as="button"
+                                                className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 text-red-400 hover:text-white hover:bg-red-500/20 w-full text-left"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                <LogOut className="w-4 h-4" />
+                                                <span>Log out</span>
+                                            </Link>
                                         </div>
                                     </div>
                                 ) : (

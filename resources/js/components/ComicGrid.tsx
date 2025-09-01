@@ -76,6 +76,11 @@ const ComicCard: React.FC<{
                                 alt={comic.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 loading="lazy"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = null;
+                                    target.src = '/images/default-comic-cover.svg';
+                                }}
                             />
                         ) : (
                             <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
@@ -182,6 +187,11 @@ const ComicCard: React.FC<{
                             alt={comic.title}
                             className="w-full h-48 sm:h-56 md:h-64 object-cover group-hover:scale-110 transition-transform duration-500"
                             loading="lazy"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = '/images/default-comic-cover.svg';
+                            }}
                         />
                     ) : (
                         <div className="w-full h-48 sm:h-56 md:h-64 bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
@@ -264,7 +274,9 @@ const ComicCard: React.FC<{
                         <div className="flex items-center space-x-1">
                             <Star className="w-4 h-4 text-yellow-400 fill-current" />
                             <span className="text-sm text-gray-300">{formatRating(comic.average_rating)}</span>
-                            <span className="text-gray-500 text-sm">({comic.page_count || 0} pages)</span>
+                            <span className="text-gray-500 text-sm">
+                                ({(comic as any).total_ratings || 0} rating{((comic as any).total_ratings || 0) !== 1 ? 's' : ''})
+                            </span>
                         </div>
                         <div className="text-red-400 font-semibold">
                             {formatPrice(comic.price)}

@@ -19,6 +19,20 @@ Route::get('/library', function () {
     return Inertia::render('library');
 })->name('library')->middleware('auth');
 
+Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
+    ->name('dashboard')
+    ->middleware('auth');
+
+Route::get('/trending', [App\Http\Controllers\TrendingController::class, 'index'])
+    ->name('trending');
+
+Route::get('/discover', [App\Http\Controllers\DiscoverController::class, 'index'])
+    ->name('discover');
+
+Route::get('/achievements', function () {
+    return Inertia::render('achievements');
+})->name('achievements')->middleware('auth');
+
 Route::get('/comics/{comic:slug}', function (Comic $comic) {
     if (!$comic->is_visible) {
         abort(404);

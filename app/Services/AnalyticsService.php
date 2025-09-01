@@ -2,454 +2,466 @@
 
 namespace App\Services;
 
-use App\Models\Comic;
-use App\Models\ComicView;
-use App\Models\Payment;
 use App\Models\User;
-use App\Models\UserLibrary;
-use App\Models\UserComicProgress;
-use Illuminate\Support\Facades\DB;
+use App\Models\UserAnalytics;
+use App\Models\Comic;
+use App\Models\UserActivity;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class AnalyticsService
 {
-    /**
-     * Get overall platform metrics
-     */
-    public function getPlatformMetrics(int $days = 30): array
+    public function recordReadingActivity(User $user, Comic $comic, array $data = []): void
     {
-        $startDate = now()->subDays($days);
-
-        return [
-            'total_users' => User::count(),
-            'new_users' => User::where('created_at', '>', $startDate)->count(),
-            'total_comics' => Comic::where('is_visible', true)->count(),
-            'total_revenue' => Payment::where('status', 'succeeded')->sum('amount'),
-            'revenue_period' => Payment::where('status', 'succeeded')
-                ->where('paid_at', '>', $startDate)
-                ->sum('amount'),
-            'total_purchases' => Payment::where('status', 'succeeded')->count(),
-            'purchases_period' => Payment::where('status', 'succeeded')
-                ->where('paid_at', '>', $startDate)
-                ->count(),
-            'total_views' => ComicView::count(),
-            'views_period' => ComicView::where('viewed_at', '>', $startDate)->count(),
-            'active_readers' => UserComicProgress::where('last_read_at', '>', $startDate)
-                ->distinct('user_id')
-                ->count(),
-        ];
-    }
-
-    /**
-     * Get revenue analytics
-     */
-    public function getRevenueAnalytics(int $days = 30): array
-    {
-        $startDate = now()->subDays($days);
-
-        // Daily revenue for the period
-        $dailyRevenue = Payment::select(
-                DB::raw('DATE(paid_at) as date'),
-                DB::raw('SUM(amount) as revenue'),
-                DB::raw('COUNT(*) as transactions')
-            )
-            ->where('status', 'succeeded')
-            ->where('paid_at', '>', $startDate)
-            ->groupBy(DB::raw('DATE(paid_at)'))
-            ->orderBy('date')
-            ->get();
-
-        // Top earning comics
-        $topEarningComics = Comic::select('comics.*')
-            ->join('payments', 'comics.id', '=', 'payments.comic_id')
-            ->where('payments.status', 'succeeded')
-            ->where('payments.paid_at', '>', $startDate)
-            ->groupBy('comics.id')
-            ->orderByRaw('SUM(payments.amount) DESC')
-            ->limit(10)
-            ->get()
-            ->map(function ($comic) use ($startDate) {
-                $revenue = $comic->payments()
-                    ->where('status', 'succeeded')
-                    ->where('paid_at', '>', $startDate)
-                    ->sum('amount');
-                $comic->period_revenue = $revenue;
-                return $comic;
-            });
-
-        return [
-            'daily_revenue' => $dailyRevenue,
-            'top_earning_comics' => $topEarningComics,
-            'average_transaction_value' => Payment::where('status', 'succeeded')
-                ->where('paid_at', '>', $startDate)
-                ->avg('amount') ?? 0,
-        ];
-    }
-
-    /**
-     * Get user engagement analytics
-     */
-    public function getUserEngagementAnalytics(int $days = 30): array
-    {
-        $startDate = now()->subDays($days);
-
-        // Reading completion rates
-        $completionStats = UserComicProgress::select(
-                DB::raw('COUNT(*) as total_reading_sessions'),
-                DB::raw('SUM(CASE WHEN is_completed = true THEN 1 ELSE 0 END) as completed_sessions'),
-                DB::raw('AVG(progress_percentage) as average_progress'),
-                DB::raw('AVG(reading_time_minutes) as average_reading_time')
-            )
-            ->where('last_read_at', '>', $startDate)
-            ->first();
-
-        // Most active users
-        $activeUsers = User::select('users.*')
-            ->join('user_comic_progress', 'users.id', '=', 'user_comic_progress.user_id')
-            ->where('user_comic_progress.last_read_at', '>', $startDate)
-            ->groupBy('users.id')
-            ->orderByRaw('COUNT(user_comic_progress.id) DESC')
-            ->limit(10)
-            ->get()
-            ->map(function ($user) use ($startDate) {
-                $user->reading_sessions = $user->comicProgress()
-                    ->where('last_read_at', '>', $startDate)
-                    ->count();
-                $user->total_reading_time = $user->comicProgress()
-                    ->where('last_read_at', '>', $startDate)
-                    ->sum('reading_time_minutes');
-                return $user;
-            });
-
-        // Genre popularity
-        $genrePopularity = Comic::select('genre')
-            ->join('comic_views', 'comics.id', '=', 'comic_views.comic_id')
-            ->where('comic_views.viewed_at', '>', $startDate)
-            ->whereNotNull('genre')
-            ->groupBy('genre')
-            ->orderByRaw('COUNT(comic_views.id) DESC')
-            ->limit(10)
-            ->get()
-            ->map(function ($item) use ($startDate) {
-                $item->view_count = ComicView::join('comics', 'comic_views.comic_id', '=', 'comics.id')
-                    ->where('comics.genre', $item->genre)
-                    ->where('comic_views.viewed_at', '>', $startDate)
-                    ->count();
-                return $item;
-            });
-
-        return [
-            'completion_stats' => $completionStats,
-            'active_users' => $activeUsers,
-            'genre_popularity' => $genrePopularity,
-            'reading_completion_rate' => $completionStats->total_reading_sessions > 0
-                ? ($completionStats->completed_sessions / $completionStats->total_reading_sessions) * 100
-                : 0,
-            'average_session_duration' => $completionStats->average_reading_time ?? 0,
-            'daily_active_users' => [], // Placeholder for daily active users data
-        ];
-    }
-
-    /**
-     * Get comic performance analytics
-     */
-    public function getComicPerformanceAnalytics(int $days = 30): array
-    {
-        $startDate = now()->subDays($days);
-
-        // Most viewed comics
-        $mostViewed = ComicView::getPopularComics(10, $days);
-
-        // Trending comics
-        $trending = ComicView::getTrendingComics(10);
-
-        // Best rated comics
-        $bestRated = Comic::whereHas('libraryEntries', function ($query) {
-                $query->whereNotNull('rating');
-            })
-            ->where('total_ratings', '>=', 3) // At least 3 ratings
-            ->orderBy('average_rating', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Comics with most purchases
-        $mostPurchased = Comic::select('comics.*')
-            ->join('payments', 'comics.id', '=', 'payments.comic_id')
-            ->where('payments.status', 'succeeded')
-            ->where('payments.paid_at', '>', $startDate)
-            ->groupBy('comics.id')
-            ->orderByRaw('COUNT(payments.id) DESC')
-            ->limit(10)
-            ->get()
-            ->map(function ($comic) use ($startDate) {
-                $comic->period_purchases = $comic->payments()
-                    ->where('status', 'succeeded')
-                    ->where('paid_at', '>', $startDate)
-                    ->count();
-                return $comic;
-            });
-
-        return [
-            'most_viewed' => $mostViewed,
-            'trending' => $trending,
-            'best_rated' => $bestRated,
-            'most_purchased' => $mostPurchased,
-        ];
-    }
-
-    /**
-     * Get conversion analytics (views to purchases)
-     */
-    public function getConversionAnalytics(int $days = 30): array
-    {
-        $startDate = now()->subDays($days);
-
-        $comicsWithMetrics = Comic::select('comics.*')
-            ->leftJoin('comic_views', function ($join) use ($startDate) {
-                $join->on('comics.id', '=', 'comic_views.comic_id')
-                     ->where('comic_views.viewed_at', '>', $startDate);
-            })
-            ->leftJoin('payments', function ($join) use ($startDate) {
-                $join->on('comics.id', '=', 'payments.comic_id')
-                     ->where('payments.status', 'succeeded')
-                     ->where('payments.paid_at', '>', $startDate);
-            })
-            ->where('comics.is_visible', true)
-            ->where('comics.is_free', false) // Only paid comics for conversion
-            ->groupBy('comics.id')
-            ->selectRaw('
-                comics.*,
-                COUNT(DISTINCT comic_views.id) as period_views,
-                COUNT(DISTINCT payments.id) as period_purchases
-            ')
-            ->having('period_views', '>', 0)
-            ->get()
-            ->map(function ($comic) {
-                $comic->conversion_rate = $comic->period_views > 0 
-                    ? ($comic->period_purchases / $comic->period_views) * 100 
-                    : 0;
-                return $comic;
-            })
-            ->sortByDesc('conversion_rate');
-
-        $overallViews = ComicView::join('comics', 'comic_views.comic_id', '=', 'comics.id')
-            ->where('comics.is_free', false)
-            ->where('comic_views.viewed_at', '>', $startDate)
-            ->count();
-
-        $overallPurchases = Payment::join('comics', 'payments.comic_id', '=', 'comics.id')
-            ->where('comics.is_free', false)
-            ->where('payments.status', 'succeeded')
-            ->where('payments.paid_at', '>', $startDate)
-            ->count();
-
-        return [
-            'comics_with_metrics' => $comicsWithMetrics->take(20),
-            'overall_conversion_rate' => $overallViews > 0 ? ($overallPurchases / $overallViews) * 100 : 0,
-            'total_views' => $overallViews,
-            'total_purchases' => $overallPurchases,
-        ];
-    }
-
-    /**
-     * Generate comprehensive analytics report with export capabilities
-     */
-    public function generateComprehensiveReport(array $options = []): array
-    {
-        $days = $options['days'] ?? 30;
+        $today = Carbon::today();
         
-        return [
-            'summary' => [
-                'period' => $days . ' days',
-                'generated_at' => now()->toISOString(),
-                'platform_metrics' => $this->getPlatformMetrics($days),
+        // Record comics read
+        UserAnalytics::recordMetric(
+            $user->id,
+            'reading',
+            'comics_read',
+            1,
+            [
+                'comic' => [
+                    'id' => $comic->id,
+                    'title' => $comic->title,
+                    'slug' => $comic->slug,
+                    'cover_image_url' => $comic->cover_image_url,
+                    'genre' => $comic->genre,
+                    'author' => $comic->author,
+                ]
             ],
-            'revenue_analytics' => $this->getRevenueAnalytics($days),
-            'user_engagement' => $this->getUserEngagementAnalytics($days),
-            'comic_performance' => $this->getComicPerformanceAnalytics($days),
-            'conversion_metrics' => $this->getConversionAnalytics($days),
-            'realtime_metrics' => $this->getRealtimeMetrics(),
+            $today
+        );
+
+        // Record reading time if provided
+        if (isset($data['reading_time_minutes'])) {
+            UserAnalytics::recordMetric(
+                $user->id,
+                'reading',
+                'reading_time_minutes',
+                $data['reading_time_minutes'],
+                ['comic_id' => $comic->id],
+                $today
+            );
+        }
+
+        // Record pages read if provided
+        if (isset($data['pages_read'])) {
+            UserAnalytics::recordMetric(
+                $user->id,
+                'reading',
+                'pages_read',
+                $data['pages_read'],
+                ['comic_id' => $comic->id],
+                $today
+            );
+        }
+
+        // Record reading session
+        UserAnalytics::recordMetric(
+            $user->id,
+            'reading',
+            'reading_sessions',
+            1,
+            [
+                'session_data' => $data,
+                'comic_id' => $comic->id
+            ],
+            $today
+        );
+
+        // Clear relevant caches
+        $this->clearUserAnalyticsCache($user->id);
+    }
+
+    public function recordEngagementActivity(User $user, string $activityType, array $data = []): void
+    {
+        $today = Carbon::today();
+        
+        $validActivities = [
+            'rating_given', 'review_written', 'list_created', 
+            'share_made', 'comment_posted', 'bookmark_added'
         ];
+
+        if (!in_array($activityType, $validActivities)) {
+            return;
+        }
+
+        UserAnalytics::recordMetric(
+            $user->id,
+            'engagement',
+            $activityType,
+            1,
+            $data,
+            $today
+        );
+
+        $this->clearUserAnalyticsCache($user->id);
     }
 
-    /**
-     * Export report to CSV format
-     */
-    public function exportReportToCsv(array $data, string $filename = null): string
+    public function recordDiscoveryActivity(User $user, string $discoveryType, array $data = []): void
     {
-        $filename = $filename ?? 'analytics_report_' . now()->format('Y_m_d_H_i_s') . '.csv';
-        $filePath = storage_path('app/public/exports/' . $filename);
+        $today = Carbon::today();
         
-        if (!file_exists(dirname($filePath))) {
-            mkdir(dirname($filePath), 0755, true);
-        }
-        
-        $csvData = [];
-        $csvData[] = ['Section', 'Metric', 'Value', 'Date'];
-        
-        // Platform metrics
-        foreach ($data['summary']['platform_metrics'] as $key => $value) {
-            $csvData[] = ['Platform', ucwords(str_replace('_', ' ', $key)), $value, $data['summary']['generated_at']];
-        }
-        
-        // Revenue data
-        if (isset($data['revenue_analytics']['daily_revenue'])) {
-            foreach ($data['revenue_analytics']['daily_revenue'] as $row) {
-                $csvData[] = ['Revenue', 'Daily Revenue', $row->revenue, $row->date];
-                $csvData[] = ['Revenue', 'Daily Transactions', $row->transactions, $row->date];
-            }
-        }
-        
-        $handle = fopen($filePath, 'w');
-        foreach ($csvData as $row) {
-            fputcsv($handle, $row);
-        }
-        fclose($handle);
-        
-        return $filePath;
-    }
-
-    /**
-     * Export report to JSON format
-     */
-    public function exportReportToJson(array $data, string $filename = null): string
-    {
-        $filename = $filename ?? 'analytics_report_' . now()->format('Y_m_d_H_i_s') . '.json';
-        $filePath = storage_path('app/public/exports/' . $filename);
-        
-        if (!file_exists(dirname($filePath))) {
-            mkdir(dirname($filePath), 0755, true);
-        }
-        
-        file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
-        
-        return $filePath;
-    }
-
-    /**
-     * Export report to PDF format (requires dompdf or similar)
-     */
-    public function exportReportToPdf(array $data, string $filename = null): string
-    {
-        $filename = $filename ?? 'analytics_report_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-        $filePath = storage_path('app/public/exports/' . $filename);
-        
-        if (!file_exists(dirname($filePath))) {
-            mkdir(dirname($filePath), 0755, true);
-        }
-        
-        // Generate HTML content for the PDF
-        $html = view('reports.analytics', compact('data'))->render();
-        
-        // This would require a PDF library like dompdf or wkhtmltopdf
-        // For now, we'll create a simple text file as placeholder
-        file_put_contents(str_replace('.pdf', '.html', $filePath), $html);
-        
-        return str_replace('.pdf', '.html', $filePath);
-    }
-
-    /**
-     * Get real-time metrics for dashboard
-     */
-    public function getRealtimeMetrics(): array
-    {
-        $now = now();
-        
-        return [
-            'online_users' => $this->getOnlineUsersCount(),
-            'active_reading_sessions' => $this->getActiveReadingSessionsCount(),
-            'revenue_today' => Payment::where('status', 'succeeded')
-                ->whereDate('paid_at', $now->toDateString())
-                ->sum('amount'),
-            'new_users_today' => User::whereDate('created_at', $now->toDateString())->count(),
-            'views_last_hour' => ComicView::where('viewed_at', '>=', $now->subHour())->count(),
-            'last_updated' => $now->toISOString(),
+        $validDiscoveries = [
+            'genre_explored', 'author_discovered', 'recommendation_followed',
+            'trending_comic_read', 'search_performed', 'filter_applied'
         ];
+
+        if (!in_array($discoveryType, $validDiscoveries)) {
+            return;
+        }
+
+        UserAnalytics::recordMetric(
+            $user->id,
+            'discovery',
+            $discoveryType,
+            1,
+            $data,
+            $today
+        );
+
+        $this->clearUserAnalyticsCache($user->id);
     }
 
-    /**
-     * Get subscription-specific analytics
-     */
-    public function getSubscriptionAnalytics(): array
+    public function recordSocialActivity(User $user, string $socialType, array $data = []): void
     {
-        $totalUsers = User::count();
-        $subscribedUsers = User::where('subscription_status', 'active')->count();
-        $trialUsers = User::where('subscription_status', 'trial')->count();
-        $canceledUsers = User::where('subscription_status', 'canceled')->count();
+        $today = Carbon::today();
         
-        $subscriptionRevenue = Payment::where('status', 'succeeded')
-            ->where('type', 'subscription')
-            ->sum('amount');
-        
-        $monthlySubscriptionRevenue = Payment::where('status', 'succeeded')
-            ->where('type', 'subscription')
-            ->whereMonth('paid_at', now()->month)
-            ->whereYear('paid_at', now()->year)
-            ->sum('amount');
-        
-        return [
-            'total_subscribers' => $subscribedUsers,
-            'trial_users' => $trialUsers,
-            'canceled_users' => $canceledUsers,
-            'conversion_rate' => $totalUsers > 0 ? ($subscribedUsers / $totalUsers) * 100 : 0,
-            'churn_rate' => ($subscribedUsers + $canceledUsers) > 0 
-                ? ($canceledUsers / ($subscribedUsers + $canceledUsers)) * 100 : 0,
-            'subscription_revenue' => $subscriptionRevenue,
-            'monthly_subscription_revenue' => $monthlySubscriptionRevenue,
-            'average_revenue_per_user' => $subscribedUsers > 0 ? $subscriptionRevenue / $subscribedUsers : 0,
+        $validSocial = [
+            'user_followed', 'list_shared', 'activity_liked',
+            'comment_replied', 'profile_viewed'
         ];
+
+        if (!in_array($socialType, $validSocial)) {
+            return;
+        }
+
+        UserAnalytics::recordMetric(
+            $user->id,
+            'social',
+            $socialType,
+            1,
+            $data,
+            $today
+        );
+
+        $this->clearUserAnalyticsCache($user->id);
     }
 
-    /**
-     * Get reading behavior analytics
-     */
-    public function getReadingBehaviorAnalytics(int $days = 30): array
+    public function getComprehensiveAnalytics(int $userId, int $days = 30): array
     {
-        $startDate = now()->subDays($days);
+        $cacheKey = "user_analytics_{$userId}_{$days}";
         
-        $readingPatterns = UserComicProgress::select(
-                DB::raw('HOUR(last_read_at) as hour'),
-                DB::raw('COUNT(*) as sessions'),
-                DB::raw('AVG(reading_time_minutes) as avg_duration')
-            )
-            ->where('last_read_at', '>', $startDate)
-            ->groupBy(DB::raw('HOUR(last_read_at)'))
-            ->orderBy('hour')
+        return Cache::remember($cacheKey, 3600, function () use ($userId, $days) {
+            return [
+                'reading_stats' => UserAnalytics::getReadingStats($userId, $days),
+                'engagement_stats' => UserAnalytics::getEngagementStats($userId, $days),
+                'discovery_stats' => UserAnalytics::getDiscoveryStats($userId, $days),
+                'streak_stats' => UserAnalytics::getStreakStats($userId),
+                'daily_activity' => UserAnalytics::getDailyActivity($userId, $days),
+                'top_comics' => UserAnalytics::getTopComics($userId, 10),
+                'reading_patterns' => $this->getReadingPatterns($userId, $days),
+                'progress_trends' => $this->getProgressTrends($userId, $days),
+            ];
+        });
+    }
+
+    public function getReadingPatterns(int $userId, int $days = 30): array
+    {
+        $analytics = UserAnalytics::forUser($userId)
+            ->forMetric('reading')
+            ->recent($days)
             ->get();
-        
-        $deviceStats = UserComicProgress::select(
-                DB::raw('device_type'),
-                DB::raw('COUNT(*) as sessions'),
-                DB::raw('AVG(reading_time_minutes) as avg_duration')
-            )
-            ->where('last_read_at', '>', $startDate)
-            ->whereNotNull('device_type')
-            ->groupBy('device_type')
-            ->get();
-        
+
+        // Time of day analysis
+        $hourlyData = $analytics->groupBy(function ($item) {
+            return $item->created_at->hour;
+        })->map->count()->toArray();
+
+        // Day of week analysis
+        $dailyData = $analytics->groupBy(function ($item) {
+            return $item->created_at->dayOfWeek;
+        })->map->count()->toArray();
+
+        // Genre preferences
+        $genreData = $analytics->where('metric_name', 'comics_read')
+            ->flatMap(function ($item) {
+                return collect($item->additional_data)->get('comic.genre', []);
+            })
+            ->groupBy(function ($genre) {
+                return $genre;
+            })
+            ->map->count()
+            ->sortDesc()
+            ->toArray();
+
+        // Average session length
+        $sessionLengths = $analytics->where('metric_name', 'reading_time_minutes')
+            ->pluck('value')
+            ->filter()
+            ->toArray();
+
+        $avgSessionLength = count($sessionLengths) > 0 ? array_sum($sessionLengths) / count($sessionLengths) : 0;
+
         return [
-            'reading_by_hour' => $readingPatterns,
-            'device_usage' => $deviceStats,
-            'average_session_length' => UserComicProgress::where('last_read_at', '>', $startDate)
-                ->avg('reading_time_minutes') ?? 0,
-            'total_reading_time' => UserComicProgress::where('last_read_at', '>', $startDate)
-                ->sum('reading_time_minutes'),
+            'peak_reading_hours' => $hourlyData,
+            'peak_reading_days' => $dailyData,
+            'favorite_genres' => $genreData,
+            'average_session_length' => round($avgSessionLength, 2),
+            'total_sessions' => $analytics->where('metric_name', 'reading_sessions')->sum('value'),
+            'consistency_score' => $this->calculateConsistencyScore($userId, $days)
         ];
     }
 
-    private function getOnlineUsersCount(): int
+    public function getProgressTrends(int $userId, int $days = 30): array
     {
-        // Users with activity in the last 15 minutes
-        return User::whereHas('comicProgress', function ($query) {
-            $query->where('last_read_at', '>=', now()->subMinutes(15));
+        $weeklyData = [];
+        $currentDate = Carbon::now();
+        
+        for ($week = 0; $week < 4; $week++) {
+            $weekStart = $currentDate->copy()->subWeeks($week + 1)->startOfWeek();
+            $weekEnd = $weekStart->copy()->endOfWeek();
+            
+            $weekStats = UserAnalytics::forUser($userId)
+                ->forDateRange($weekStart, $weekEnd)
+                ->get();
+            
+            $weeklyData[] = [
+                'week' => $weekStart->format('M j') . ' - ' . $weekEnd->format('M j'),
+                'comics_read' => $weekStats->where('metric_name', 'comics_read')->sum('value'),
+                'reading_time' => $weekStats->where('metric_name', 'reading_time_minutes')->sum('value'),
+                'engagement_actions' => $weekStats->where('metric_type', 'engagement')->count()
+            ];
+        }
+
+        return array_reverse($weeklyData);
+    }
+
+    private function calculateConsistencyScore(int $userId, int $days = 30): float
+    {
+        $dailyActivity = UserAnalytics::getDailyActivity($userId, $days);
+        
+        $activeDays = collect($dailyActivity)->filter(function ($day) {
+            return $day['comics_read'] > 0 || $day['reading_time'] > 0;
         })->count();
+        
+        return round(($activeDays / $days) * 100, 1);
     }
 
-    private function getActiveReadingSessionsCount(): int
+    public function generateMonthlyReport(int $userId, ?int $month = null, ?int $year = null): array
     {
-        // Reading sessions updated in the last 30 minutes
-        return UserComicProgress::where('last_read_at', '>=', now()->subMinutes(30))
+        $month = $month ?? Carbon::now()->month;
+        $year = $year ?? Carbon::now()->year;
+        
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = $startDate->copy()->endOfMonth();
+        $daysInMonth = $startDate->daysInMonth;
+        
+        $cacheKey = "monthly_report_{$userId}_{$year}_{$month}";
+        
+        return Cache::remember($cacheKey, 7200, function () use ($userId, $startDate, $endDate, $daysInMonth) {
+            $monthlyStats = UserAnalytics::forUser($userId)
+                ->forDateRange($startDate, $endDate)
+                ->get();
+
+            $readingStats = [
+                'total_comics' => $monthlyStats->where('metric_name', 'comics_read')->sum('value'),
+                'total_time' => $monthlyStats->where('metric_name', 'reading_time_minutes')->sum('value'),
+                'total_pages' => $monthlyStats->where('metric_name', 'pages_read')->sum('value'),
+                'reading_sessions' => $monthlyStats->where('metric_name', 'reading_sessions')->sum('value'),
+            ];
+
+            $engagementStats = [
+                'ratings_given' => $monthlyStats->where('metric_name', 'rating_given')->sum('value'),
+                'reviews_written' => $monthlyStats->where('metric_name', 'review_written')->sum('value'),
+                'lists_created' => $monthlyStats->where('metric_name', 'list_created')->sum('value'),
+                'social_interactions' => $monthlyStats->where('metric_type', 'social')->sum('value'),
+            ];
+
+            // Get achievements unlocked this month
+            $achievements = DB::table('user_achievements')
+                ->join('achievements', 'user_achievements.achievement_id', '=', 'achievements.id')
+                ->where('user_achievements.user_id', $userId)
+                ->whereBetween('user_achievements.unlocked_at', [$startDate, $endDate])
+                ->select('achievements.name', 'achievements.points', 'user_achievements.unlocked_at')
+                ->orderBy('user_achievements.unlocked_at', 'desc')
+                ->get();
+
+            // Calculate streaks at end of month
+            $streakStats = UserAnalytics::getStreakStats($userId);
+
+            // Daily breakdown
+            $dailyBreakdown = UserAnalytics::getDailyActivity($userId, $daysInMonth);
+
+            return [
+                'period' => [
+                    'month' => $startDate->format('F'),
+                    'year' => $startDate->year,
+                    'days_in_month' => $daysInMonth
+                ],
+                'reading' => $readingStats,
+                'engagement' => $engagementStats,
+                'achievements' => $achievements->toArray(),
+                'streaks' => $streakStats,
+                'daily_activity' => $dailyBreakdown,
+                'summary' => [
+                    'most_active_day' => $this->getMostActiveDay($dailyBreakdown),
+                    'consistency_score' => $this->calculateConsistencyScore($userId, $daysInMonth),
+                    'total_points_earned' => $achievements->sum('points'),
+                    'improvement_areas' => $this->getImprovementAreas($monthlyStats)
+                ]
+            ];
+        });
+    }
+
+    private function getMostActiveDay(array $dailyActivity): ?array
+    {
+        $mostActive = collect($dailyActivity)->sortByDesc(function ($day) {
+            return $day['comics_read'] + ($day['reading_time'] / 60);
+        })->first();
+
+        return $mostActive;
+    }
+
+    private function getImprovementAreas(mixed $monthlyStats): array
+    {
+        $areas = [];
+        
+        $totalReadingTime = $monthlyStats->where('metric_name', 'reading_time_minutes')->sum('value');
+        $totalEngagement = $monthlyStats->where('metric_type', 'engagement')->sum('value');
+        $totalDiscovery = $monthlyStats->where('metric_type', 'discovery')->sum('value');
+        
+        if ($totalReadingTime < 300) { // Less than 5 hours per month
+            $areas[] = [
+                'area' => 'reading_time',
+                'suggestion' => 'Try to read for at least 10-15 minutes daily',
+                'current_score' => $totalReadingTime
+            ];
+        }
+        
+        if ($totalEngagement < 10) {
+            $areas[] = [
+                'area' => 'engagement',
+                'suggestion' => 'Rate comics and write reviews to engage more with the community',
+                'current_score' => $totalEngagement
+            ];
+        }
+        
+        if ($totalDiscovery < 5) {
+            $areas[] = [
+                'area' => 'discovery',
+                'suggestion' => 'Explore new genres and discover trending comics',
+                'current_score' => $totalDiscovery
+            ];
+        }
+        
+        return $areas;
+    }
+
+    public function clearUserAnalyticsCache(int $userId): void
+    {
+        $patterns = [
+            "user_analytics_{$userId}_*",
+            "monthly_report_{$userId}_*",
+            "reading_insights_{$userId}_*"
+        ];
+        
+        foreach ($patterns as $pattern) {
+            Cache::forget($pattern);
+        }
+    }
+
+    public function aggregateWeeklyData(): void
+    {
+        $lastWeek = Carbon::now()->subWeek();
+        $startOfWeek = $lastWeek->startOfWeek();
+        $endOfWeek = $lastWeek->endOfWeek();
+
+        // Get all users who had activity last week
+        $activeUsers = UserAnalytics::whereBetween('date', [$startOfWeek, $endOfWeek])
             ->distinct('user_id')
-            ->count();
+            ->pluck('user_id');
+
+        foreach ($activeUsers as $userId) {
+            $weeklyStats = UserAnalytics::forUser($userId)
+                ->forDateRange($startOfWeek, $endOfWeek)
+                ->get();
+
+            // Aggregate reading metrics
+            $totalComics = $weeklyStats->where('metric_name', 'comics_read')->sum('value');
+            $totalTime = $weeklyStats->where('metric_name', 'reading_time_minutes')->sum('value');
+            $totalPages = $weeklyStats->where('metric_name', 'pages_read')->sum('value');
+
+            // Create weekly aggregates
+            UserAnalytics::recordMetric(
+                $userId,
+                'reading',
+                'comics_read',
+                $totalComics,
+                ['aggregated_from' => 'weekly'],
+                $startOfWeek,
+                'weekly'
+            );
+
+            UserAnalytics::recordMetric(
+                $userId,
+                'reading',
+                'reading_time_minutes',
+                $totalTime,
+                ['aggregated_from' => 'weekly'],
+                $startOfWeek,
+                'weekly'
+            );
+
+            UserAnalytics::recordMetric(
+                $userId,
+                'reading',
+                'pages_read',
+                $totalPages,
+                ['aggregated_from' => 'weekly'],
+                $startOfWeek,
+                'weekly'
+            );
+
+            // Clear cache for this user
+            $this->clearUserAnalyticsCache($userId);
+        }
+    }
+
+    public function aggregateMonthlyData(): void
+    {
+        $lastMonth = Carbon::now()->subMonth();
+        $startOfMonth = $lastMonth->startOfMonth();
+        $endOfMonth = $lastMonth->endOfMonth();
+
+        // Similar to weekly aggregation but for monthly data
+        $activeUsers = UserAnalytics::whereBetween('date', [$startOfMonth, $endOfMonth])
+            ->distinct('user_id')
+            ->pluck('user_id');
+
+        foreach ($activeUsers as $userId) {
+            $monthlyStats = UserAnalytics::forUser($userId)
+                ->forDateRange($startOfMonth, $endOfMonth)
+                ->get();
+
+            // Create monthly aggregates similar to weekly
+            $totalComics = $monthlyStats->where('metric_name', 'comics_read')->sum('value');
+            $totalTime = $monthlyStats->where('metric_name', 'reading_time_minutes')->sum('value');
+            
+            UserAnalytics::recordMetric(
+                $userId,
+                'reading',
+                'comics_read',
+                $totalComics,
+                ['aggregated_from' => 'monthly'],
+                $startOfMonth,
+                'monthly'
+            );
+
+            $this->clearUserAnalyticsCache($userId);
+        }
     }
 }

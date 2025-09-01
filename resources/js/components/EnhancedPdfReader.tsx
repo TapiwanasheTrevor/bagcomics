@@ -199,9 +199,12 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     const deltaX = e.touches[0].clientX - touchStartRef.current.x;
                     const deltaY = e.touches[0].clientY - touchStartRef.current.y;
                     
+                    // Calculate max pan limits based on zoom level
+                    const maxPan = Math.min(300, scale * 100);
+                    
                     setPanPosition({
-                        x: initialPanPosition.x + deltaX,
-                        y: initialPanPosition.y + deltaY
+                        x: Math.max(-maxPan, Math.min(maxPan, initialPanPosition.x + deltaX)),
+                        y: Math.max(-maxPan, Math.min(maxPan, initialPanPosition.y + deltaY))
                     });
                 }
             }
@@ -428,11 +431,31 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
     }, [currentPage, numPages, goToPage]);
 
     const zoomIn = useCallback(() => {
-        setScale(prev => Math.min(prev + 0.2, 3.0));
+        setScale(prev => {
+            const newScale = Math.min(prev + 0.2, 3.0);
+            // Reset pan position when zooming to prevent page disappearing
+            if (newScale !== prev) {
+                setPanPosition(prevPan => ({
+                    x: Math.max(-200, Math.min(200, prevPan.x * 0.8)),
+                    y: Math.max(-200, Math.min(200, prevPan.y * 0.8))
+                }));
+            }
+            return newScale;
+        });
     }, []);
 
     const zoomOut = useCallback(() => {
-        setScale(prev => Math.max(prev - 0.2, 0.5));
+        setScale(prev => {
+            const newScale = Math.max(prev - 0.2, 0.5);
+            // Adjust pan position when zooming out to keep content centered
+            if (newScale !== prev) {
+                setPanPosition(prevPan => ({
+                    x: Math.max(-100, Math.min(100, prevPan.x * 0.9)),
+                    y: Math.max(-100, Math.min(100, prevPan.y * 0.9))
+                }));
+            }
+            return newScale;
+        });
     }, []);
 
     const resetZoom = useCallback(() => {
@@ -546,10 +569,10 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <button
                         onClick={goToPrevPage}
                         disabled={currentPage <= 1}
-                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                        className="p-2 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
                         title="Previous Page"
                     >
-                        <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <ChevronLeft className="h-4 w-4 sm:h-4 sm:w-4" />
                     </button>
 
                     <div className="hidden sm:block">
@@ -565,10 +588,10 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     <button
                         onClick={goToNextPage}
                         disabled={currentPage >= numPages}
-                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                        className="p-2 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/50"
                         title="Next Page"
                     >
-                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <ChevronRight className="h-4 w-4 sm:h-4 sm:w-4" />
                     </button>
 
                     <div className="hidden sm:flex items-center gap-2">
@@ -607,15 +630,13 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                         <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
                     </button>
 
-                    <div className="hidden sm:block">
-                        <button
-                            onClick={resetZoom}
-                            className="p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                            title="Reset Zoom"
-                        >
-                            <Home className="h-4 w-4" />
-                        </button>
-                    </div>
+                    <button
+                        onClick={resetZoom}
+                        className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                        title="Reset View"
+                    >
+                        <Home className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </button>
 
                     <div className="w-px h-4 sm:h-6 bg-red-500/30 mx-1 sm:mx-2" />
 
@@ -769,6 +790,31 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                             </div>
                         </Document>
                     </div>
+                </div>
+
+                {/* Floating Navigation Buttons for Mobile */}
+                <div className="block sm:hidden">
+                    {/* Previous Page - Left Side */}
+                    <button
+                        onClick={goToPrevPage}
+                        disabled={currentPage <= 1}
+                        className="fixed left-2 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-red-500/90 text-white border border-red-400 hover:bg-red-600/90 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+                        title="Previous Page"
+                        aria-label="Previous Page"
+                    >
+                        <ChevronLeft className="h-5 w-5" />
+                    </button>
+
+                    {/* Next Page - Right Side */}
+                    <button
+                        onClick={goToNextPage}
+                        disabled={currentPage >= numPages}
+                        className="fixed right-2 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-red-500/90 text-white border border-red-400 hover:bg-red-600/90 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg"
+                        title="Next Page"
+                        aria-label="Next Page"
+                    >
+                        <ChevronRight className="h-5 w-5" />
+                    </button>
                 </div>
 
                 {/* Bookmark Panel */}

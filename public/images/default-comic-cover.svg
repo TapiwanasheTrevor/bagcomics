@@ -1,0 +1,35 @@
+<svg width="300" height="450" viewBox="0 0 300 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="300" height="450" fill="url(#grad1)"/>
+  
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#374151;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4B5563;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6B7280;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Comic Book Icon -->
+  <g transform="translate(125, 175)">
+    <!-- Book spine -->
+    <rect x="10" y="0" width="30" height="100" fill="#EF4444" rx="2"/>
+    <!-- Book pages -->
+    <rect x="0" y="10" width="45" height="80" fill="#F3F4F6" rx="2"/>
+    <!-- Book cover -->
+    <rect x="5" y="5" width="35" height="90" fill="#DC2626" rx="2"/>
+    
+    <!-- Comic elements -->
+    <circle cx="22" cy="25" r="8" fill="#FEF3C7"/>
+    <rect x="15" y="40" width="15" height="6" fill="#FEF3C7" rx="1"/>
+    <rect x="12" y="50" width="20" height="4" fill="#FEF3C7" rx="1"/>
+    
+    <!-- Stars -->
+    <polygon points="22,60 24,66 30,66 25,70 27,76 22,72 17,76 19,70 14,66 20,66" fill="#FEF3C7"/>
+  </g>
+  
+  <!-- BAG Comics Text -->
+  <text x="150" y="350" text-anchor="middle" fill="#9CA3AF" font-family="system-ui, sans-serif" font-size="16" font-weight="600">BAG Comics</text>
+  <text x="150" y="380" text-anchor="middle" fill="#6B7280" font-family="system-ui, sans-serif" font-size="12">No Cover Available</text>
+</svg>

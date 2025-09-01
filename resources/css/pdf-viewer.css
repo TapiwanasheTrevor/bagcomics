@@ -148,8 +148,15 @@
 
 /* Custom scrollbar for PDF container */
 .pdf-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 4px;
+    height: 4px;
+}
+
+@media (max-width: 768px) {
+    .pdf-container::-webkit-scrollbar {
+        width: 2px;
+        height: 2px;
+    }
 }
 
 .pdf-container::-webkit-scrollbar-track {
