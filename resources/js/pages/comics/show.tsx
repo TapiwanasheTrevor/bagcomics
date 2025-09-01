@@ -211,7 +211,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-            const response = await fetch(`/api/library/comics/${comic.slug}/add`, {
+            const response = await fetch(`/api/library/comics/${comic.slug}`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -604,7 +604,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                         <h2 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
                             Ratings & Reviews
                         </h2>
-                        {auth.user && isInLibrary && (
+                        {auth.user && (
                             <button 
                                 className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105"
                                 onClick={() => setShowReviewModal(true)}
