@@ -35,7 +35,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-    const { auth, dashboard_data } = usePage<SharedData & { dashboard_data: DashboardData }>().props;
+    const { auth, dashboard_data } = usePage<SharedData & { dashboard_data?: DashboardData }>().props;
     const [searchQuery, setSearchQuery] = useState('');
 
     if (!auth.user) {
@@ -43,7 +43,19 @@ export default function Dashboard() {
         return null;
     }
 
-    const { recently_read, library_stats, reading_activity } = dashboard_data;
+    // Provide default values if dashboard_data is undefined
+    const { 
+        recently_read = [], 
+        library_stats = {
+            total_comics: 0,
+            completed_comics: 0,
+            in_progress_comics: 0,
+            favorite_comics: 0,
+            average_rating: 0,
+            total_reading_time: 0
+        }, 
+        reading_activity = []
+    } = dashboard_data || {};
 
     return (
         <>
@@ -103,7 +115,7 @@ export default function Dashboard() {
                                 <Star className="w-5 h-5 text-yellow-400" />
                                 <span className="text-sm text-gray-400">Avg Rating</span>
                             </div>
-                            <div className="text-2xl font-bold text-white">{library_stats.average_rating.toFixed(1)}</div>
+                            <div className="text-2xl font-bold text-white">{(library_stats.average_rating || 0).toFixed(1)}</div>
                         </div>
 
                         <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
