@@ -44,23 +44,23 @@ class ReviewResource extends Resource
                     ->minValue(1)
                     ->maxValue(5),
 
-                Forms\Components\Textarea::make('review_text')
+                Forms\Components\TextInput::make('title')
+                    ->label('Review Title')
+                    ->maxLength(255),
+
+                Forms\Components\Textarea::make('content')
                     ->label('Review Text')
                     ->rows(4)
-                    ->maxLength(1000),
+                    ->maxLength(5000)
+                    ->required(),
+
+                Forms\Components\Toggle::make('is_spoiler')
+                    ->label('Contains Spoilers')
+                    ->default(false),
 
                 Forms\Components\Toggle::make('is_approved')
                     ->label('Approved')
-                    ->default(false),
-
-                Forms\Components\Toggle::make('is_flagged')
-                    ->label('Flagged for Review')
-                    ->default(false),
-
-                Forms\Components\Textarea::make('moderation_notes')
-                    ->label('Moderation Notes')
-                    ->rows(3)
-                    ->helperText('Internal notes for content moderation'),
+                    ->default(true),
             ]);
     }
 
@@ -91,44 +91,45 @@ class ReviewResource extends Resource
                     ->formatStateUsing(fn (int $state): string => $state . '/5')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('review_text')
+                Tables\Columns\TextColumn::make('title')
+                    ->label('Title')
+                    ->limit(30)
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('content')
                     ->label('Review')
                     ->limit(50)
                     ->wrap()
                     ->toggleable(),
+
+                Tables\Columns\IconColumn::make('is_spoiler')
+                    ->label('Spoiler')
+                    ->boolean()
+                    ->color(fn (bool $state): string => $state ? 'warning' : 'gray')
+                    ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_approved')
                     ->label('Approved')
                     ->boolean()
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('is_flagged')
-                    ->label('Flagged')
-                    ->boolean()
-                    ->color(fn (bool $state): string => $state ? 'danger' : 'gray')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('helpful_count')
+                Tables\Columns\TextColumn::make('helpful_votes')
                     ->label('Helpful Votes')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->default(0),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Submitted')
                     ->dateTime()
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('moderation_notes')
-                    ->label('Mod Notes')
-                    ->limit(30)
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_approved')
                     ->label('Approval Status'),
 
-                Tables\Filters\TernaryFilter::make('is_flagged')
-                    ->label('Flagged Status'),
+                Tables\Filters\TernaryFilter::make('is_spoiler')
+                    ->label('Contains Spoilers'),
 
                 Tables\Filters\SelectFilter::make('rating')
                     ->options([
@@ -141,9 +142,9 @@ class ReviewResource extends Resource
 
                 Tables\Filters\Filter::make('needs_moderation')
                     ->query(fn (Builder $query): Builder => 
-                        $query->where('is_flagged', true)->orWhere('is_approved', false)
+                        $query->where('is_approved', false)
                     )
-                    ->label('Needs Moderation'),
+                    ->label('Needs Approval'),
 
                 Tables\Filters\Filter::make('recent_reviews')
                     ->query(fn (Builder $query): Builder => 
@@ -159,10 +160,7 @@ class ReviewResource extends Resource
                     ->color('success')
                     ->visible(fn ($record) => !$record->is_approved)
                     ->action(function ($record) {
-                        $record->update([
-                            'is_approved' => true,
-                            'is_flagged' => false,
-                        ]);
+                        $record->update(['is_approved' => true]);
                         
                         Notification::make()
                             ->title('Review Approved')
@@ -170,15 +168,15 @@ class ReviewResource extends Resource
                             ->send();
                     }),
 
-                Tables\Actions\Action::make('flag')
-                    ->icon('heroicon-o-flag')
+                Tables\Actions\Action::make('disapprove')
+                    ->icon('heroicon-o-x-mark')
                     ->color('danger')
-                    ->visible(fn ($record) => !$record->is_flagged)
+                    ->visible(fn ($record) => $record->is_approved)
                     ->action(function ($record) {
-                        $record->update(['is_flagged' => true]);
+                        $record->update(['is_approved' => false]);
                         
                         Notification::make()
-                            ->title('Review Flagged')
+                            ->title('Review Disapproved')
                             ->warning()
                             ->send();
                     }),
@@ -193,10 +191,7 @@ class ReviewResource extends Resource
                         ->color('success')
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
-                                $record->update([
-                                    'is_approved' => true,
-                                    'is_flagged' => false,
-                                ]);
+                                $record->update(['is_approved' => true]);
                             });
                             
                             Notification::make()
@@ -207,44 +202,19 @@ class ReviewResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion(),
 
-                    BulkAction::make('bulk_flag')
-                        ->label('Flag Selected')
-                        ->icon('heroicon-o-flag')
+                    BulkAction::make('bulk_disapprove')
+                        ->label('Disapprove Selected')
+                        ->icon('heroicon-o-x-mark')
                         ->color('danger')
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
-                                $record->update(['is_flagged' => true]);
+                                $record->update(['is_approved' => false]);
                             });
                             
                             Notification::make()
-                                ->title('Reviews Flagged')
-                                ->body(count($records) . ' reviews have been flagged for review.')
+                                ->title('Reviews Disapproved')
+                                ->body(count($records) . ' reviews have been disapproved.')
                                 ->warning()
-                                ->send();
-                        })
-                        ->deselectRecordsAfterCompletion(),
-
-                    BulkAction::make('bulk_moderate')
-                        ->label('Add Moderation Notes')
-                        ->icon('heroicon-o-document-text')
-                        ->color('info')
-                        ->form([
-                            Forms\Components\Textarea::make('moderation_notes')
-                                ->label('Moderation Notes')
-                                ->required()
-                                ->rows(3),
-                        ])
-                        ->action(function (Collection $records, array $data) {
-                            $records->each(function ($record) use ($data) {
-                                $record->update([
-                                    'moderation_notes' => $data['moderation_notes']
-                                ]);
-                            });
-                            
-                            Notification::make()
-                                ->title('Moderation Notes Added')
-                                ->body('Notes added to ' . count($records) . ' reviews.')
-                                ->success()
                                 ->send();
                         })
                         ->deselectRecordsAfterCompletion(),

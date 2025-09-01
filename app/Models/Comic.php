@@ -407,6 +407,32 @@ class Comic extends Model
         $this->total_ratings = $totalRatings;
     }
 
+    /**
+     * Get real-time calculated average rating from reviews relationship
+     */
+    public function getCalculatedAverageRating(): float
+    {
+        if ($this->relationLoaded('approvedReviews')) {
+            $approvedReviews = $this->approvedReviews;
+        } else {
+            $approvedReviews = $this->approvedReviews()->get();
+        }
+        
+        return $approvedReviews->count() > 0 ? (float) $approvedReviews->avg('rating') : 0.0;
+    }
+
+    /**
+     * Get real-time calculated total ratings from reviews relationship
+     */
+    public function getCalculatedTotalRatings(): int
+    {
+        if ($this->relationLoaded('approvedReviews')) {
+            return $this->approvedReviews->count();
+        }
+        
+        return $this->approvedReviews()->count();
+    }
+
     public function removeTag(string $tag): void
     {
         $tags = $this->getTagsArray();

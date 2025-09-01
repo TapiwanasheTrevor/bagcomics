@@ -38,16 +38,23 @@ Route::get('/comics/{comic:slug}', function (Comic $comic) {
         abort(404);
     }
 
-    $comicData = $comic->load(['userProgress' => function ($query) {
-        if (auth()->check()) {
-            $query->where('user_id', auth()->id());
+    $comicData = $comic->load([
+        'approvedReviews' => function ($query) {
+            $query->select('comic_id', 'rating');
+        },
+        'userProgress' => function ($query) {
+            if (auth()->check()) {
+                $query->where('user_id', auth()->id());
+            }
         }
-    }])->toArray();
+    ])->toArray();
 
     // Add computed fields
     $comicData['cover_image_url'] = $comic->getCoverImageUrl();
     $comicData['reading_time_estimate'] = $comic->getReadingTimeEstimate();
     $comicData['is_new_release'] = $comic->isNewRelease();
+    $comicData['average_rating'] = $comic->getCalculatedAverageRating();
+    $comicData['total_ratings'] = $comic->getCalculatedTotalRatings();
 
     // Add PDF-related fields - use proper PDF URL method
     if ($comic->is_pdf_comic && $comic->pdf_file_path) {

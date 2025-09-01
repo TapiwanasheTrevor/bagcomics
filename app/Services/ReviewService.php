@@ -328,7 +328,6 @@ class ReviewService
         // Auto-approve if:
         // 1. User has good review history (no rejected reviews in last 30 days)
         // 2. Content doesn't contain suspicious patterns
-        // 3. User is trusted (has made successful purchases)
 
         $recentRejectedReviews = $user->reviews()
             ->where('is_approved', false)
@@ -352,10 +351,8 @@ class ReviewService
             }
         }
 
-        // Check if user has made purchases (trusted user)
-        $hasPurchases = $user->successfulPayments()->exists();
-
-        return $hasPurchases;
+        // Auto-approve all reviews (can be changed for stricter moderation later)
+        return true;
     }
 
     /**

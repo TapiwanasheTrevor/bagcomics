@@ -55,7 +55,7 @@ const ComicCard: React.FC<{
 
     const formatRating = (rating: number | string) => {
         const numRating = Number(rating || 0);
-        return numRating > 0 ? numRating.toFixed(1) : 'Nil';
+        return numRating > 0 ? numRating.toFixed(1) : 'No ratings';
     };
 
     const formatReadingTime = (minutes: number) => {

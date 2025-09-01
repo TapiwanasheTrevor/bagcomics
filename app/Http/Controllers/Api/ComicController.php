@@ -17,11 +17,16 @@ class ComicController extends Controller
     {
         $query = Comic::query()
             ->where('is_visible', true)
-            ->with(['userProgress' => function ($query) use ($request) {
-                if ($request->user()) {
-                    $query->where('user_id', $request->user()->id);
+            ->with([
+                'approvedReviews' => function ($query) {
+                    $query->select('comic_id', 'rating');
+                },
+                'userProgress' => function ($query) use ($request) {
+                    if ($request->user()) {
+                        $query->where('user_id', $request->user()->id);
+                    }
                 }
-            }]);
+            ]);
 
         // Apply filters
         if ($request->filled('genre')) {
@@ -97,11 +102,16 @@ class ComicController extends Controller
             return response()->json(['message' => 'Comic not found'], 404);
         }
 
-        $comic->load(['userProgress' => function ($query) use ($request) {
-            if ($request->user()) {
-                $query->where('user_id', $request->user()->id);
+        $comic->load([
+            'approvedReviews' => function ($query) {
+                $query->select('comic_id', 'rating');
+            },
+            'userProgress' => function ($query) use ($request) {
+                if ($request->user()) {
+                    $query->where('user_id', $request->user()->id);
+                }
             }
-        }]);
+        ]);
 
         return response()->json((new ComicResource($comic))->toArray($request));
     }
@@ -110,10 +120,16 @@ class ComicController extends Controller
     {
         $featured = Comic::query()
             ->where('is_visible', true)
-            ->where('average_rating', '>=', 4.0)
+            ->with(['approvedReviews' => function ($query) {
+                $query->select('comic_id', 'rating');
+            }])
             ->orderBy('total_readers', 'desc')
-            ->limit(6)
-            ->get();
+            ->limit(12) // Get more to filter by actual ratings
+            ->get()
+            ->filter(function ($comic) {
+                return $comic->getCalculatedAverageRating() >= 4.0;
+            })
+            ->take(6);
 
         return response()->json(ComicResource::collection($featured)->toArray($request));
     }
@@ -123,6 +139,9 @@ class ComicController extends Controller
         $newReleases = Comic::query()
             ->where('is_visible', true)
             ->where('published_at', '>=', now()->subDays(30))
+            ->with(['approvedReviews' => function ($query) {
+                $query->select('comic_id', 'rating');
+            }])
             ->orderBy('published_at', 'desc')
             ->limit(8)
             ->get();
