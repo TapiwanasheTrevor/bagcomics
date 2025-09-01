@@ -115,7 +115,7 @@ const ReadingProgressVisualization: React.FC<ReadingProgressVisualizationProps> 
             .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
         
         let streak = 0;
-        let currentDate = new Date();
+        const currentDate = new Date();
         currentDate.setHours(0, 0, 0, 0);
         
         for (const session of sessions) {

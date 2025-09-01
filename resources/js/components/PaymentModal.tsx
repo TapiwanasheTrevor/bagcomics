@@ -20,7 +20,7 @@ interface Comic {
     id: number;
     title: string;
     author?: string;
-    price: number;
+    price?: number;
     slug: string;
     cover_image_url?: string;
 }

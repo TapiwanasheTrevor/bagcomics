@@ -22,7 +22,10 @@
       "Bash(composer:*)",
       "Bash(chmod:*)",
       "Bash(sips:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run:*)"
     ],
     "deny": []
   }

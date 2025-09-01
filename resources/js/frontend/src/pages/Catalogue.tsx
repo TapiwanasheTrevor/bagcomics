@@ -18,7 +18,7 @@ const Catalogue: React.FC<CatalogueProps> = ({ onNavigate }) => {
   const genres = ['all', ...Array.from(new Set(mockComics.flatMap(comic => comic.genre)))];
 
   const filteredAndSortedComics = useMemo(() => {
-    let filtered = mockComics.filter(comic => {
+    const filtered = mockComics.filter(comic => {
       const matchesSearch = comic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            comic.creator.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesGenre = filterGenre === 'all' || comic.genre.includes(filterGenre);

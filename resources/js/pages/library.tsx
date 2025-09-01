@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { type SharedData } from '@/types';
-import { BookOpen, Star, Download, Play, Heart, Grid, List, Search, Book } from 'lucide-react';
+import { BookOpen, Star, Download, Play, Heart, Grid, List, Search, Book, User } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 
 interface Comic {

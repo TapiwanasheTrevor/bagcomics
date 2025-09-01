@@ -710,13 +710,17 @@ const UserLibrary: React.FC<UserLibraryProps> = ({
                                 {activeTab === 'all' ? 'No comics in your library' : 
                                  activeTab === 'favorites' ? 'No favorite comics yet' :
                                  activeTab === 'reading' ? 'No comics currently being read' :
-                                 'No completed comics yet'}
+                                 activeTab === 'completed' ? 'No completed comics yet' :
+                                 activeTab === 'history' ? 'No reading history yet' :
+                                 'No purchases yet'}
                             </h3>
                             <p className="text-gray-500 mb-6">
                                 {activeTab === 'all' ? 'Start building your collection by exploring our catalog' :
                                  activeTab === 'favorites' ? 'Mark comics as favorites to see them here' :
                                  activeTab === 'reading' ? 'Start reading some comics to track your progress' :
-                                 'Finish reading comics to see them here'}
+                                 activeTab === 'completed' ? 'Finish reading comics to see them here' :
+                                 activeTab === 'history' ? 'Your reading history will appear here' :
+                                 'Your purchases will appear here'}
                             </p>
                             <Link
                                 href="/comics"

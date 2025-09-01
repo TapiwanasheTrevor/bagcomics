@@ -194,8 +194,8 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
           console.debug('Native share tracking failed:', trackingError);
         }
       } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Failed to share:', error);
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Failed to share:', error as Error);
         }
       }
     }
@@ -205,7 +205,7 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
     <div className={`relative ${className}`}>
       <button
         onClick={() => {
-          if (navigator.share) {
+          if (navigator.share && typeof navigator.share === 'function') {
             handleNativeShare();
           } else {
             setShowShareMenu(!showShareMenu);
