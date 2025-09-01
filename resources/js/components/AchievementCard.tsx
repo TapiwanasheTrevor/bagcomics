@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Lock, Star, Zap, BookOpen, Users, Target, Award, Crown, Flame, MessageCircle, List, Compass, Book, CheckCircle, Books, Library } from 'lucide-react';
+import { Trophy, Lock, Star, Zap, BookOpen, Users, Target, Award, Crown, Flame, MessageCircle, List, Compass, Book, CheckCircle, Library } from 'lucide-react';
 
 interface Progress {
     type: string;
@@ -40,7 +40,7 @@ interface AchievementCardProps {
 const iconMap: Record<string, any> = {
     'book-open': BookOpen,
     'library': Library,
-    'books': Books,
+    'books': Library,
     'check-circle': CheckCircle,
     'zap': Zap,
     'flame': Flame,

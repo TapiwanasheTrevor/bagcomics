@@ -7,7 +7,7 @@ import { type SharedData } from '@/types';
 
 const RECOMMENDATION_TYPES = [
     { value: 'all', label: 'All Recommendations', icon: Sparkles, description: 'Personalized mix of all types' },
-    { value: 'collaborative', label: 'Readers Like You', icon: Users, description: 'Based on similar readers' choices' },
+    { value: 'collaborative', label: 'Readers Like You', icon: Users, description: 'Based on similar readers\' choices' },
     { value: 'content', label: 'Similar Content', icon: BookOpen, description: 'Based on your reading preferences' },
     { value: 'trending', label: 'Trending Now', icon: TrendingUp, description: 'Popular among all readers' },
     { value: 'new_releases', label: 'New Releases', icon: Clock, description: 'Latest comics in your genres' }
