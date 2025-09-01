@@ -621,19 +621,19 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                 <div className="flex items-center justify-center space-x-2 mb-4">
                                     <Star className="w-8 h-8 text-yellow-400 fill-current" />
                                     <span className="text-4xl font-bold text-white">
-                                        {Number(comic.average_rating || 0).toFixed(1)}
+                                        {Number(reviewStats?.average_rating || comic.average_rating || 0).toFixed(1)}
                                     </span>
                                 </div>
                                 <p className="text-gray-400 mb-2">
-                                    Based on {comic.total_ratings || 0} review{(comic.total_ratings || 0) !== 1 ? 's' : ''}
+                                    Based on {reviewStats?.total_reviews || comic.total_ratings || 0} review{((reviewStats?.total_reviews || comic.total_ratings || 0) !== 1) ? 's' : ''}
                                 </p>
                                 
                                 {/* Rating Distribution */}
                                 <div className="space-y-2 mt-6">
                                     {[5, 4, 3, 2, 1].map(rating => {
-                                        const count = reviewStats?.[`${rating}_stars`] || 0;
-                                        const total = comic.total_ratings || 1;
-                                        const percentage = (count / total) * 100;
+                                        const count = reviewStats?.rating_distribution?.[rating]?.count || 0;
+                                        const total = reviewStats?.total_reviews || 1;
+                                        const percentage = reviewStats?.rating_distribution?.[rating]?.percentage || 0;
                                         
                                         return (
                                             <div key={rating} className="flex items-center space-x-2">
