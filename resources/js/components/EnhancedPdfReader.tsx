@@ -146,7 +146,7 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
         };
     }, [isAutoPlaying, settings.autoAdvance, settings.autoAdvanceDelay, currentPage, numPages]);
 
-    // Enhanced touch gesture handling
+    // Enhanced touch gesture and mouse drag handling
     useEffect(() => {
         if (!settings.enableGestures) return;
 
@@ -154,6 +154,9 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
         let touchStartDistance = 0;
         let initialScale = scale;
         let initialPanPosition = panPosition;
+        let isDragging = false;
+        let dragStartPosition = { x: 0, y: 0 };
+        let lastPanPosition = panPosition;
 
         const handleTouchStart = (e: TouchEvent) => {
             touchStartTime = Date.now();
@@ -247,16 +250,89 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
             touchStartRef.current = null;
         };
 
+        // Mouse drag handlers for desktop panning
+        const handleMouseDown = (e: MouseEvent) => {
+            if (scale > 1.2 && e.button === 0) { // Left mouse button and zoomed in
+                e.preventDefault();
+                isDragging = true;
+                dragStartPosition = { x: e.clientX, y: e.clientY };
+                lastPanPosition = panPosition;
+                setIsPanning(true);
+                document.body.style.cursor = 'grabbing';
+                document.body.style.userSelect = 'none';
+            }
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isDragging && scale > 1.2) {
+                e.preventDefault();
+                const deltaX = e.clientX - dragStartPosition.x;
+                const deltaY = e.clientY - dragStartPosition.y;
+                
+                // Calculate max pan limits based on zoom level
+                const maxPan = Math.min(400, scale * 150);
+                
+                setPanPosition({
+                    x: Math.max(-maxPan, Math.min(maxPan, lastPanPosition.x + deltaX)),
+                    y: Math.max(-maxPan, Math.min(maxPan, lastPanPosition.y + deltaY))
+                });
+            }
+        };
+
+        const handleMouseUp = (e: MouseEvent) => {
+            if (isDragging) {
+                e.preventDefault();
+                isDragging = false;
+                setIsPanning(false);
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        };
+
+        // Mouse wheel zoom handler
+        const handleWheel = (e: WheelEvent) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                const newScale = Math.max(0.5, Math.min(3.0, scale + delta));
+                
+                if (newScale !== scale) {
+                    setScale(newScale);
+                    // Adjust pan position when zooming to keep content centered
+                    setPanPosition(prevPan => ({
+                        x: Math.max(-200, Math.min(200, prevPan.x * 0.9)),
+                        y: Math.max(-200, Math.min(200, prevPan.y * 0.9))
+                    }));
+                }
+            }
+        };
+
         const container = containerRef.current;
         if (container) {
+            // Touch events
             container.addEventListener('touchstart', handleTouchStart, { passive: false });
             container.addEventListener('touchmove', handleTouchMove, { passive: false });
             container.addEventListener('touchend', handleTouchEnd);
+            
+            // Mouse events for drag support
+            container.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            // Mouse wheel zoom support  
+            container.addEventListener('wheel', handleWheel, { passive: false });
 
             return () => {
+                // Touch events cleanup
                 container.removeEventListener('touchstart', handleTouchStart);
                 container.removeEventListener('touchmove', handleTouchMove);
                 container.removeEventListener('touchend', handleTouchEnd);
+                
+                // Mouse events cleanup
+                container.removeEventListener('mousedown', handleMouseDown);
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                container.removeEventListener('wheel', handleWheel);
             };
         }
     }, [settings.enableGestures, currentPage, numPages, scale, panPosition]);
@@ -704,7 +780,9 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                         ref={containerRef}
                         className="h-full bg-black overflow-auto flex items-center justify-center"
                         style={{
-                            cursor: isPanning ? 'grabbing' : 'grab'
+                            cursor: isPanning ? 'grabbing' : (scale > 1.2 ? 'grab' : 'default'),
+                            paddingTop: '60px',
+                            paddingBottom: '60px'
                         }}
                     >
                         {loading && (
@@ -749,6 +827,8 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                             options={useMemo(() => ({
                                 cMapUrl: '/js/pdfjs/cmaps/',
                                 cMapPacked: true,
+                                standardFontDataUrl: '/js/pdfjs/standard_fonts/',
+                                verbosity: 1, // Enable some logging for debugging
                             }), [])}
                             onLoadSuccess={onDocumentLoadSuccess}
                             onLoadError={onDocumentLoadError}
@@ -772,13 +852,49 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                         </div>
                                     }
                                     error={
-                                        <div className="text-center text-red-400 p-8">
-                                            <p>Failed to load page {currentPage}</p>
+                                        <div className="text-center text-red-400 p-8 bg-red-900/20 rounded-lg border border-red-500/30">
+                                            <div className="text-red-400 mb-4">
+                                                <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-lg font-semibold mb-2">Failed to load page {currentPage}</p>
+                                            <p className="text-sm text-gray-400 mb-4">
+                                                This page may be corrupted or there might be a network issue.
+                                            </p>
+                                            <div className="flex gap-2 justify-center">
+                                                <button
+                                                    onClick={() => window.location.reload()}
+                                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
+                                                >
+                                                    Retry Loading
+                                                </button>
+                                                {currentPage > 1 && (
+                                                    <button
+                                                        onClick={goToPrevPage}
+                                                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm"
+                                                    >
+                                                        Previous Page
+                                                    </button>
+                                                )}
+                                                {currentPage < numPages && (
+                                                    <button
+                                                        onClick={goToNextPage}
+                                                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm"
+                                                    >
+                                                        Next Page
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     }
                                     className="shadow-lg max-w-full"
                                     renderTextLayer={false}
                                     renderAnnotationLayer={false}
+                                    onLoadError={(error) => {
+                                        console.error(`Error loading page ${currentPage}:`, error);
+                                        // You could also track this for analytics
+                                    }}
                                     canvasProps={{
                                         className: 'max-w-full h-auto',
                                         style: {
@@ -951,8 +1067,17 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                         onChange={(e) => setSettings(prev => ({ ...prev, enableGestures: e.target.checked }))}
                                         className="rounded"
                                     />
-                                    <span className="text-sm">Enable touch gestures</span>
+                                    <span className="text-sm">Enable touch gestures & drag</span>
                                 </label>
+                                <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                    <p className="text-xs text-gray-300 mb-2">Pan & Zoom Controls:</p>
+                                    <ul className="text-xs text-gray-400 space-y-1">
+                                        <li>• Mouse: Drag to pan when zoomed in</li>
+                                        <li>• Wheel: Ctrl+Scroll to zoom</li>
+                                        <li>• Touch: Pinch to zoom, drag to pan</li>
+                                        <li>• Keys: +/- to zoom, arrows to navigate</li>
+                                    </ul>
+                                </div>
                             </div>
 
                             {/* Progress Bar */}

@@ -316,6 +316,24 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
             <Head title={`${comic.title} - BagComics`}>
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+                
+                {/* Open Graph / Social Sharing Meta Tags */}
+                <meta property="og:title" content={`${comic.title} - BagComics`} />
+                <meta property="og:description" content={comic.description || `Discover "${comic.title}" by ${comic.author || 'Unknown Author'}. Read this amazing comic now on BagComics!`} />
+                <meta property="og:image" content={getAbsoluteImageUrl(comic.cover_image_url)} />
+                <meta property="og:url" content={shareUrl} />
+                <meta property="og:type" content="article" />
+                <meta property="og:site_name" content="BagComics" />
+                
+                {/* Twitter Card Meta Tags */}
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={`${comic.title} - BagComics`} />
+                <meta name="twitter:description" content={comic.description || `Discover "${comic.title}" by ${comic.author || 'Unknown Author'}. Read this amazing comic now on BagComics!`} />
+                <meta name="twitter:image" content={getAbsoluteImageUrl(comic.cover_image_url)} />
+                
+                {/* Additional Meta Tags */}
+                <meta name="description" content={comic.description || `Discover "${comic.title}" by ${comic.author || 'Unknown Author'}. Read this amazing comic now on BagComics!`} />
+                <link rel="canonical" content={shareUrl} />
             </Head>
             <div className="min-h-screen bg-black text-white">
                 <NavBar 

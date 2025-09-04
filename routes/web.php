@@ -71,7 +71,7 @@ Route::get('/comics/{comic:slug}', function (Comic $comic) {
     // Prepare sharing data for server-side meta tags
     $shareData = [
         'title' => $comic->title . ' - BagComics',
-        'description' => $comic->description ?: "Discover \"{$comic->title}\" by " . ($comic->author ?: 'Unknown Author') . ". Read this amazing comic now!",
+        'description' => $comic->description ?: "Discover \"{$comic->title}\" by " . ($comic->author ?: 'Unknown Author') . ". Read this amazing comic now on BagComics!",
         'image' => $comic->getCoverImageUrl() ? url($comic->getCoverImageUrl()) : null,
         'url' => url("/comics/{$comic->slug}"),
         'type' => 'article',
@@ -95,7 +95,7 @@ Route::get('/comics/{comic:slug}/read', function (Comic $comic) {
     if (auth()->check() && !auth()->user()->hasAccessToComic($comic)) {
         abort(403, 'You do not have access to this comic. Please purchase it first.');
     } elseif (!auth()->check() && !$comic->is_free) {
-        return redirect()->route('login');
+        return redirect()->guest(route('login'));
     }
 
     $comicData = $comic->load(['userProgress' => function ($query) {
@@ -729,6 +729,204 @@ Route::get('/test-auth', function() {
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
         ]);
+    }
+});
+
+// Test SendGrid email configuration
+Route::get('/test-sendgrid', function() {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return response()->json(['error' => 'Admin access required']);
+    }
+    
+    try {
+        $mailConfig = [
+            'default' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'username' => config('mail.mailers.smtp.username'),
+            'password_set' => !empty(config('mail.mailers.smtp.password')),
+            'encryption' => config('mail.mailers.smtp.encryption'),
+            'from_address' => config('mail.from.address'),
+            'from_name' => config('mail.from.name'),
+        ];
+        
+        // Test basic configuration
+        $issues = [];
+        if (config('mail.mailers.smtp.host') !== 'smtp.sendgrid.net') {
+            $issues[] = 'SMTP host should be smtp.sendgrid.net';
+        }
+        if (config('mail.mailers.smtp.port') != 587) {
+            $issues[] = 'SMTP port should be 587';
+        }
+        if (empty(config('mail.mailers.smtp.password'))) {
+            $issues[] = 'SendGrid API key is not set';
+        }
+        
+        return response()->json([
+            'success' => count($issues) === 0,
+            'configuration' => $mailConfig,
+            'issues' => $issues,
+            'environment' => app()->environment(),
+            'timestamp' => now()
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+});
+
+// Send test email via SendGrid
+Route::post('/test-send-email', function(\Illuminate\Http\Request $request) {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return response()->json(['error' => 'Admin access required']);
+    }
+    
+    $request->validate([
+        'email' => 'required|email',
+        'type' => 'string|in:basic,notification'
+    ]);
+    
+    $email = $request->email;
+    $type = $request->get('type', 'basic');
+    
+    try {
+        if ($type === 'basic') {
+            \Illuminate\Support\Facades\Mail::raw(
+                'This is a test email from BAG Comics to verify SendGrid configuration. Sent at: ' . now(),
+                function($message) use ($email) {
+                    $message->to($email)
+                           ->subject('BAG Comics - SendGrid Test Email');
+                }
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Basic test email sent successfully',
+                'email' => $email,
+                'type' => 'basic'
+            ]);
+        } else {
+            // Test notification email
+            $user = \App\Models\User::where('email', $email)->first();
+            if (!$user) {
+                $user = \App\Models\User::create([
+                    'name' => 'Test User',
+                    'email' => $email,
+                    'password' => bcrypt('password'),
+                    'email_verified_at' => now()
+                ]);
+            }
+            
+            $comic = \App\Models\Comic::first();
+            if (!$comic) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No comic available for testing'
+                ]);
+            }
+            
+            $user->notify(new \App\Notifications\NewComicReleased($comic));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification email sent successfully',
+                'email' => $email,
+                'type' => 'notification',
+                'comic' => $comic->title
+            ]);
+        }
+        
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('SendGrid test email failed', [
+            'email' => $email,
+            'type' => $type,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'email' => $email,
+            'type' => $type
+        ], 500);
+    }
+});
+
+// Debug PDF file access
+Route::get('/test-pdf-access/{slug}', function($slug) {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return response()->json(['error' => 'Admin access required']);
+    }
+    
+    try {
+        $comic = \App\Models\Comic::where('slug', $slug)->first();
+        if (!$comic) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Comic not found'
+            ]);
+        }
+        
+        $result = [
+            'comic' => [
+                'id' => $comic->id,
+                'title' => $comic->title,
+                'slug' => $comic->slug,
+                'is_pdf_comic' => $comic->is_pdf_comic,
+                'pdf_file_path' => $comic->pdf_file_path,
+                'pdf_file_name' => $comic->pdf_file_name,
+                'is_visible' => $comic->is_visible,
+            ],
+            'file_checks' => []
+        ];
+        
+        if ($comic->pdf_file_path) {
+            $filePath = $comic->pdf_file_path;
+            
+            // Check storage/app/public location
+            $storagePath = \Illuminate\Support\Facades\Storage::disk('public')->path($filePath);
+            $storageExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($filePath);
+            
+            // Check public directory location
+            $publicPath = public_path($filePath);
+            $publicExists = file_exists($publicPath);
+            
+            $result['file_checks'] = [
+                'storage_disk_path' => $storagePath,
+                'storage_disk_exists' => $storageExists,
+                'storage_disk_readable' => $storageExists && is_readable($storagePath),
+                'storage_disk_size' => $storageExists ? filesize($storagePath) : null,
+                
+                'public_path' => $publicPath,
+                'public_exists' => $publicExists,
+                'public_readable' => $publicExists && is_readable($publicPath),
+                'public_size' => $publicExists ? filesize($publicPath) : null,
+                
+                'pdf_url' => $comic->getPdfUrl(),
+                'stream_url' => route('comics.stream', $comic->slug),
+            ];
+            
+            // Test MIME type if file exists
+            if ($storageExists) {
+                $result['file_checks']['storage_mime_type'] = mime_content_type($storagePath);
+            }
+            if ($publicExists) {
+                $result['file_checks']['public_mime_type'] = mime_content_type($publicPath);
+            }
+        }
+        
+        return response()->json($result, 200, [], JSON_PRETTY_PRINT);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
     }
 });
 
