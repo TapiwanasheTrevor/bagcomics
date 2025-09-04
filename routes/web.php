@@ -1128,6 +1128,39 @@ Route::get('/send-test-email-quick', function(\Illuminate\Http\Request $request)
     }
 });
 
+// Test password reset email
+Route::get('/test-password-reset', function() {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return response()->json(['error' => 'Admin access required']);
+    }
+    
+    $user = auth()->user();
+    
+    try {
+        // Generate a test token (for testing purposes only)
+        $token = \Illuminate\Support\Str::random(60);
+        
+        // Send password reset notification
+        $user->sendPasswordResetNotification($token);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset email sent successfully',
+            'email' => $user->email,
+            'note' => 'Check your email inbox and SendGrid Activity dashboard',
+            'reset_url' => route('password.reset', ['token' => $token, 'email' => $user->email]),
+            'timestamp' => now()
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'email' => $user->email
+        ], 500);
+    }
+});
+
 // Debug PDF file access
 Route::get('/test-pdf-access/{slug}', function($slug) {
     if (!auth()->check() || !auth()->user()->is_admin) {

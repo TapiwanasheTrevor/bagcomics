@@ -67,30 +67,25 @@ class ResetPasswordNotification extends Notification
             return call_user_func(static::$toMailCallback, $notifiable, $this->token);
         }
 
-        return $this->buildMailMessage($this->resetUrl($notifiable));
+        return $this->buildMailMessage($this->resetUrl($notifiable), $notifiable);
     }
 
     /**
      * Get the reset password notification mail message for the given URL.
      *
      * @param  string  $url
+     * @param  mixed  $notifiable
      * @return \Illuminate\Notifications\Messages\MailMessage
      */
-    protected function buildMailMessage($url)
+    protected function buildMailMessage($url, $notifiable)
     {
         return (new MailMessage)
-            ->subject('Reset Your BAG Comics Password')
-            ->greeting('Hello!')
-            ->line('You are receiving this email because we received a password reset request for your BAG Comics account.')
-            ->action('Reset Password', $url)
-            ->line('This password reset link will expire in ' . config('auth.passwords.'.config('auth.defaults.passwords').'.expire') . ' minutes.')
-            ->line('If you did not request a password reset, no further action is required.')
-            ->salutation(new HtmlString('
-                <br>
-                Best regards,<br>
-                <strong>The BAG Comics Team</strong><br>
-                <a href="' . config('app.url') . '" style="color: #ef4444; text-decoration: none;">bagcomics.com</a>
-            '));
+            ->subject('🔐 Reset Your BAG Comics Password')
+            ->view('emails.reset-password', [
+                'user' => $notifiable,
+                'resetUrl' => $url,
+                'expireMinutes' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60)
+            ]);
     }
 
     /**
