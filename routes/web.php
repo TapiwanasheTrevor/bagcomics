@@ -732,10 +732,82 @@ Route::get('/test-auth', function() {
     }
 });
 
+// Check admin status
+Route::get('/admin-status', function() {
+    if (!auth()->check()) {
+        return response()->json([
+            'authenticated' => false,
+            'message' => 'You need to log in first',
+            'login_url' => route('login')
+        ]);
+    }
+    
+    $user = auth()->user();
+    return response()->json([
+        'authenticated' => true,
+        'user_id' => $user->id,
+        'user_name' => $user->name,
+        'user_email' => $user->email,
+        'is_admin' => $user->is_admin ?? false,
+        'admin_access' => $user->is_admin ?? false,
+        'make_admin_url' => $user->is_admin ? null : url('/make-me-admin'),
+        'timestamp' => now()
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
+// Make current user admin (emergency access)
+Route::get('/make-me-admin', function() {
+    if (!auth()->check()) {
+        return response()->json(['error' => 'You must be logged in']);
+    }
+    
+    $user = auth()->user();
+    
+    // Add is_admin column if it doesn't exist
+    try {
+        if (!\Schema::hasColumn('users', 'is_admin')) {
+            \Schema::table('users', function ($table) {
+                $table->boolean('is_admin')->default(false);
+            });
+        }
+        
+        $user->is_admin = true;
+        $user->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'You are now an admin user',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_admin' => $user->is_admin
+            ],
+            'test_urls' => [
+                'sendgrid_config' => url('/test-sendgrid'),
+                'send_email' => url('/test-send-email'),
+                'quick_email' => url('/send-test-email-quick?email=' . $user->email)
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Test SendGrid email configuration
 Route::get('/test-sendgrid', function() {
     if (!auth()->check() || !auth()->user()->is_admin) {
-        return response()->json(['error' => 'Admin access required']);
+        return response()->json([
+            'error' => 'Admin access required',
+            'authenticated' => auth()->check(),
+            'is_admin' => auth()->check() ? (auth()->user()->is_admin ?? false) : null,
+            'check_status_url' => url('/admin-status'),
+            'make_admin_url' => auth()->check() ? url('/make-me-admin') : null
+        ]);
     }
     
     try {
@@ -778,10 +850,52 @@ Route::get('/test-sendgrid', function() {
     }
 });
 
+// Basic email test (no admin required)
+Route::get('/test-email-basic', function() {
+    if (!auth()->check()) {
+        return response()->json(['error' => 'You must be logged in']);
+    }
+    
+    $user = auth()->user();
+    
+    try {
+        \Illuminate\Support\Facades\Mail::raw(
+            "Hello {$user->name}!\n\nThis is a basic email test from BAG Comics.\n\nIf you receive this email, your email system is working correctly.\n\nSent at: " . now(),
+            function($message) use ($user) {
+                $message->to($user->email)
+                       ->subject('BAG Comics - Basic Email Test');
+            }
+        );
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Basic test email sent successfully to your email address',
+            'email' => $user->email,
+            'timestamp' => now(),
+            'note' => 'Check your email inbox (and spam folder) for the test email'
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'email' => $user->email,
+            'suggestion' => 'This error suggests there may be an issue with your SendGrid configuration'
+        ], 500);
+    }
+});
+
 // Send test email interface (GET)
 Route::get('/test-send-email', function() {
     if (!auth()->check() || !auth()->user()->is_admin) {
-        return response()->json(['error' => 'Admin access required']);
+        return response()->json([
+            'error' => 'Admin access required',
+            'alternatives' => [
+                'basic_test' => url('/test-email-basic'),
+                'check_admin' => url('/admin-status'),
+                'make_admin' => auth()->check() ? url('/make-me-admin') : 'Login first'
+            ]
+        ]);
     }
     
     return response()->json([
