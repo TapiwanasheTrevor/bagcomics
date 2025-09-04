@@ -732,6 +732,59 @@ Route::get('/test-auth', function() {
     }
 });
 
+// Force mail configuration check and temporary override
+Route::get('/mail-config-debug', function() {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return response()->json(['error' => 'Admin access required']);
+    }
+    
+    $currentConfig = [
+        'driver' => config('mail.default'),
+        'mailers' => config('mail.mailers'),
+        'from' => config('mail.from'),
+    ];
+    
+    // Check if we're in production and using log driver
+    $needsOverride = app()->environment('production') && config('mail.default') === 'log';
+    
+    if ($needsOverride) {
+        // Force SMTP configuration temporarily
+        config(['mail.default' => 'smtp']);
+        config(['mail.mailers.smtp.host' => 'smtp.sendgrid.net']);
+        config(['mail.mailers.smtp.port' => 587]);
+        config(['mail.mailers.smtp.encryption' => 'tls']);
+        config(['mail.mailers.smtp.username' => 'apikey']);
+        // Note: We can't set the password here for security reasons
+    }
+    
+    return response()->json([
+        'environment' => app()->environment(),
+        'needs_override' => $needsOverride,
+        'current_config' => $currentConfig,
+        'env_check' => [
+            'MAIL_MAILER' => env('MAIL_MAILER'),
+            'MAIL_HOST' => env('MAIL_HOST'),
+            'MAIL_PORT' => env('MAIL_PORT'),
+            'MAIL_USERNAME' => env('MAIL_USERNAME'),
+            'MAIL_PASSWORD_SET' => !empty(env('MAIL_PASSWORD')),
+        ],
+        'instructions' => $needsOverride ? [
+            'message' => 'Your mail is configured to use LOG driver in production!',
+            'fix' => 'Add environment variables in Render Dashboard',
+            'required_vars' => [
+                'MAIL_MAILER' => 'smtp',
+                'MAIL_HOST' => 'smtp.sendgrid.net',
+                'MAIL_PORT' => '587',
+                'MAIL_USERNAME' => 'apikey',
+                'MAIL_PASSWORD' => 'your-sendgrid-api-key',
+                'MAIL_ENCRYPTION' => 'tls',
+                'MAIL_FROM_ADDRESS' => 'noreply@bagcomics.com',
+                'MAIL_FROM_NAME' => 'BAG Comics'
+            ]
+        ] : 'Configuration looks correct'
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
 // Check admin status
 Route::get('/admin-status', function() {
     if (!auth()->check()) {
