@@ -778,7 +778,31 @@ Route::get('/test-sendgrid', function() {
     }
 });
 
-// Send test email via SendGrid
+// Send test email interface (GET)
+Route::get('/test-send-email', function() {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return response()->json(['error' => 'Admin access required']);
+    }
+    
+    return response()->json([
+        'message' => 'SendGrid Email Test Interface',
+        'instructions' => 'Send POST request to this endpoint with email and type parameters',
+        'parameters' => [
+            'email' => 'required|email - Email address to send test to',
+            'type' => 'optional|string - "basic" or "notification" (default: basic)'
+        ],
+        'examples' => [
+            'curl -X POST ' . url('/test-send-email') . ' -H "Content-Type: application/json" -d \'{"email":"test@example.com","type":"basic"}\'',
+            'curl -X POST ' . url('/test-send-email') . ' -H "Content-Type: application/json" -d \'{"email":"test@example.com","type":"notification"}\''
+        ],
+        'quick_test_links' => [
+            'basic_email' => url('/send-test-email-quick?email=admin@bagcomics.com&type=basic'),
+            'notification_email' => url('/send-test-email-quick?email=admin@bagcomics.com&type=notification')
+        ]
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
+// Send test email via SendGrid (POST)
 Route::post('/test-send-email', function(\Illuminate\Http\Request $request) {
     if (!auth()->check() || !auth()->user()->is_admin) {
         return response()->json(['error' => 'Admin access required']);
@@ -845,6 +869,87 @@ Route::post('/test-send-email', function(\Illuminate\Http\Request $request) {
             'type' => $type,
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'email' => $email,
+            'type' => $type
+        ], 500);
+    }
+});
+
+// Quick test email route (GET with query parameters)
+Route::get('/send-test-email-quick', function(\Illuminate\Http\Request $request) {
+    if (!auth()->check() || !auth()->user()->is_admin) {
+        return response()->json(['error' => 'Admin access required']);
+    }
+    
+    $email = $request->query('email', 'admin@bagcomics.com');
+    $type = $request->query('type', 'basic');
+    
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return response()->json([
+            'success' => false,
+            'error' => 'Invalid email address'
+        ]);
+    }
+    
+    try {
+        if ($type === 'basic') {
+            \Illuminate\Support\Facades\Mail::raw(
+                'This is a quick test email from BAG Comics to verify SendGrid configuration. Sent at: ' . now(),
+                function($message) use ($email) {
+                    $message->to($email)
+                           ->subject('BAG Comics - Quick SendGrid Test');
+                }
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Quick test email sent successfully',
+                'email' => $email,
+                'type' => 'basic',
+                'timestamp' => now()
+            ]);
+        } else {
+            // Test notification email
+            $user = \App\Models\User::where('email', $email)->first();
+            if (!$user) {
+                $user = \App\Models\User::create([
+                    'name' => 'Test User',
+                    'email' => $email,
+                    'password' => bcrypt('password'),
+                    'email_verified_at' => now()
+                ]);
+            }
+            
+            $comic = \App\Models\Comic::first();
+            if (!$comic) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No comic available for testing'
+                ]);
+            }
+            
+            $user->notify(new \App\Notifications\NewComicReleased($comic));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Quick notification test email sent successfully',
+                'email' => $email,
+                'type' => 'notification',
+                'comic' => $comic->title,
+                'timestamp' => now()
+            ]);
+        }
+        
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('SendGrid quick test email failed', [
+            'email' => $email,
+            'type' => $type,
+            'error' => $e->getMessage()
         ]);
         
         return response()->json([
