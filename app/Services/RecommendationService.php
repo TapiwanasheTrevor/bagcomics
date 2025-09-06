@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Comic;
 use App\Models\UserRecommendation;
 use App\Models\UserLibrary;
-use App\Models\ReadingProgress;
+use App\Models\UserComicProgress;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -69,8 +69,17 @@ class RecommendationService
         
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
             // Get user's library and reading progress
-            $library = $user->library()->with(['comic', 'progress'])->get();
-            $readComics = $library->filter(fn($entry) => $entry->progress?->progress_percentage > 10);
+            $library = $user->library()->with(['comic'])->get();
+            
+            // Get progress data separately and merge it
+            $progressData = UserComicProgress::where('user_id', $user->id)
+                ->where('progress_percentage', '>', 10)
+                ->get()
+                ->keyBy('comic_id');
+                
+            $readComics = $library->filter(function($entry) use ($progressData) {
+                return isset($progressData[$entry->comic_id]) || $entry->completion_percentage > 10;
+            });
             
             // Extract preferences
             $genres = $readComics->pluck('comic.genre')->filter()->countBy();
@@ -212,19 +221,19 @@ class RecommendationService
     {
         // Get trending comics from the last 30 days
         $trending = Comic::select('comics.*')
-            ->selectRaw('COUNT(user_library.id) as recent_additions')
-            ->selectRaw('AVG(user_library.rating) as recent_avg_rating')
-            ->leftJoin('user_library', 'comics.id', '=', 'user_library.comic_id')
+            ->selectRaw('COUNT(user_libraries.id) as recent_additions')
+            ->selectRaw('AVG(user_libraries.rating) as recent_avg_rating')
+            ->leftJoin('user_libraries', 'comics.id', '=', 'user_libraries.comic_id')
             ->where('comics.is_visible', true)
             ->where(function($q) {
-                $q->where('user_library.created_at', '>=', now()->subDays(30))
-                  ->orWhereNull('user_library.created_at');
+                $q->where('user_libraries.created_at', '>=', now()->subDays(30))
+                  ->orWhereNull('user_libraries.created_at');
             })
             ->whereNotIn('comics.id', $this->getUserComicIds($user->id))
             ->groupBy('comics.id')
-            ->havingRaw('recent_additions > 5') // At least 5 new readers
-            ->orderByDesc('recent_additions')
-            ->orderByDesc('recent_avg_rating')
+            ->havingRaw('COUNT(user_libraries.id) > 2') // At least 2 new readers (lowered threshold)
+            ->orderByRaw('COUNT(user_libraries.id) DESC')
+            ->orderByRaw('AVG(user_libraries.rating) DESC')
             ->take(15)
             ->get();
 
@@ -276,11 +285,11 @@ class RecommendationService
         }
 
         // Find users who have read similar comics
-        $similarUsers = DB::table('user_library as ul1')
+        $similarUsers = DB::table('user_libraries as ul1')
             ->select('ul1.user_id')
             ->selectRaw('COUNT(*) as common_comics')
             ->selectRaw('AVG(ABS(ul1.rating - ul2.rating)) as rating_similarity')
-            ->join('user_library as ul2', function($join) use ($user) {
+            ->join('user_libraries as ul2', function($join) use ($user) {
                 $join->on('ul1.comic_id', '=', 'ul2.comic_id')
                      ->where('ul2.user_id', $user->id);
             })
@@ -452,7 +461,7 @@ class RecommendationService
 
     private function calculateReadingRecency(User $user): float
     {
-        $lastRead = ReadingProgress::where('user_id', $user->id)
+        $lastRead = UserComicProgress::where('user_id', $user->id)
             ->orderByDesc('last_read_at')
             ->value('last_read_at');
             

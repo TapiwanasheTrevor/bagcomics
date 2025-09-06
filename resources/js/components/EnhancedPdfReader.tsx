@@ -781,8 +781,10 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                         className="h-full bg-black overflow-auto flex items-center justify-center"
                         style={{
                             cursor: isPanning ? 'grabbing' : (scale > 1.2 ? 'grab' : 'default'),
-                            paddingTop: '60px',
-                            paddingBottom: '60px'
+                            paddingTop: 'clamp(80px, 10vh, 120px)',
+                            paddingBottom: 'clamp(80px, 10vh, 120px)',
+                            paddingLeft: 'clamp(16px, 2vw, 32px)',
+                            paddingRight: 'clamp(16px, 2vw, 32px)'
                         }}
                     >
                         {loading && (

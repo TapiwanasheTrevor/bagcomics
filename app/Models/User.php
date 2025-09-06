@@ -132,6 +132,11 @@ class User extends Authenticatable implements FilamentUser
             ->withTimestamps();
     }
 
+    public function recommendations(): HasMany
+    {
+        return $this->hasMany(UserRecommendation::class);
+    }
+
     public function followers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_follows', 'following_id', 'follower_id')

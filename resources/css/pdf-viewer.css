@@ -8,9 +8,11 @@
 }
 
 .react-pdf__Page {
-    max-width: calc(100% - 2em);
+    max-width: calc(100% - 3em);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    margin: 1em;
+    margin: 1.5em;
+    margin-top: clamp(1.5em, 3vh, 2.5em);
+    margin-bottom: clamp(1.5em, 3vh, 2.5em);
 }
 
 .react-pdf__Page__canvas {
@@ -105,8 +107,30 @@
 /* Responsive design */
 @media (max-width: 768px) {
     .react-pdf__Page {
-        max-width: calc(100% - 1em);
-        margin: 0.5em;
+        max-width: calc(100% - 2em);
+        margin: 1em;
+        margin-top: clamp(1em, 4vh, 1.5em);
+        margin-bottom: clamp(1em, 4vh, 1.5em);
+    }
+    
+    /* Additional safety margin for very small screens */
+    @media (max-width: 480px) {
+        .react-pdf__Page {
+            max-width: calc(100% - 1.5em);
+            margin: 0.75em;
+            margin-top: clamp(0.75em, 3vh, 1.25em);
+            margin-bottom: clamp(0.75em, 3vh, 1.25em);
+        }
+    }
+    
+    /* Large mobile and small tablet */
+    @media (min-width: 481px) and (max-width: 768px) {
+        .react-pdf__Page {
+            max-width: calc(100% - 2.5em);
+            margin: 1.25em;
+            margin-top: clamp(1.25em, 4vh, 2em);
+            margin-bottom: clamp(1.25em, 4vh, 2em);
+        }
     }
     
     .pdf-viewer-controls {
@@ -131,7 +155,8 @@
 }
 
 .pdf-fullscreen .react-pdf__Page {
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 160px);
+    margin: clamp(1em, 3vh, 2em);
 }
 
 /* Zoom and scale adjustments */
@@ -144,6 +169,32 @@
 .pdf-zoom-width {
     width: 100%;
     height: auto;
+}
+
+/* Enhanced zoom level spacing */
+.react-pdf__Page[data-zoom-level="small"] {
+    margin: clamp(2em, 5vh, 3em);
+    max-width: calc(100% - 4em);
+}
+
+.react-pdf__Page[data-zoom-level="large"] {
+    margin: clamp(0.5em, 2vh, 1em);
+    max-width: calc(100% - 1em);
+}
+
+/* Viewport-based margins for better zoom experience */
+@media (max-height: 600px) {
+    .react-pdf__Page {
+        margin-top: clamp(0.5em, 2vh, 1em);
+        margin-bottom: clamp(0.5em, 2vh, 1em);
+    }
+}
+
+@media (min-height: 900px) {
+    .react-pdf__Page {
+        margin-top: clamp(2em, 4vh, 3em);
+        margin-bottom: clamp(2em, 4vh, 3em);
+    }
 }
 
 /* Custom scrollbar for PDF container */

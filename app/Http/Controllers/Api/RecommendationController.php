@@ -117,23 +117,23 @@ class RecommendationController extends Controller
 
         $trending = Cache::remember($cacheKey, 1800, function () use ($timeframe, $limit) { // 30 minutes
             $query = Comic::select('comics.*')
-                ->selectRaw('COUNT(user_library.id) as recent_additions')
-                ->selectRaw('AVG(user_library.rating) as recent_avg_rating')
-                ->leftJoin('user_library', 'comics.id', '=', 'user_library.comic_id')
+                ->selectRaw('COUNT(user_libraries.id) as recent_additions')
+                ->selectRaw('AVG(user_libraries.rating) as recent_avg_rating')
+                ->leftJoin('user_libraries', 'comics.id', '=', 'user_libraries.comic_id')
                 ->where('comics.is_visible', true);
 
             // Apply timeframe filter
             match ($timeframe) {
-                'day' => $query->where('user_library.created_at', '>=', now()->subDay()),
-                'week' => $query->where('user_library.created_at', '>=', now()->subWeek()),
-                'month' => $query->where('user_library.created_at', '>=', now()->subMonth()),
+                'day' => $query->where('user_libraries.created_at', '>=', now()->subDay()),
+                'week' => $query->where('user_libraries.created_at', '>=', now()->subWeek()),
+                'month' => $query->where('user_libraries.created_at', '>=', now()->subMonth()),
                 default => null // all_time - no filter
             };
 
             return $query->groupBy('comics.id')
-                ->havingRaw('recent_additions > 0')
-                ->orderByDesc('recent_additions')
-                ->orderByDesc('recent_avg_rating')
+                ->havingRaw('COUNT(user_libraries.id) > 0')
+                ->orderByRaw('COUNT(user_libraries.id) DESC')
+                ->orderByRaw('AVG(user_libraries.rating) DESC')
                 ->orderByDesc('comics.average_rating')
                 ->take($limit)
                 ->get()
