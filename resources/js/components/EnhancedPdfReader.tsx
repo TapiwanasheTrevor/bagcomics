@@ -87,6 +87,17 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
     const [isPanning, setIsPanning] = useState<boolean>(false);
     const [panPosition, setPanPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     
+    // Dynamic padding state
+    const [dynamicPadding, setDynamicPadding] = useState<{
+        top: number;
+        bottom: number;
+        scrollPaddingTop: number;
+    }>({
+        top: 80,
+        bottom: 80,
+        scrollPaddingTop: 60
+    });
+    
     // Reading progress
     const [readingProgress, setReadingProgress] = useState<ReadingProgress>({
         current_page: initialPage,
@@ -96,6 +107,45 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
         is_completed: false
     });
     
+    // Dynamic padding calculation function
+    const calculateDynamicPadding = useCallback((currentScale: number): { top: number; bottom: number; scrollPaddingTop: number } => {
+        const viewportHeight = window.innerHeight;
+        const baseTopPadding = 80;
+        const baseBottomPadding = 80;
+        const baseScrollPadding = 60;
+        
+        // Scale factor increases exponentially with zoom for better visibility
+        const scaleFactor = Math.pow(currentScale / 1.2, 1.5);
+        
+        // Calculate dynamic padding based on scale and viewport
+        const topPadding = Math.max(
+            baseTopPadding,
+            Math.min(
+                baseTopPadding * scaleFactor + (viewportHeight * 0.1 * (currentScale - 1)),
+                viewportHeight * 0.25 // Never exceed 25% of viewport height
+            )
+        );
+        
+        const bottomPadding = Math.max(
+            baseBottomPadding,
+            Math.min(
+                baseBottomPadding * scaleFactor + (viewportHeight * 0.1 * (currentScale - 1)),
+                viewportHeight * 0.25
+            )
+        );
+        
+        const scrollPaddingTop = Math.max(
+            baseScrollPadding,
+            topPadding + 20 // Always 20px more than top padding
+        );
+        
+        return {
+            top: Math.round(topPadding),
+            bottom: Math.round(bottomPadding),
+            scrollPaddingTop: Math.round(scrollPaddingTop)
+        };
+    }, []);
+
     // Reader settings
     const [settings, setSettings] = useState<ReaderSettings>({
         theme: 'dark',
@@ -145,6 +195,33 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
             }
         };
     }, [isAutoPlaying, settings.autoAdvance, settings.autoAdvanceDelay, currentPage, numPages]);
+
+    // Dynamic padding recalculation on zoom changes
+    useEffect(() => {
+        const newPadding = calculateDynamicPadding(scale);
+        setDynamicPadding(newPadding);
+        
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`Zoom ${scale.toFixed(2)}x: Top=${newPadding.top}px, Bottom=${newPadding.bottom}px, ScrollPadding=${newPadding.scrollPaddingTop}px`);
+        }
+        
+        // Also update container scroll padding immediately
+        if (containerRef.current) {
+            containerRef.current.style.scrollPaddingTop = `${newPadding.scrollPaddingTop}px`;
+        }
+    }, [scale, calculateDynamicPadding]);
+
+    // Recalculate padding on viewport resize
+    useEffect(() => {
+        const handleResize = () => {
+            const newPadding = calculateDynamicPadding(scale);
+            setDynamicPadding(newPadding);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [scale, calculateDynamicPadding]);
 
     // Enhanced touch gesture and mouse drag handling
     useEffect(() => {
@@ -778,13 +855,15 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     {/* PDF Viewer */}
                     <div
                         ref={containerRef}
-                        className="h-full bg-black overflow-auto flex items-center justify-center"
+                        className={`h-full bg-black overflow-auto flex items-center justify-center pdf-container ${scale >= 2.75 ? 'zoom-extreme' : scale >= 2.0 ? 'zoom-high' : ''}`}
+                        data-zoom={scale >= 2.75 ? 'extreme' : scale >= 2.0 ? 'high' : 'normal'}
                         style={{
                             cursor: isPanning ? 'grabbing' : (scale > 1.2 ? 'grab' : 'default'),
-                            paddingTop: 'clamp(80px, 10vh, 120px)',
-                            paddingBottom: 'clamp(80px, 10vh, 120px)',
+                            paddingTop: `${dynamicPadding.top}px`,
+                            paddingBottom: `${dynamicPadding.bottom}px`,
                             paddingLeft: 'clamp(16px, 2vw, 32px)',
-                            paddingRight: 'clamp(16px, 2vw, 32px)'
+                            paddingRight: 'clamp(16px, 2vw, 32px)',
+                            scrollPaddingTop: `${dynamicPadding.scrollPaddingTop}px`
                         }}
                     >
                         {loading && (
@@ -847,6 +926,8 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                     pageNumber={currentPage}
                                     scale={scale}
                                     rotate={rotation}
+                                    className={`shadow-lg max-w-full react-pdf__Page ${scale >= 2.75 ? 'zoom-extreme' : scale >= 2.0 ? 'zoom-high' : ''}`}
+                                    data-scale={scale.toString()}
                                     loading={
                                         <div className="text-center text-gray-300 p-8">
                                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500 mx-auto mb-2"></div>
@@ -890,7 +971,6 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                                             </div>
                                         </div>
                                     }
-                                    className="shadow-lg max-w-full"
                                     renderTextLayer={false}
                                     renderAnnotationLayer={false}
                                     onLoadError={(error) => {

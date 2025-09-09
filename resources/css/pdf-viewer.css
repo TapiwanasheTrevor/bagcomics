@@ -166,6 +166,21 @@
     margin-right: clamp(1em, 3vh, 2em);
 }
 
+/* Fullscreen high zoom adjustments */
+.pdf-fullscreen.zoom-high .react-pdf__Page,
+.pdf-fullscreen[data-zoom="high"] .react-pdf__Page {
+    margin-top: clamp(6em, 10vh, 8em) !important;
+    margin-bottom: clamp(6em, 10vh, 8em) !important;
+    max-height: calc(100vh - 300px) !important;
+}
+
+.pdf-fullscreen.zoom-extreme .react-pdf__Page,
+.pdf-fullscreen[data-zoom="extreme"] .react-pdf__Page {
+    margin-top: clamp(8em, 12vh, 10em) !important;
+    margin-bottom: clamp(8em, 12vh, 10em) !important;
+    max-height: calc(100vh - 400px) !important;
+}
+
 /* Zoom and scale adjustments */
 .pdf-zoom-fit {
     max-width: 100%;
@@ -185,11 +200,31 @@
 }
 
 .react-pdf__Page[data-zoom-level="large"] {
-    margin-top: clamp(2em, 4vh, 3em);  /* Ensure top is still accessible when zoomed in */
-    margin-bottom: clamp(2em, 4vh, 3em);
+    margin-top: clamp(4em, 8vh, 6em);  /* Much more aggressive top spacing when zoomed in */
+    margin-bottom: clamp(4em, 8vh, 6em);
     margin-left: clamp(0.5em, 2vh, 1em);
     margin-right: clamp(0.5em, 2vh, 1em);
     max-width: calc(100% - 1em);
+}
+
+/* Additional zoom-specific classes for extreme zoom levels */
+.react-pdf__Page.zoom-high,
+.react-pdf__Page[data-scale="2"],
+.react-pdf__Page[data-scale="2.25"],
+.react-pdf__Page[data-scale="2.5"] {
+    margin-top: clamp(6em, 12vh, 8em) !important;  /* Extra aggressive for 2x+ zoom */
+    margin-bottom: clamp(6em, 12vh, 8em) !important;
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+}
+
+.react-pdf__Page.zoom-extreme,
+.react-pdf__Page[data-scale="2.75"],
+.react-pdf__Page[data-scale="3"] {
+    margin-top: clamp(8em, 15vh, 12em) !important;  /* Maximum spacing for 3x zoom */
+    margin-bottom: clamp(8em, 15vh, 12em) !important;
+    padding-top: 80px !important;
+    padding-bottom: 80px !important;
 }
 
 /* Viewport-based margins for better zoom experience */
@@ -214,6 +249,17 @@
     min-height: 100vh;
     overflow-y: auto;
     scroll-padding-top: 60px;  /* Maintain scroll padding */
+}
+
+/* Zoom-responsive container padding */
+.pdf-container.zoom-high,
+.pdf-container[data-zoom="high"] {
+    scroll-padding-top: 140px !important;
+}
+
+.pdf-container.zoom-extreme,
+.pdf-container[data-zoom="extreme"] {
+    scroll-padding-top: 200px !important;
 }
 
 /* Custom scrollbar for PDF container */
