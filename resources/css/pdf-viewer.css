@@ -5,14 +5,16 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding-top: 60px;  /* Ensure top padding for better visibility */
+    padding-bottom: 60px;
 }
 
 .react-pdf__Page {
     max-width: calc(100% - 3em);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     margin: 1.5em;
-    margin-top: clamp(1.5em, 3vh, 2.5em);
-    margin-bottom: clamp(1.5em, 3vh, 2.5em);
+    margin-top: clamp(3em, 6vh, 5em);  /* Increased top margin for better visibility */
+    margin-bottom: clamp(3em, 6vh, 5em);  /* Increased bottom margin for consistency */
 }
 
 .react-pdf__Page__canvas {
@@ -109,8 +111,8 @@
     .react-pdf__Page {
         max-width: calc(100% - 2em);
         margin: 1em;
-        margin-top: clamp(1em, 4vh, 1.5em);
-        margin-bottom: clamp(1em, 4vh, 1.5em);
+        margin-top: clamp(2.5em, 5vh, 3.5em);  /* Better top spacing on mobile */
+        margin-bottom: clamp(2.5em, 5vh, 3.5em);
     }
     
     /* Additional safety margin for very small screens */
@@ -118,8 +120,8 @@
         .react-pdf__Page {
             max-width: calc(100% - 1.5em);
             margin: 0.75em;
-            margin-top: clamp(0.75em, 3vh, 1.25em);
-            margin-bottom: clamp(0.75em, 3vh, 1.25em);
+            margin-top: clamp(2em, 4vh, 2.5em);  /* Maintain top visibility on small screens */
+            margin-bottom: clamp(2em, 4vh, 2.5em);
         }
     }
     
@@ -128,8 +130,8 @@
         .react-pdf__Page {
             max-width: calc(100% - 2.5em);
             margin: 1.25em;
-            margin-top: clamp(1.25em, 4vh, 2em);
-            margin-bottom: clamp(1.25em, 4vh, 2em);
+            margin-top: clamp(2.5em, 5vh, 3.5em);  /* Improved spacing for tablets */
+            margin-bottom: clamp(2.5em, 5vh, 3.5em);
         }
     }
     
@@ -152,11 +154,16 @@
     bottom: 0;
     z-index: 9999;
     background: #111827;
+    overflow-y: auto;  /* Ensure scrollability in fullscreen */
+    padding-top: 40px;  /* Top padding for fullscreen mode */
 }
 
 .pdf-fullscreen .react-pdf__Page {
-    max-height: calc(100vh - 160px);
-    margin: clamp(1em, 3vh, 2em);
+    max-height: calc(100vh - 200px);  /* Adjusted for better visibility */
+    margin-top: clamp(3em, 5vh, 4em);  /* Ensure top visibility in fullscreen */
+    margin-bottom: clamp(3em, 5vh, 4em);
+    margin-left: clamp(1em, 3vh, 2em);
+    margin-right: clamp(1em, 3vh, 2em);
 }
 
 /* Zoom and scale adjustments */
@@ -173,28 +180,40 @@
 
 /* Enhanced zoom level spacing */
 .react-pdf__Page[data-zoom-level="small"] {
-    margin: clamp(2em, 5vh, 3em);
+    margin: clamp(4em, 8vh, 6em);  /* Increased margins for zoomed-out view */
     max-width: calc(100% - 4em);
 }
 
 .react-pdf__Page[data-zoom-level="large"] {
-    margin: clamp(0.5em, 2vh, 1em);
+    margin-top: clamp(2em, 4vh, 3em);  /* Ensure top is still accessible when zoomed in */
+    margin-bottom: clamp(2em, 4vh, 3em);
+    margin-left: clamp(0.5em, 2vh, 1em);
+    margin-right: clamp(0.5em, 2vh, 1em);
     max-width: calc(100% - 1em);
 }
 
 /* Viewport-based margins for better zoom experience */
 @media (max-height: 600px) {
     .react-pdf__Page {
-        margin-top: clamp(0.5em, 2vh, 1em);
-        margin-bottom: clamp(0.5em, 2vh, 1em);
+        margin-top: clamp(2em, 4vh, 3em);  /* Maintain minimum top spacing */
+        margin-bottom: clamp(2em, 4vh, 3em);
     }
 }
 
 @media (min-height: 900px) {
     .react-pdf__Page {
-        margin-top: clamp(2em, 4vh, 3em);
-        margin-bottom: clamp(2em, 4vh, 3em);
+        margin-top: clamp(4em, 6vh, 6em);  /* More generous spacing on large screens */
+        margin-bottom: clamp(4em, 6vh, 6em);
     }
+}
+
+/* PDF Container Styles */
+.pdf-container {
+    padding-top: 40px;  /* Ensure top content is accessible */
+    padding-bottom: 40px;
+    min-height: 100vh;
+    overflow-y: auto;
+    scroll-padding-top: 60px;  /* Maintain scroll padding */
 }
 
 /* Custom scrollbar for PDF container */

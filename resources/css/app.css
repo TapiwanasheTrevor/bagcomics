@@ -24,6 +24,9 @@
     overflow-x: hidden;
     height: 100%;
     max-height: 100%;
+    padding-top: 40px;  /* Ensure top content is accessible */
+    padding-bottom: 40px;
+    scroll-padding-top: 60px;  /* Maintain scroll padding for better navigation */
 }
 
 .pdf-continuous-container::-webkit-scrollbar {
