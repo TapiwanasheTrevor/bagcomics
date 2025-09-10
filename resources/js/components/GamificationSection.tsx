@@ -140,17 +140,17 @@ export default function GamificationSection({ className = '', showCreateGoal = t
 
             if (streaksRes.ok) {
                 const streaksData = await streaksRes.json();
-                setStreaks(streaksData.data.streaks);
+                setStreaks(streaksData.data?.streaks || []);
             }
 
             if (goalsRes.ok) {
                 const goalsData = await goalsRes.json();
-                setGoals(goalsData.data.goals);
+                setGoals(goalsData.data?.goals || []);
             }
 
             if (statsRes.ok) {
                 const statsData = await statsRes.json();
-                setStats(statsData.data);
+                setStats(statsData.data || null);
             }
         } catch (error) {
             console.error('Error fetching gamification data:', error);
@@ -245,14 +245,14 @@ export default function GamificationSection({ className = '', showCreateGoal = t
             {activeTab === 'overview' && stats && (
                 <div className="space-y-6">
                     {/* Quick Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                             <div className="flex items-center space-x-3">
                                 <div className="p-2 bg-blue-500/20 rounded-lg">
                                     <Award className="w-5 h-5 text-blue-400" />
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-white">{stats.achievements.level}</div>
+                                    <div className="text-2xl font-bold text-white">{stats.achievements?.level || 1}</div>
                                     <div className="text-sm text-gray-400">Level</div>
                                 </div>
                             </div>
@@ -264,7 +264,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                                     <Zap className="w-5 h-5 text-yellow-400" />
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-white">{stats.streaks.current_best_streak}</div>
+                                    <div className="text-2xl font-bold text-white">{stats.streaks?.current_best_streak || 0}</div>
                                     <div className="text-sm text-gray-400">Best Streak</div>
                                 </div>
                             </div>
@@ -276,7 +276,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                                     <Target className="w-5 h-5 text-green-400" />
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-white">{stats.goals.completion_rate}%</div>
+                                    <div className="text-2xl font-bold text-white">{stats.goals?.completion_rate || 0}%</div>
                                     <div className="text-sm text-gray-400">Goal Rate</div>
                                 </div>
                             </div>
@@ -288,7 +288,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                                     <BookOpen className="w-5 h-5 text-purple-400" />
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-white">{stats.reading_stats.reading_days_this_month}</div>
+                                    <div className="text-2xl font-bold text-white">{stats.reading_stats?.reading_days_this_month || 0}</div>
                                     <div className="text-sm text-gray-400">Days Read</div>
                                 </div>
                             </div>
@@ -296,14 +296,14 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                     </div>
 
                     {/* Recent Achievements */}
-                    {stats.achievements.recent_achievements.length > 0 && (
+                    {stats.achievements?.recent_achievements?.length > 0 && (
                         <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-700">
                             <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
                                 <Award className="w-5 h-5 text-yellow-400" />
                                 <span>Recent Achievements</span>
                             </h3>
                             <div className="space-y-3">
-                                {stats.achievements.recent_achievements.slice(0, 3).map((achievement, index) => {
+                                {stats.achievements?.recent_achievements?.slice(0, 3).map((achievement, index) => {
                                     const Icon = iconMap[achievement.icon] || Award;
                                     return (
                                         <div key={index} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
@@ -328,7 +328,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
             {/* Streaks Tab */}
             {activeTab === 'streaks' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {streaks.map(streak => {
+                    {streaks?.map(streak => {
                         const Icon = iconMap[streak.icon] || Zap;
                         return (
                             <div key={streak.id} className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
@@ -358,7 +358,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                                     
                                     {streak.status === 'at_risk' && (
                                         <div className="text-xs text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded">
-                                              {streak.days_until_break} day(s) to continue streak
+                                            ï¿½ {streak.days_until_break} day(s) to continue streak
                                         </div>
                                     )}
                                 </div>
@@ -366,7 +366,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                         );
                     })}
                     
-                    {streaks.length === 0 && (
+                    {(!streaks || streaks.length === 0) && (
                         <div className="col-span-full text-center py-12">
                             <Zap className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                             <h3 className="text-lg font-semibold text-white mb-2">No Active Streaks</h3>
@@ -379,7 +379,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
             {/* Goals Tab */}
             {activeTab === 'goals' && (
                 <div className="space-y-6">
-                    {goals.map(goal => {
+                    {goals?.map(goal => {
                         const Icon = iconMap[goal.icon] || Target;
                         return (
                             <div key={goal.id} className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
@@ -442,7 +442,7 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                         );
                     })}
                     
-                    {goals.length === 0 && (
+                    {(!goals || goals.length === 0) && (
                         <div className="text-center py-12">
                             <Target className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                             <h3 className="text-lg font-semibold text-white mb-2">No Active Goals</h3>
@@ -455,6 +455,124 @@ export default function GamificationSection({ className = '', showCreateGoal = t
                             </button>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Goal Creation Modal */}
+            {showCreateGoalModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-gray-900 rounded-xl max-w-md w-full p-6 border border-gray-700">
+                        <h3 className="text-xl font-bold text-white mb-4">Create New Goal</h3>
+                        
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            
+                            try {
+                                const response = await fetch('/api/gamification/goals', {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                                    },
+                                    body: JSON.stringify({
+                                        type: formData.get('type'),
+                                        target_value: parseInt(formData.get('target_value') as string),
+                                        period: formData.get('period'),
+                                        title: formData.get('title'),
+                                        description: formData.get('description')
+                                    })
+                                });
+                                
+                                if (response.ok) {
+                                    setShowCreateGoalModal(false);
+                                    fetchGamificationData(); // Refresh the data
+                                }
+                            } catch (error) {
+                                console.error('Failed to create goal:', error);
+                            }
+                        }}>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Goal Title</label>
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        required
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                                        placeholder="e.g., Read 5 comics this week"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Goal Type</label>
+                                    <select
+                                        name="type"
+                                        required
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                                    >
+                                        <option value="comics_read">Comics to Read</option>
+                                        <option value="pages_read">Pages to Read</option>
+                                        <option value="reading_streak">Daily Reading Streak</option>
+                                        <option value="reading_time">Reading Time (minutes)</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Target</label>
+                                    <input
+                                        type="number"
+                                        name="target_value"
+                                        required
+                                        min="1"
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                                        placeholder="e.g., 5"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Time Period</label>
+                                    <select
+                                        name="period"
+                                        required
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                                    >
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Description (optional)</label>
+                                    <textarea
+                                        name="description"
+                                        rows={3}
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:outline-none"
+                                        placeholder="Add a description for your goal..."
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex space-x-3 mt-6">
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300"
+                                >
+                                    Create Goal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateGoalModal(false)}
+                                    className="flex-1 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

@@ -110,33 +110,60 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
     // Dynamic padding calculation function
     const calculateDynamicPadding = useCallback((currentScale: number): { top: number; bottom: number; scrollPaddingTop: number } => {
         const viewportHeight = window.innerHeight;
-        const baseTopPadding = 80;
-        const baseBottomPadding = 80;
-        const baseScrollPadding = 60;
+        const baseTopPadding = 180; // Increased by 150% (120 * 1.5)
+        const baseBottomPadding = 360; // Increased by 200% from base 120
+        const baseScrollPadding = 90; // Increased by 150% (60 * 1.5)
         
-        // Scale factor increases exponentially with zoom for better visibility
-        const scaleFactor = Math.pow(currentScale / 1.2, 1.5);
+        // Much more aggressive padding starting from any zoom > 1.0
+        // Even small zooms need very significant padding to prevent cutoff
+        let topPadding;
         
-        // Calculate dynamic padding based on scale and viewport
-        const topPadding = Math.max(
-            baseTopPadding,
-            Math.min(
-                baseTopPadding * scaleFactor + (viewportHeight * 0.1 * (currentScale - 1)),
-                viewportHeight * 0.25 // Never exceed 25% of viewport height
-            )
-        );
+        if (currentScale <= 1.0) {
+            // Base zoom level
+            topPadding = baseTopPadding;
+        } else if (currentScale <= 1.5) {
+            // Low zoom levels (1.0x - 1.5x): immediate super aggressive increase
+            const zoomFactor = currentScale - 1.0; // 0 at 1.0x, 0.5 at 1.5x
+            topPadding = baseTopPadding + (zoomFactor * 1000) + (viewportHeight * 0.5 * zoomFactor); // 400 * 2.5 = 1000, 0.2 * 2.5 = 0.5
+        } else if (currentScale <= 2.0) {
+            // Medium zoom levels (1.5x - 2.0x): continue super aggressive scaling  
+            const zoomFactor = currentScale - 1.5; // 0 at 1.5x, 0.5 at 2.0x
+            const baseForThisLevel = baseTopPadding + 500 + (viewportHeight * 0.25); // 200 * 2.5 = 500, 0.1 * 2.5 = 0.25
+            topPadding = baseForThisLevel + (zoomFactor * 1500) + (viewportHeight * 0.625 * zoomFactor); // 600 * 2.5 = 1500, 0.25 * 2.5 = 0.625
+        } else {
+            // High zoom levels (> 2.0x): use much larger fixed padding values
+            const highZoomFactor = (currentScale - 2.0) / 2.0; // 0 at 2x, 1 at 4x, etc.
+            const extraPadding = highZoomFactor * 3750; // 1500 * 2.5 = 3750
+            const baseForHighZoom = baseTopPadding + 1250 + (viewportHeight * 0.875); // 500 * 2.5 = 1250, 0.35 * 2.5 = 0.875
+            topPadding = Math.min(5000, baseForHighZoom + extraPadding); // Cap at 5000px (2000 * 2.5)
+        }
         
-        const bottomPadding = Math.max(
-            baseBottomPadding,
-            Math.min(
-                baseBottomPadding * scaleFactor + (viewportHeight * 0.1 * (currentScale - 1)),
-                viewportHeight * 0.25
-            )
-        );
+        // Bottom padding needs to be MUCH MORE aggressive than top for accessibility
+        let bottomPadding;
+        
+        if (currentScale <= 1.0) {
+            // Base zoom level - more than top
+            bottomPadding = baseBottomPadding + 200; // Extra 200px at base
+        } else if (currentScale <= 1.5) {
+            // Low zoom levels (1.0x - 1.5x): much more aggressive than top
+            const zoomFactor = currentScale - 1.0; // 0 at 1.0x, 0.5 at 1.5x
+            bottomPadding = baseBottomPadding + 400 + (zoomFactor * 1800) + (viewportHeight * 0.8 * zoomFactor); // 80% more than top
+        } else if (currentScale >= 1.6) {
+            // 160%+ zoom levels: MASSIVE padding for 2-3 page scroll length
+            // At 160% zoom, user needs to scroll 2-3 full page heights worth of space
+            const pageHeight = viewportHeight / currentScale; // Approximate single page height at this zoom
+            const scrollSpaceNeeded = pageHeight * 3; // 3 full page heights of scroll space
+            bottomPadding = Math.max(scrollSpaceNeeded, viewportHeight * 3); // Ensure at least 3x viewport height
+        } else {
+            // Medium zoom levels (1.5x - 1.6x): VERY aggressive for this critical range
+            const zoomFactor = currentScale - 1.5; // 0 at 1.5x, 0.1 at 1.6x
+            const baseForThisLevel = baseBottomPadding + 1000 + (viewportHeight * 0.4);
+            bottomPadding = baseForThisLevel + (zoomFactor * 2500) + (viewportHeight * 1.0 * zoomFactor); // Much more aggressive
+        }
         
         const scrollPaddingTop = Math.max(
             baseScrollPadding,
-            topPadding + 20 // Always 20px more than top padding
+            topPadding + 50 // 20 * 2.5 = 50
         );
         
         return {

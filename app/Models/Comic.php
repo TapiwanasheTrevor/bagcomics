@@ -72,6 +72,8 @@ class Comic extends Model
         'reading_time_estimate' => 'integer',
     ];
 
+    protected $appends = ['cover_image_url'];
+
     // Scopes
     public function scopeVisible($query)
     {
@@ -135,6 +137,12 @@ class Comic extends Model
         
         // Return a default cover image if no cover image is set
         return asset('images/default-comic-cover.svg');
+    }
+
+    // Accessor for cover_image_url attribute
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return $this->getCoverImageUrl();
     }
 
     public function getPdfUrl(): ?string

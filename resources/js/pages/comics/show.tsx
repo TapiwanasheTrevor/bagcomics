@@ -252,7 +252,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
     };
 
     const toggleFavorite = async () => {
-        if (!auth.user || !isInLibrary) return;
+        if (!auth.user) return;
         
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -270,6 +270,11 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
             if (response.ok) {
                 const data = await response.json();
                 setIsFavorite(data.is_favorite);
+                // If comic was newly added to library, update the library status
+                if (data.newly_added) {
+                    setIsInLibrary(true);
+                }
+                console.log('Favorite status updated:', data.is_favorite);
             }
         } catch (error) {
             console.error('Error toggling favorite:', error);
@@ -416,7 +421,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                                 </button>
                                             )}
 
-                                            {isInLibrary && (
+                                            {auth.user && (
                                                 <button
                                                     className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gray-800/50 border border-gray-600 text-white rounded-xl hover:bg-gray-700/50 transition-all duration-300"
                                                     onClick={toggleFavorite}

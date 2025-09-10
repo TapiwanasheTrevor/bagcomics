@@ -104,7 +104,42 @@ class UserLibraryController extends Controller
             ->first();
 
         if (!$libraryEntry) {
-            return response()->json(['message' => 'Comic not found in library'], 404);
+            // If comic is not in library, add it first with appropriate access type
+            $accessType = 'free'; // Default to free
+            
+            // Check if comic is free or if user has purchased it
+            if ($comic->is_free) {
+                $accessType = 'free';
+            } else {
+                // Check if user has purchased this comic
+                $purchase = $request->user()->purchases()
+                    ->where('comic_id', $comic->id)
+                    ->where('status', 'completed')
+                    ->first();
+                
+                if ($purchase) {
+                    $accessType = 'purchased';
+                }
+            }
+
+            // Create library entry
+            $libraryEntry = UserLibrary::create([
+                'user_id' => $request->user()->id,
+                'comic_id' => $comic->id,
+                'access_type' => $accessType,
+                'is_favorite' => true, // Set as favorite since user is trying to favorite it
+                'purchase_price' => $comic->price ?? 0,
+                'purchased_at' => $accessType === 'purchased' ? now() : null,
+            ]);
+
+            // Increment reader count for new addition
+            $comic->incrementReaderCount();
+
+            return response()->json([
+                'message' => 'Comic added to library and favorited',
+                'is_favorite' => true,
+                'newly_added' => true
+            ]);
         }
 
         $libraryEntry->is_favorite = !$libraryEntry->is_favorite;
@@ -112,7 +147,8 @@ class UserLibraryController extends Controller
 
         return response()->json([
             'message' => 'Favorite status updated successfully',
-            'is_favorite' => $libraryEntry->is_favorite
+            'is_favorite' => $libraryEntry->is_favorite,
+            'newly_added' => false
         ]);
     }
 

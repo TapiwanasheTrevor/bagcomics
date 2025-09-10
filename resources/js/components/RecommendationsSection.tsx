@@ -61,11 +61,15 @@ export default function RecommendationsSection({
             if (refresh) setRefreshing(true);
             else setLoading(true);
             
-            const response = await fetch(`/api/recommendations?limit=${limit}&type=${type}&refresh=${refresh}`, {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const response = await fetch(`/api/recommendations?limit=${limit}&type=${type}&refresh=${refresh ? '1' : '0'}`, {
                 credentials: 'include',
                 headers: {
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken || '',
                 },
             });
 
@@ -74,7 +78,9 @@ export default function RecommendationsSection({
                 setRecommendations(data.data.recommendations || []);
                 setError(null);
             } else {
-                throw new Error('Failed to fetch recommendations');
+                const errorData = await response.text();
+                console.error('API Response Error:', response.status, errorData);
+                throw new Error(`Failed to fetch recommendations: ${response.status}`);
             }
         } catch (err) {
             console.error('Error fetching recommendations:', err);

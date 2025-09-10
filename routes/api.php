@@ -14,7 +14,7 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
     // Public routes (higher rate limit for authenticated users)
     Route::get('/user', function (Request $request) {
         return $request->user();
-    })->middleware('auth:sanctum');
+    })->middleware('auth:web');
 
     // Comics API Routes
     Route::prefix('comics')->group(function () {
@@ -45,7 +45,7 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
     });
 
     // Authenticated routes (stricter rate limiting)
-    Route::middleware(['auth:sanctum', 'api.rate_limit:300,1'])->group(function () {
+    Route::middleware(['auth:web', 'api.rate_limit:300,1'])->group(function () {
         
         // Reading Progress API Routes
         Route::prefix('comics/{comic}/progress')->group(function () {
@@ -116,7 +116,7 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             Route::post('/preferences', [App\Http\Controllers\Api\UserLibraryController::class, 'updatePreferences']);
             Route::post('/preferences/reset', [App\Http\Controllers\Api\UserLibraryController::class, 'resetPreferences']);
             
-            Route::prefix('comics/{comic}')->group(function () {
+            Route::prefix('comics/{comic:slug}')->group(function () {
                 Route::post('/add', [App\Http\Controllers\Api\UserLibraryController::class, 'addToLibrary']);
                 Route::delete('/remove', [App\Http\Controllers\Api\UserLibraryController::class, 'removeFromLibrary']);
                 Route::post('/favorite', [App\Http\Controllers\Api\UserLibraryController::class, 'toggleFavorite']);
@@ -218,7 +218,7 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
     });
 
     // Admin routes (more restrictive rate limiting)
-    Route::middleware(['auth:sanctum', 'can:access-admin', 'api.rate_limit:200,1'])->prefix('admin')->group(function () {
+    Route::middleware(['auth:web', 'can:access-admin', 'api.rate_limit:200,1'])->prefix('admin')->group(function () {
         
         // Platform Analytics (Admin only)
         Route::prefix('analytics')->group(function () {

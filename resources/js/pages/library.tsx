@@ -44,6 +44,13 @@ interface LibraryEntry {
     review?: string;
     created_at: string;
     comic: Comic;
+    reading_progress?: {
+        current_page: number;
+        total_pages: number;
+        percentage: number;
+        last_read_at: string;
+        status: 'not_started' | 'reading' | 'completed';
+    };
 }
 
 interface LibraryResponse {
@@ -98,6 +105,10 @@ export default function Library() {
 
             if (activeTab === 'favorites') {
                 params.append('is_favorite', 'true');
+            } else if (activeTab === 'reading') {
+                params.append('status', 'reading');
+            } else if (activeTab === 'completed') {
+                params.append('status', 'completed');
             }
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -144,8 +155,8 @@ export default function Library() {
     const tabs = [
         { id: 'all', label: 'All Comics', count: libraryEntries.length },
         { id: 'favorites', label: 'Favorites', count: libraryEntries.filter(e => e.is_favorite).length },
-        { id: 'reading', label: 'Reading', count: 0 }, // TODO: Add reading progress filter
-        { id: 'completed', label: 'Completed', count: 0 }, // TODO: Add completed filter
+        { id: 'reading', label: 'Reading', count: libraryEntries.filter(e => e.reading_progress?.status === 'reading').length },
+        { id: 'completed', label: 'Completed', count: libraryEntries.filter(e => e.reading_progress?.status === 'completed').length },
     ];
 
     if (!auth.user) {
@@ -220,6 +231,30 @@ export default function Library() {
                             {entry.access_type === 'free' ? 'Free' : entry.access_type === 'purchased' ? 'Owned' : 'Subscription'}
                         </span>
                     </div>
+
+                    {/* Reading progress bar */}
+                    {entry.reading_progress && entry.reading_progress.percentage > 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
+                            <div className="flex items-center justify-between text-xs text-white mb-1">
+                                <span>
+                                    {entry.reading_progress.status === 'completed' 
+                                        ? 'Completed' 
+                                        : `${entry.reading_progress.percentage}% Read`}
+                                </span>
+                                <span>{entry.reading_progress.current_page}/{entry.reading_progress.total_pages}</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-1.5">
+                                <div 
+                                    className={`h-1.5 rounded-full ${
+                                        entry.reading_progress.status === 'completed' 
+                                            ? 'bg-green-500' 
+                                            : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${entry.reading_progress.percentage}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-4">
@@ -313,6 +348,36 @@ export default function Library() {
                                     Added {formatDate(entry.created_at)}
                                 </span>
                             </div>
+
+                            {/* Reading progress */}
+                            {entry.reading_progress && entry.reading_progress.percentage > 0 && (
+                                <div className="mt-2">
+                                    <div className="flex items-center justify-between text-xs mb-1">
+                                        <span className={`${
+                                            entry.reading_progress.status === 'completed' 
+                                                ? 'text-green-400' 
+                                                : 'text-gray-400'
+                                        }`}>
+                                            {entry.reading_progress.status === 'completed' 
+                                                ? 'Completed' 
+                                                : `Reading: ${entry.reading_progress.percentage}%`}
+                                        </span>
+                                        <span className="text-gray-500">
+                                            {entry.reading_progress.current_page}/{entry.reading_progress.total_pages} pages
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-700 rounded-full h-1.5">
+                                        <div 
+                                            className={`h-1.5 rounded-full ${
+                                                entry.reading_progress.status === 'completed' 
+                                                    ? 'bg-green-500' 
+                                                    : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${entry.reading_progress.percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {entry.rating && (
                                 <div className="mt-2 flex items-center space-x-1">

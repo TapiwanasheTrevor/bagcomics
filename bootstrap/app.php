@@ -40,7 +40,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\LogRequests::class,
         ]);
 
-        $middleware->api(append: [
+        $middleware->api(prepend: [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        ], append: [
             \App\Http\Middleware\ApiResponseFormatter::class,
         ]);
 
