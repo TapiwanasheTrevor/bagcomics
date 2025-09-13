@@ -86,14 +86,23 @@ export default function ComicReader({ comic }: ComicReaderProps) {
 
             {comic.is_pdf_comic && (comic.pdf_stream_url || comic.pdf_file_path) && (
                 <EnhancedPdfReader
-                    fileUrl={comic.pdf_stream_url || `/comics/${comic.slug}/stream`}
-                    fileName={comic.pdf_file_name || `${comic.title}.pdf`}
+                    fileUrl={comic.pdf_file_path ? `/storage/${comic.pdf_file_path}` : (comic.pdf_stream_url || `/comics/${comic.slug}/stream`)}
+                    fileName={comic.title || comic.pdf_file_name || 'Comic'}
                     downloadUrl={`/comics/${comic.slug}/download`}
                     userHasDownloadAccess={true}
                     comicSlug={comic.slug}
                     initialPage={comic.user_progress?.current_page || 1}
                     onPageChange={handlePageChange}
                     onClose={handleClose}
+                />
+            )}
+            
+            {/* Fallback iframe viewer if PDF.js fails - hidden by default */}
+            {false && comic.pdf_stream_url && (
+                <iframe 
+                    src={comic.pdf_stream_url}
+                    className="w-full h-screen"
+                    title={comic.title}
                 />
             )}
         </>

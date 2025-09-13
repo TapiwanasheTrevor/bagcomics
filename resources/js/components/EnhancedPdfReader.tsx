@@ -107,64 +107,33 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
         is_completed: false
     });
     
-    // Dynamic padding calculation function
+    // Simplified and improved dynamic padding calculation
     const calculateDynamicPadding = useCallback((currentScale: number): { top: number; bottom: number; scrollPaddingTop: number } => {
         const viewportHeight = window.innerHeight;
-        const baseTopPadding = 180; // Increased by 150% (120 * 1.5)
-        const baseBottomPadding = 360; // Increased by 200% from base 120
-        const baseScrollPadding = 90; // Increased by 150% (60 * 1.5)
         
-        // Much more aggressive padding starting from any zoom > 1.0
-        // Even small zooms need very significant padding to prevent cutoff
-        let topPadding;
+        // Base padding values
+        const basePadding = 120;
         
-        if (currentScale <= 1.0) {
-            // Base zoom level
-            topPadding = baseTopPadding;
-        } else if (currentScale <= 1.5) {
-            // Low zoom levels (1.0x - 1.5x): immediate super aggressive increase
-            const zoomFactor = currentScale - 1.0; // 0 at 1.0x, 0.5 at 1.5x
-            topPadding = baseTopPadding + (zoomFactor * 1000) + (viewportHeight * 0.5 * zoomFactor); // 400 * 2.5 = 1000, 0.2 * 2.5 = 0.5
-        } else if (currentScale <= 2.0) {
-            // Medium zoom levels (1.5x - 2.0x): continue super aggressive scaling  
-            const zoomFactor = currentScale - 1.5; // 0 at 1.5x, 0.5 at 2.0x
-            const baseForThisLevel = baseTopPadding + 500 + (viewportHeight * 0.25); // 200 * 2.5 = 500, 0.1 * 2.5 = 0.25
-            topPadding = baseForThisLevel + (zoomFactor * 1500) + (viewportHeight * 0.625 * zoomFactor); // 600 * 2.5 = 1500, 0.25 * 2.5 = 0.625
-        } else {
-            // High zoom levels (> 2.0x): use much larger fixed padding values
-            const highZoomFactor = (currentScale - 2.0) / 2.0; // 0 at 2x, 1 at 4x, etc.
-            const extraPadding = highZoomFactor * 3750; // 1500 * 2.5 = 3750
-            const baseForHighZoom = baseTopPadding + 1250 + (viewportHeight * 0.875); // 500 * 2.5 = 1250, 0.35 * 2.5 = 0.875
-            topPadding = Math.min(5000, baseForHighZoom + extraPadding); // Cap at 5000px (2000 * 2.5)
-        }
+        // Calculate padding based on zoom level - much simpler approach
+        const zoomMultiplier = Math.max(1, currentScale);
         
-        // Bottom padding needs to be MUCH MORE aggressive than top for accessibility
+        // Top padding: grows moderately with zoom
+        const topPadding = basePadding + (zoomMultiplier - 1) * viewportHeight * 0.5;
+        
+        // Bottom padding: grows more aggressively to ensure content is accessible
+        // At high zoom levels, users need extra space to scroll past the content
         let bottomPadding;
-        
-        if (currentScale <= 1.0) {
-            // Base zoom level - more than top
-            bottomPadding = baseBottomPadding + 200; // Extra 200px at base
-        } else if (currentScale <= 1.5) {
-            // Low zoom levels (1.0x - 1.5x): much more aggressive than top
-            const zoomFactor = currentScale - 1.0; // 0 at 1.0x, 0.5 at 1.5x
-            bottomPadding = baseBottomPadding + 400 + (zoomFactor * 1800) + (viewportHeight * 0.8 * zoomFactor); // 80% more than top
-        } else if (currentScale >= 1.6) {
-            // 160%+ zoom levels: MASSIVE padding for 2-3 page scroll length
-            // At 160% zoom, user needs to scroll 2-3 full page heights worth of space
-            const pageHeight = viewportHeight / currentScale; // Approximate single page height at this zoom
-            const scrollSpaceNeeded = pageHeight * 3; // 3 full page heights of scroll space
-            bottomPadding = Math.max(scrollSpaceNeeded, viewportHeight * 3); // Ensure at least 3x viewport height
+        if (currentScale <= 1.2) {
+            bottomPadding = basePadding * 1.5;
+        } else if (currentScale <= 1.6) {
+            // Critical zoom range where cutoff often occurs
+            bottomPadding = basePadding * 2 + (currentScale - 1.2) * viewportHeight * 1.5;
         } else {
-            // Medium zoom levels (1.5x - 1.6x): VERY aggressive for this critical range
-            const zoomFactor = currentScale - 1.5; // 0 at 1.5x, 0.1 at 1.6x
-            const baseForThisLevel = baseBottomPadding + 1000 + (viewportHeight * 0.4);
-            bottomPadding = baseForThisLevel + (zoomFactor * 2500) + (viewportHeight * 1.0 * zoomFactor); // Much more aggressive
+            // High zoom levels need significant bottom padding
+            bottomPadding = Math.min(viewportHeight * 2.5, basePadding * 3 + (currentScale - 1.6) * viewportHeight);
         }
         
-        const scrollPaddingTop = Math.max(
-            baseScrollPadding,
-            topPadding + 50 // 20 * 2.5 = 50
-        );
+        const scrollPaddingTop = Math.max(80, topPadding * 0.7);
         
         return {
             top: Math.round(topPadding),
@@ -882,15 +851,19 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                     {/* PDF Viewer */}
                     <div
                         ref={containerRef}
-                        className={`h-full bg-black overflow-auto flex items-center justify-center pdf-container ${scale >= 2.75 ? 'zoom-extreme' : scale >= 2.0 ? 'zoom-high' : ''}`}
-                        data-zoom={scale >= 2.75 ? 'extreme' : scale >= 2.0 ? 'high' : 'normal'}
+                        className="h-full bg-black overflow-auto pdf-container"
                         style={{
                             cursor: isPanning ? 'grabbing' : (scale > 1.2 ? 'grab' : 'default'),
                             paddingTop: `${dynamicPadding.top}px`,
                             paddingBottom: `${dynamicPadding.bottom}px`,
-                            paddingLeft: 'clamp(16px, 2vw, 32px)',
-                            paddingRight: 'clamp(16px, 2vw, 32px)',
-                            scrollPaddingTop: `${dynamicPadding.scrollPaddingTop}px`
+                            paddingLeft: '20px',
+                            paddingRight: '20px',
+                            scrollPaddingTop: `${dynamicPadding.scrollPaddingTop}px`,
+                            // Ensure content is always accessible
+                            minHeight: '100vh',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            justifyContent: 'center'
                         }}
                     >
                         {loading && (
@@ -945,8 +918,11 @@ const EnhancedPdfReader: React.FC<EnhancedPdfReaderProps> = ({
                         >
                             <div
                                 ref={pageRef}
+                                className="flex-shrink-0"
                                 style={{
-                                    transform: `translate(${panPosition.x}px, ${panPosition.y}px)`
+                                    transform: `translate(${panPosition.x}px, ${panPosition.y}px)`,
+                                    // Ensure the page container doesn't get clipped
+                                    margin: '20px 0'
                                 }}
                             >
                                 <Page

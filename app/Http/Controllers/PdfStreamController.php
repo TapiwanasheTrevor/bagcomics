@@ -7,40 +7,57 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PdfStreamController extends Controller
 {
     public function stream(Comic $comic, Request $request)
     {
+        Log::info('PdfStreamController: Stream method initiated.', ['comic_slug' => $comic->slug]);
+
         // Handle preflight OPTIONS request
         if ($request->isMethod('OPTIONS')) {
+            Log::info('PdfStreamController: Handling OPTIONS preflight request.');
             return response('', 200, [
-                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Origin' => '*', // Allow any origin for OPTIONS
                 'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Accept, Authorization, X-Requested-With, Cache-Control',
+                'Access-Control-Allow-Headers' => 'Content-Type, Accept, Authorization, X-Requested-With, Cache-Control, Range',
                 'Access-Control-Max-Age' => '86400',
             ]);
         }
 
         // Check if user has access to this comic
         if (!$comic->is_free && !auth()->check()) {
+            Log::warning('PdfStreamController: Authentication required.', ['comic_id' => $comic->id]);
             abort(401, 'Authentication required');
         }
 
         // Check if comic has a PDF file
         if (!$comic->pdf_file_path) {
+            Log::error('PdfStreamController: PDF file path is missing for comic.', ['comic_id' => $comic->id]);
             abort(404, 'PDF file not found');
         }
 
         $filePath = $comic->pdf_file_path;
+        Log::info('PdfStreamController: PDF file path from model.', ['path' => $filePath]);
+
+        $storagePath = Storage::disk('public')->path($filePath);
+        $publicPath = public_path($filePath);
 
         // Check if file exists in storage or public directory
         if (Storage::disk('public')->exists($filePath)) {
-            $fullPath = Storage::disk('public')->path($filePath);
-        } elseif (file_exists(public_path($filePath))) {
-            $fullPath = public_path($filePath);
+            $fullPath = $storagePath;
+            Log::info('PdfStreamController: File found in public storage.', ['full_path' => $fullPath]);
+        } elseif (file_exists($publicPath)) {
+            $fullPath = $publicPath;
+            Log::info('PdfStreamController: File found in public directory.', ['full_path' => $fullPath]);
         } else {
+            Log::error('PdfStreamController: PDF file not found in any checked location.', [
+                'comic_id' => $comic->id,
+                'checked_storage_path' => $storagePath,
+                'checked_public_path' => $publicPath,
+            ]);
             abort(404, 'PDF file not found');
         }
 
@@ -48,16 +65,31 @@ class PdfStreamController extends Controller
         $fileSize = filesize($fullPath);
         $fileName = $comic->pdf_file_name ?: basename($filePath);
 
+        // Determine the allowed origin
+        $origin = $request->header('Origin') ?? config('app.url');
+        $allowedOrigin = config('app.url'); // Default to APP_URL
+
+        // In local dev, the request can come from Vite's dev server (e.g., localhost:5173)
+        if (app()->environment('local')) {
+            // A more robust solution would be a config array of allowed origins
+            if (preg_match('~^http://(localhost|127\.0\.0\.1):[0-9]+$~', $origin)) {
+                $allowedOrigin = $origin;
+            }
+        }
+
         // Enhanced headers for better PDF.js compatibility
         $headers = [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="' . $fileName . '"',
             'Content-Length' => $fileSize,
             'Accept-Ranges' => 'bytes',
-            'Cache-Control' => 'public, max-age=3600',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
 
             // CORS headers
-            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Origin' => $allowedOrigin,
+            'Access-Control-Allow-Credentials' => 'true',
             'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
             'Access-Control-Allow-Headers' => 'Content-Type, Accept, Authorization, X-Requested-With, Cache-Control, Range',
             'Access-Control-Expose-Headers' => 'Content-Length, Content-Range, Accept-Ranges',
