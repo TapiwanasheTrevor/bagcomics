@@ -464,4 +464,347 @@ class AnalyticsService
             $this->clearUserAnalyticsCache($userId);
         }
     }
+
+    public function getPlatformMetrics(int $days = 30): array
+    {
+        $cacheKey = "platform_metrics_{$days}";
+        
+        return Cache::remember($cacheKey, 1800, function () use ($days) {
+            $periodStart = Carbon::now()->subDays($days);
+            
+            // Total users count
+            $totalUsers = User::count();
+            
+            // New users in the period
+            $newUsers = User::where('created_at', '>=', $periodStart)->count();
+            
+            // Total revenue from all payments
+            $totalRevenue = \App\Models\Payment::where('status', 'succeeded')
+                ->sum('amount');
+            
+            // Revenue in the specified period
+            $revenuePeriod = \App\Models\Payment::where('status', 'succeeded')
+                ->where('created_at', '>=', $periodStart)
+                ->sum('amount');
+            
+            // Total comics count (published and visible)
+            $totalComics = Comic::where('is_visible', true)
+                ->whereNotNull('published_at')
+                ->count();
+            
+            // Total purchases count
+            $totalPurchases = \App\Models\Payment::where('status', 'succeeded')
+                ->count();
+            
+            // Purchases in the period
+            $purchasesPeriod = \App\Models\Payment::where('status', 'succeeded')
+                ->where('created_at', '>=', $periodStart)
+                ->count();
+            
+            // Total comic views
+            $totalViews = \App\Models\ComicView::count();
+            
+            // Views in the period
+            $viewsPeriod = \App\Models\ComicView::where('created_at', '>=', $periodStart)
+                ->count();
+            
+            // Active readers (users who read comics in the period)
+            $activeReaders = UserAnalytics::where('metric_name', 'comics_read')
+                ->where('date', '>=', $periodStart)
+                ->distinct('user_id')
+                ->count('user_id');
+            
+            return [
+                'total_users' => $totalUsers,
+                'new_users' => $newUsers,
+                'total_revenue' => $totalRevenue,
+                'revenue_period' => $revenuePeriod,
+                'total_comics' => $totalComics,
+                'total_purchases' => $totalPurchases,
+                'purchases_period' => $purchasesPeriod,
+                'total_views' => $totalViews,
+                'views_period' => $viewsPeriod,
+                'active_readers' => $activeReaders,
+            ];
+        });
+    }
+
+    public function getRevenueAnalytics(int $days = 30): array
+    {
+        $cacheKey = "revenue_analytics_{$days}";
+        
+        return Cache::remember($cacheKey, 1800, function () use ($days) {
+            $startDate = Carbon::now()->subDays($days);
+            $endDate = Carbon::now();
+            
+            // Get daily revenue data
+            $dailyRevenue = \App\Models\Payment::where('status', 'succeeded')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE(created_at) as date')
+                ->selectRaw('SUM(amount) as revenue')
+                ->selectRaw('COUNT(*) as transactions')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+            
+            // Fill in missing dates with zero values
+            $dateRange = [];
+            for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+                $dateRange[$date->format('Y-m-d')] = (object)[
+                    'date' => $date->format('Y-m-d'),
+                    'revenue' => 0,
+                    'transactions' => 0
+                ];
+            }
+            
+            // Merge actual data with date range
+            foreach ($dailyRevenue as $day) {
+                $dateRange[$day->date] = $day;
+            }
+            
+            // Calculate summary statistics
+            $totalRevenue = $dailyRevenue->sum('revenue');
+            $totalTransactions = $dailyRevenue->sum('transactions');
+            $avgDailyRevenue = $totalRevenue / max($days, 1);
+            $avgTransactionValue = $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0;
+            
+            // Get revenue by payment type
+            $revenueByType = \App\Models\Payment::where('status', 'succeeded')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('payment_type')
+                ->selectRaw('SUM(amount) as revenue')
+                ->selectRaw('COUNT(*) as count')
+                ->groupBy('payment_type')
+                ->get();
+            
+            // Get top comics by revenue
+            $topComics = \App\Models\Payment::where('status', 'succeeded')
+                ->whereBetween('payments.created_at', [$startDate, $endDate])
+                ->whereNotNull('comic_id')
+                ->join('comics', 'payments.comic_id', '=', 'comics.id')
+                ->selectRaw('comics.id, comics.title, comics.slug')
+                ->selectRaw('SUM(payments.amount) as revenue')
+                ->selectRaw('COUNT(payments.id) as purchases')
+                ->groupBy('comics.id', 'comics.title', 'comics.slug')
+                ->orderByDesc('revenue')
+                ->limit(10)
+                ->get();
+            
+            return [
+                'daily_revenue' => array_values($dateRange),
+                'summary' => [
+                    'total_revenue' => $totalRevenue,
+                    'total_transactions' => $totalTransactions,
+                    'average_daily_revenue' => round($avgDailyRevenue, 2),
+                    'average_transaction_value' => round($avgTransactionValue, 2),
+                ],
+                'revenue_by_type' => $revenueByType,
+                'top_comics' => $topComics,
+                'period' => [
+                    'start_date' => $startDate->format('Y-m-d'),
+                    'end_date' => $endDate->format('Y-m-d'),
+                    'days' => $days,
+                ],
+            ];
+        });
+    }
+
+    public function getUserEngagementAnalytics(int $days = 30): array
+    {
+        $cacheKey = "user_engagement_analytics_{$days}";
+        
+        return Cache::remember($cacheKey, 1800, function () use ($days) {
+            $startDate = Carbon::now()->subDays($days);
+            
+            // Get genre popularity based on comic views
+            $genrePopularity = \App\Models\ComicView::whereBetween('comic_views.created_at', [$startDate, Carbon::now()])
+                ->join('comics', 'comic_views.comic_id', '=', 'comics.id')
+                ->selectRaw('comics.genre')
+                ->selectRaw('COUNT(comic_views.id) as view_count')
+                ->selectRaw('COUNT(DISTINCT comic_views.user_id) as unique_viewers')
+                ->whereNotNull('comics.genre')
+                ->groupBy('comics.genre')
+                ->orderByDesc('view_count')
+                ->limit(15)
+                ->get();
+            
+            // Process genre data to handle JSON arrays
+            $processedGenres = [];
+            foreach ($genrePopularity as $genreData) {
+                // Handle genre as array or string
+                $genres = is_string($genreData->genre) ? 
+                    (json_decode($genreData->genre, true) ?? [$genreData->genre]) : 
+                    [$genreData->genre];
+                    
+                foreach ($genres as $genre) {
+                    if (!isset($processedGenres[$genre])) {
+                        $processedGenres[$genre] = (object)[
+                            'genre' => $genre,
+                            'view_count' => 0,
+                            'unique_viewers' => 0
+                        ];
+                    }
+                    $processedGenres[$genre]->view_count += $genreData->view_count;
+                    $processedGenres[$genre]->unique_viewers += $genreData->unique_viewers;
+                }
+            }
+            
+            // Sort and limit processed genres
+            usort($processedGenres, function($a, $b) {
+                return $b->view_count - $a->view_count;
+            });
+            $processedGenres = array_slice($processedGenres, 0, 10);
+            
+            // Get user activity metrics
+            $userActivity = User::whereBetween('created_at', [$startDate, Carbon::now()])
+                ->selectRaw('DATE(created_at) as date')
+                ->selectRaw('COUNT(*) as new_users')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+            
+            // Get engagement metrics
+            $totalViews = \App\Models\ComicView::whereBetween('created_at', [$startDate, Carbon::now()])->count();
+            $uniqueViewers = \App\Models\ComicView::whereBetween('created_at', [$startDate, Carbon::now()])
+                ->distinct('user_id')
+                ->whereNotNull('user_id')
+                ->count('user_id');
+            
+            // Get review engagement
+            $totalReviews = \App\Models\ComicReview::whereBetween('created_at', [$startDate, Carbon::now()])->count();
+            $activeReviewers = \App\Models\ComicReview::whereBetween('created_at', [$startDate, Carbon::now()])
+                ->distinct('user_id')
+                ->count('user_id');
+            
+            // Get bookmark engagement
+            $totalBookmarks = \App\Models\ComicBookmark::whereBetween('created_at', [$startDate, Carbon::now()])->count();
+            
+            return [
+                'genre_popularity' => array_values($processedGenres),
+                'user_activity' => $userActivity,
+                'engagement_metrics' => [
+                    'total_views' => $totalViews,
+                    'unique_viewers' => $uniqueViewers,
+                    'total_reviews' => $totalReviews,
+                    'active_reviewers' => $activeReviewers,
+                    'total_bookmarks' => $totalBookmarks,
+                    'avg_views_per_user' => $uniqueViewers > 0 ? round($totalViews / $uniqueViewers, 2) : 0,
+                ],
+                'period' => [
+                    'start_date' => $startDate->format('Y-m-d'),
+                    'end_date' => Carbon::now()->format('Y-m-d'),
+                    'days' => $days,
+                ],
+            ];
+        });
+    }
+
+    public function getComicPerformanceAnalytics(int $days = 30): array
+    {
+        $cacheKey = "comic_performance_analytics_{$days}";
+        
+        return Cache::remember($cacheKey, 1800, function () use ($days) {
+            $startDate = Carbon::now()->subDays($days);
+            
+            // Get most viewed comics with full model data
+            $mostViewedIds = \App\Models\ComicView::whereBetween('comic_views.created_at', [$startDate, Carbon::now()])
+                ->join('comics', 'comic_views.comic_id', '=', 'comics.id')
+                ->selectRaw('comics.id')
+                ->selectRaw('COUNT(comic_views.id) as view_count')
+                ->groupBy('comics.id')
+                ->orderByDesc('view_count')
+                ->limit(10)
+                ->pluck('comics.id');
+            
+            // Ensure we have a collection even if empty
+            if ($mostViewedIds->isEmpty()) {
+                $mostViewed = collect();
+            } else {
+                $mostViewed = Comic::whereIn('id', $mostViewedIds)->get()->map(function($comic) use ($days) {
+                    // Add a method stub for getViewsInPeriod
+                    $comic->period_views = \App\Models\ComicView::where('comic_id', $comic->id)
+                        ->whereBetween('created_at', [Carbon::now()->subDays($days), Carbon::now()])
+                        ->count();
+                    return $comic;
+                });
+            }
+            
+            // Get most purchased comics with full model data
+            $mostPurchasedData = \App\Models\Payment::where('status', 'succeeded')
+                ->whereBetween('payments.created_at', [$startDate, Carbon::now()])
+                ->whereNotNull('comic_id')
+                ->selectRaw('comic_id')
+                ->selectRaw('COUNT(*) as purchase_count')
+                ->groupBy('comic_id')
+                ->orderByDesc('purchase_count')
+                ->limit(10)
+                ->get();
+            
+            $mostPurchasedIds = $mostPurchasedData->pluck('comic_id');
+            $purchaseCountMap = $mostPurchasedData->pluck('purchase_count', 'comic_id');
+            
+            // Ensure we have a collection even if empty
+            if ($mostPurchasedIds->isEmpty()) {
+                $mostPurchased = collect();
+            } else {
+                $mostPurchased = Comic::whereIn('id', $mostPurchasedIds)->get()->map(function($comic) use ($purchaseCountMap) {
+                    $comic->period_purchases = $purchaseCountMap[$comic->id] ?? 0;
+                    return $comic;
+                });
+            }
+            
+            // Get best rated comics with full model data - ensure collection
+            $bestRated = Comic::where('average_rating', '>', 0)
+                ->where('total_ratings', '>=', 5) // Minimum 5 ratings
+                ->orderByDesc('average_rating')
+                ->orderByDesc('total_ratings')
+                ->limit(10)
+                ->get();
+            
+            if ($bestRated->isEmpty()) {
+                $bestRated = collect();
+            }
+            
+            // Get recently added comics - ensure collection
+            $recentlyAdded = Comic::where('is_visible', true)
+                ->whereNotNull('published_at')
+                ->orderByDesc('published_at')
+                ->limit(10)
+                ->get();
+                
+            if ($recentlyAdded->isEmpty()) {
+                $recentlyAdded = collect();
+            }
+            
+            // Calculate overall performance metrics
+            $totalComics = Comic::where('is_visible', true)->whereNotNull('published_at')->count();
+            $comicsWithViews = \App\Models\ComicView::whereBetween('created_at', [$startDate, Carbon::now()])
+                ->distinct('comic_id')
+                ->count('comic_id');
+            $comicsWithPurchases = \App\Models\Payment::where('status', 'succeeded')
+                ->whereBetween('created_at', [$startDate, Carbon::now()])
+                ->whereNotNull('comic_id')
+                ->distinct('comic_id')
+                ->count('comic_id');
+            
+            return [
+                'most_viewed' => $mostViewed,
+                'most_purchased' => $mostPurchased,
+                'best_rated' => $bestRated,
+                'recently_added' => $recentlyAdded,
+                'performance_metrics' => [
+                    'total_comics' => $totalComics,
+                    'comics_with_views' => $comicsWithViews,
+                    'comics_with_purchases' => $comicsWithPurchases,
+                    'view_rate' => $totalComics > 0 ? round(($comicsWithViews / $totalComics) * 100, 2) : 0,
+                    'purchase_rate' => $totalComics > 0 ? round(($comicsWithPurchases / $totalComics) * 100, 2) : 0,
+                ],
+                'period' => [
+                    'start_date' => $startDate->format('Y-m-d'),
+                    'end_date' => Carbon::now()->format('Y-m-d'),
+                    'days' => $days,
+                ],
+            ];
+        });
+    }
 }

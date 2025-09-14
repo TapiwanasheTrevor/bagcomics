@@ -85,7 +85,9 @@ class ComicResource extends Resource
                 ->disk('public')
                 ->directory('comics')
                 ->acceptedFileTypes(['application/pdf'])
+                ->maxSize(10240) // 10MB in KB
                 ->required()
+                ->helperText('Maximum file size: 10MB')
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
                         $set('is_pdf_comic', true);

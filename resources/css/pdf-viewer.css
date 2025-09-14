@@ -1,20 +1,73 @@
 /* PDF Viewer Styles */
 
+/* Control Bar Protection - Ensure PDF content is never hidden behind controls */
+.pdf-reader-controls {
+    position: relative;
+    z-index: 100;
+    min-height: 64px; /* Minimum height for control bar */
+}
+
+/* PDF Container with control bar awareness and aggressive padding */
+.pdf-container {
+    position: relative;
+    /* Ensure content has aggressive padding on both ends */
+    padding-top: var(--pdf-top-padding, 400px) !important;
+    padding-bottom: var(--pdf-bottom-padding, 400px) !important;
+    /* Minimum padding to prevent any cutoff */
+    min-height: 100%;
+    box-sizing: border-box;
+    /* Hide scrollbar but maintain scrollability */
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+    /* Force override any conflicting styles */
+    scroll-behavior: smooth !important;
+}
+
+/* Force hide scrollbar with maximum specificity */
+.pdf-container::-webkit-scrollbar,
+.pdf-container *::-webkit-scrollbar,
+div.pdf-container::-webkit-scrollbar,
+div.pdf-container *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    -webkit-appearance: none !important;
+}
+
+/* Additional scrollbar hiding for all elements within PDF container */
+.pdf-container *,
+.pdf-container {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+/* Ensure scroll container respects padding */
+.pdf-container:after {
+    content: '';
+    display: block;
+    height: 1px;
+    width: 100%;
+    clear: both;
+}
+
 /* React-PDF specific styles */
 .react-pdf__Document {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 60px;  /* Ensure top padding for better visibility */
-    padding-bottom: 60px;
+    padding-top: 120px;  /* Increased from 60px for more top spacing */
+    padding-bottom: 120px;  /* Matches top padding for balanced spacing */
 }
 
 .react-pdf__Page {
-    max-width: calc(100% - 3em);
+    max-width: calc(100% - 8em);  /* Increased from 3em for more side padding */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    margin: 1.5em;
-    margin-top: clamp(3em, 6vh, 5em);  /* Increased top margin for better visibility */
-    margin-bottom: clamp(3em, 6vh, 5em);  /* Increased bottom margin for consistency */
+    margin: 4em;  /* Increased from 1.5em for more overall spacing */
+    margin-top: clamp(4em, 8vh, 6em);  /* Further increased for better visibility */
+    margin-bottom: clamp(4em, 8vh, 6em);  /* Further increased for consistency */
 }
 
 .react-pdf__Page__canvas {
@@ -39,7 +92,6 @@
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
-    pointer-events: none;
 }
 
 .pdf-protected::selection {
@@ -106,40 +158,71 @@
     margin-bottom: 1rem;
 }
 
+/* Mobile touch scrolling support */
+@supports (-webkit-overflow-scrolling: touch) {
+    .pdf-container {
+        -webkit-overflow-scrolling: touch;
+        overflow-scrolling: touch;
+    }
+
+    .pdf-continuous-container {
+        -webkit-overflow-scrolling: touch;
+        overflow-scrolling: touch;
+    }
+}
+
+/* Touch device optimization */
+@media (pointer: coarse) {
+    .pdf-container {
+        touch-action: pan-x pan-y;
+        overscroll-behavior: contain;
+    }
+
+    .react-pdf__Page__canvas {
+        touch-action: pan-x pan-y pinch-zoom;
+    }
+
+    /* Larger touch targets for mobile controls */
+    .pdf-control-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .react-pdf__Page {
-        max-width: calc(100% - 2em);
-        margin: 1em;
-        margin-top: clamp(2.5em, 5vh, 3.5em);  /* Better top spacing on mobile */
-        margin-bottom: clamp(2.5em, 5vh, 3.5em);
+        max-width: calc(100% - 4em);  /* Increased from 2em for more mobile padding */
+        margin: 2em;  /* Increased from 1em for better mobile spacing */
+        margin-top: clamp(3em, 6vh, 4em);  /* Increased mobile top spacing */
+        margin-bottom: clamp(3em, 6vh, 4em);  /* Increased mobile bottom spacing */
     }
-    
+
     /* Additional safety margin for very small screens */
     @media (max-width: 480px) {
         .react-pdf__Page {
-            max-width: calc(100% - 1.5em);
-            margin: 0.75em;
-            margin-top: clamp(2em, 4vh, 2.5em);  /* Maintain top visibility on small screens */
-            margin-bottom: clamp(2em, 4vh, 2.5em);
+            max-width: calc(100% - 3em);  /* Increased from 1.5em for small screens */
+            margin: 1.5em;  /* Increased from 0.75em for better small screen spacing */
+            margin-top: clamp(2.5em, 5vh, 3em);  /* Increased small screen top spacing */
+            margin-bottom: clamp(2.5em, 5vh, 3em);  /* Increased small screen bottom spacing */
         }
     }
-    
+
     /* Large mobile and small tablet */
     @media (min-width: 481px) and (max-width: 768px) {
         .react-pdf__Page {
-            max-width: calc(100% - 2.5em);
-            margin: 1.25em;
-            margin-top: clamp(2.5em, 5vh, 3.5em);  /* Improved spacing for tablets */
-            margin-bottom: clamp(2.5em, 5vh, 3.5em);
+            max-width: calc(100% - 5em);  /* Increased from 2.5em for tablet padding */
+            margin: 2.5em;  /* Increased from 1.25em for better tablet spacing */
+            margin-top: clamp(3em, 6vh, 4em);  /* Increased tablet top spacing */
+            margin-bottom: clamp(3em, 6vh, 4em);  /* Increased tablet bottom spacing */
         }
     }
-    
+
     .pdf-viewer-controls {
         flex-wrap: wrap;
         gap: 0.5rem;
     }
-    
+
     .pdf-viewer-controls button {
         padding: 0.5rem;
     }
@@ -154,8 +237,27 @@
     bottom: 0;
     z-index: 9999;
     background: #111827;
-    overflow-y: auto;  /* Ensure scrollability in fullscreen */
+    overflow-y: scroll;  /* Ensure scrollability in fullscreen */
     padding-top: 40px;  /* Top padding for fullscreen mode */
+    /* Hide scrollbar but maintain scrollability */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for webkit browsers in fullscreen */
+.pdf-fullscreen::-webkit-scrollbar,
+.pdf-fullscreen *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+/* Additional scrollbar hiding for fullscreen */
+.pdf-fullscreen *,
+.pdf-fullscreen {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
 }
 
 .pdf-fullscreen .react-pdf__Page {
@@ -195,16 +297,16 @@
 
 /* Enhanced zoom level spacing */
 .react-pdf__Page[data-zoom-level="small"] {
-    margin: clamp(4em, 8vh, 6em);  /* Increased margins for zoomed-out view */
-    max-width: calc(100% - 4em);
+    margin: clamp(6em, 10vh, 8em);  /* Further increased margins for zoomed-out view */
+    max-width: calc(100% - 8em);  /* Increased side padding for small zoom */
 }
 
 .react-pdf__Page[data-zoom-level="large"] {
-    margin-top: clamp(4em, 8vh, 6em);  /* Much more aggressive top spacing when zoomed in */
-    margin-bottom: clamp(4em, 8vh, 6em);
-    margin-left: clamp(0.5em, 2vh, 1em);
-    margin-right: clamp(0.5em, 2vh, 1em);
-    max-width: calc(100% - 1em);
+    margin-top: clamp(6em, 10vh, 8em);  /* Further increased top spacing when zoomed in */
+    margin-bottom: clamp(6em, 10vh, 8em);  /* Further increased bottom spacing */
+    margin-left: clamp(1em, 3vh, 2em);  /* Increased left margin for large zoom */
+    margin-right: clamp(1em, 3vh, 2em);  /* Increased right margin for large zoom */
+    max-width: calc(100% - 2em);  /* Increased side padding for large zoom */
 }
 
 /* Additional zoom-specific classes for extreme zoom levels */
@@ -221,73 +323,47 @@
 .react-pdf__Page.zoom-extreme,
 .react-pdf__Page[data-scale="2.75"],
 .react-pdf__Page[data-scale="3"] {
-    margin-top: clamp(8em, 15vh, 12em) !important;  /* Maximum spacing for 3x zoom */
-    margin-bottom: clamp(8em, 15vh, 12em) !important;
-    padding-top: 80px !important;
-    padding-bottom: 80px !important;
+    margin-top: clamp(12em, 20vh, 16em) !important;  /* Increased maximum spacing for 3x zoom */
+    margin-bottom: clamp(12em, 20vh, 16em) !important;  /* Matches top margin for balanced spacing */
+    padding-top: 120px !important;  /* Increased from 80px */
+    padding-bottom: 120px !important;  /* Matches top padding for balanced spacing */
 }
+
+/* High zoom level protection - rely on dynamic padding calculation instead of fixed values */
+/* Removed fixed padding overrides that conflict with dynamic padding calculation */
 
 /* Viewport-based margins for better zoom experience */
 @media (max-height: 600px) {
     .react-pdf__Page {
-        margin-top: clamp(2em, 4vh, 3em);  /* Maintain minimum top spacing */
-        margin-bottom: clamp(2em, 4vh, 3em);
+        margin-top: clamp(3em, 5vh, 4em);  /* Increased minimum top spacing for small screens */
+        margin-bottom: clamp(3em, 5vh, 4em);  /* Increased minimum bottom spacing */
     }
 }
 
 @media (min-height: 900px) {
     .react-pdf__Page {
-        margin-top: clamp(4em, 6vh, 6em);  /* More generous spacing on large screens */
-        margin-bottom: clamp(4em, 6vh, 6em);
+        margin-top: clamp(6em, 8vh, 8em);  /* Further increased spacing on large screens */
+        margin-bottom: clamp(6em, 8vh, 8em);  /* Further increased bottom spacing */
     }
 }
 
 /* PDF Container Styles */
 .pdf-container {
-    padding-top: 40px;  /* Ensure top content is accessible */
-    padding-bottom: 40px;
+    padding-top: 80px;  /* Increased from 40px for better top accessibility */
+    padding-bottom: 80px;  /* Matches top padding for balanced spacing */
     min-height: 100vh;
     overflow-y: auto;
+    /* Ensure content is never hidden by browser UI */
+    scroll-padding-top: 100px;
+    scroll-margin-top: 100px;
+    scroll-margin-bottom: 100px;  /* Added to match top scroll margin */
+}
     scroll-padding-top: 60px;  /* Maintain scroll padding */
 }
 
-/* Zoom-responsive container padding */
-.pdf-container.zoom-high,
-.pdf-container[data-zoom="high"] {
-    scroll-padding-top: 140px !important;
-}
+/* Zoom-responsive container padding - removed fixed overrides, rely on dynamic calculation */
 
-.pdf-container.zoom-extreme,
-.pdf-container[data-zoom="extreme"] {
-    scroll-padding-top: 200px !important;
-}
-
-/* Custom scrollbar for PDF container */
-.pdf-container::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-}
-
-@media (max-width: 768px) {
-    .pdf-container::-webkit-scrollbar {
-        width: 2px;
-        height: 2px;
-    }
-}
-
-.pdf-container::-webkit-scrollbar-track {
-    background: #374151;
-    border-radius: 4px;
-}
-
-.pdf-container::-webkit-scrollbar-thumb {
-    background: #6b7280;
-    border-radius: 4px;
-}
-
-.pdf-container::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
-}
+/* Scrollbar already hidden above with display: none */
 
 /* Page transition effects */
 .pdf-page-transition {
@@ -360,12 +436,22 @@
     color: white;
 }
 
+/* Browser UI interference prevention */
+.react-pdf__Page {
+    /* Ensure pages are never cut off by browser UI */
+    scroll-margin-top: 150px;
+    scroll-margin-bottom: 150px;
+}
+
+/* High zoom level specific adjustments - removed all conflicting overrides */
+/* Dynamic padding calculation and CSS variables handle all zoom levels automatically */
+
 /* Print styles */
 @media print {
     .pdf-viewer-controls {
         display: none !important;
     }
-    
+
     .react-pdf__Page {
         box-shadow: none;
         margin: 0;
@@ -378,7 +464,7 @@
     .pdf-control-button {
         border: 2px solid white;
     }
-    
+
     .pdf-status-indicator {
         border: 1px solid currentColor;
     }

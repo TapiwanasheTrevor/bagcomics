@@ -58,8 +58,8 @@ Route::get('/comics/{comic:slug}', function (Comic $comic) {
 
     // Add PDF-related fields - use proper PDF URL method
     if ($comic->is_pdf_comic && $comic->pdf_file_path) {
-        $comicData['pdf_stream_url'] = $comic->getPdfUrl();
-        $comicData['pdf_download_url'] = $comic->getPdfUrl();
+        $comicData['pdf_stream_url'] = $comic->getPdfStreamUrl();
+        $comicData['pdf_download_url'] = route('comics.download', $comic->slug);
     }
 
     // Add user-specific data if authenticated
@@ -106,7 +106,7 @@ Route::get('/comics/{comic:slug}/read', function (Comic $comic) {
 
     // Add computed fields - use proper PDF URL method
     $comicData['cover_image_url'] = $comic->getCoverImageUrl();
-    $comicData['pdf_stream_url'] = $comic->getPdfUrl();
+    $comicData['pdf_stream_url'] = $comic->getPdfStreamUrl();
     
     return Inertia::render('comics/reader', [
         'comic' => $comicData
@@ -1159,6 +1159,31 @@ Route::get('/test-password-reset', function() {
             'email' => $user->email
         ], 500);
     }
+});
+
+// Debug reader page data
+Route::get('/debug-reader/{slug}', function($slug) {
+    $comic = \App\Models\Comic::where('slug', $slug)->first();
+    if (!$comic) {
+        return response()->json(['error' => 'Comic not found']);
+    }
+    
+    $comicData = $comic->load(['userProgress' => function ($query) {
+        if (auth()->check()) {
+            $query->where('user_id', auth()->id());
+        }
+    }])->toArray();
+    
+    // Add computed fields
+    $comicData['cover_image_url'] = $comic->getCoverImageUrl();
+    $comicData['pdf_stream_url'] = $comic->getPdfStreamUrl();
+    
+    return response()->json([
+        'comic_data' => $comicData,
+        'pdf_stream_url' => $comicData['pdf_stream_url'],
+        'title' => $comicData['title'],
+        'slug' => $comicData['slug']
+    ], 200, [], JSON_PRETTY_PRINT);
 });
 
 // Debug PDF file access

@@ -13,8 +13,9 @@ const setupPdfWorker = () => {
         // Fallback to CDN
         const cdnWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
-        // Use local worker file to avoid CORS and MIME type issues
-        pdfjs.GlobalWorkerOptions.workerSrc = '/js/pdfjs/pdf.worker.min.js';
+        // Use CDN worker matching the installed pdfjs-dist version to avoid mismatches
+        const cdnWorkerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+        pdfjs.GlobalWorkerOptions.workerSrc = cdnWorkerSrc;
 
         // Disable worker if there are issues (fallback to main thread)
         if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
@@ -85,6 +86,10 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const documentRef = useRef<any>(null);
     const [readingStartTime, setReadingStartTime] = useState<number>(Date.now());
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    const scrollPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+    const pinchStartDistanceRef = useRef<number | null>(null);
+    const initialScaleRef = useRef<number>(1.2);
 
     // Debug logging
     useEffect(() => {
@@ -323,6 +328,53 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         setShowProtectionOverlay(prev => !prev);
     }, []);
 
+    // Touch event handlers for mobile scrolling and pinch-to-zoom
+    const getDistance = (touches: TouchList) => {
+        if (touches.length < 2) return 0;
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        if (e.touches.length === 2) {
+            // Pinch gesture start
+            pinchStartDistanceRef.current = getDistance(e.touches);
+            initialScaleRef.current = scale;
+        } else if (e.touches.length === 1 && containerRef.current) {
+            // Single touch for scrolling
+            const touch = e.touches[0];
+            touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+            scrollPosRef.current = {
+                x: containerRef.current.scrollLeft,
+                y: containerRef.current.scrollTop
+            };
+        }
+    }, [scale]);
+
+    const handleTouchMove = useCallback((e: React.TouchEvent) => {
+        if (e.touches.length === 2 && pinchStartDistanceRef.current) {
+            // Pinch gesture move
+            const currentDistance = getDistance(e.touches);
+            const scaleChange = currentDistance / pinchStartDistanceRef.current;
+            const newScale = Math.min(Math.max(initialScaleRef.current * scaleChange, 0.5), 3.0);
+            setScale(newScale);
+        } else if (e.touches.length === 1 && touchStartRef.current && containerRef.current) {
+            // Single touch scrolling
+            const touch = e.touches[0];
+            const deltaX = touchStartRef.current.x - touch.clientX;
+            const deltaY = touchStartRef.current.y - touch.clientY;
+
+            containerRef.current.scrollLeft = scrollPosRef.current.x + deltaX;
+            containerRef.current.scrollTop = scrollPosRef.current.y + deltaY;
+        }
+    }, []);
+
+    const handleTouchEnd = useCallback(() => {
+        touchStartRef.current = null;
+        pinchStartDistanceRef.current = null;
+    }, []);
+
     return (
         <div
             className={`bg-gray-900 rounded-lg overflow-hidden pdf-protected no-print flex flex-col h-full ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
@@ -471,7 +523,14 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
             {/* PDF Content */}
             <div
                 ref={containerRef}
-                className={`relative flex-1 min-h-0 bg-gray-800 pdf-protected ${viewMode === 'continuous' ? 'overflow-hidden' : 'overflow-auto flex items-center justify-center'}`}
+                className={`relative flex-1 min-h-0 bg-gray-800 pdf-protected ${viewMode === 'continuous' ? 'overflow-auto' : 'overflow-auto flex items-center justify-center'} touch-pan-x touch-pan-y`}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                    WebkitOverflowScrolling: 'touch',
+                    overscrollBehavior: 'contain'
+                }}
             >
                 {loading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-800 z-10">
@@ -609,7 +668,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
                                         style: {
                                             userSelect: 'none',
                                             WebkitUserSelect: 'none',
-                                            pointerEvents: 'none',
+                                            pointerEvents: 'auto',
+                                            touchAction: 'pan-x pan-y',
                                             maxWidth: '100%',
                                             height: 'auto'
                                         }
@@ -644,7 +704,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
                                                         style: {
                                                             userSelect: 'none',
                                                             WebkitUserSelect: 'none',
-                                                            pointerEvents: 'none',
+                                                            pointerEvents: 'auto',
+                                                            touchAction: 'pan-x pan-y',
                                                             maxWidth: '100%',
                                                             height: 'auto'
                                                         }

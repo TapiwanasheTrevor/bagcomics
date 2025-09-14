@@ -25,7 +25,10 @@
       "Bash(find:*)",
       "Bash(docker-compose build:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Read(//Users/memimal/Library/Application Support/Herd/config/php/84/**)",
+      "Bash(xargs kill:*)",
+      "Read(//Users/memimal/Downloads/**)"
     ],
     "deny": []
   }

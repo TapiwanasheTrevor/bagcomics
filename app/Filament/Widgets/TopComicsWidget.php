@@ -21,22 +21,39 @@ class TopComicsWidget extends BaseWidget
         // Combine and rank comics by multiple metrics
         $topComics = collect();
         
-        foreach ($performance['most_viewed'] as $comic) {
-            $comic->metric_type = 'Most Viewed';
-            $comic->metric_value = $comic->getViewsInPeriod(30);
-            $topComics->push($comic);
+        // Handle most_viewed
+        if (isset($performance['most_viewed']) && $performance['most_viewed']) {
+            foreach ($performance['most_viewed'] as $comic) {
+                $comic->metric_type = 'Most Viewed';
+                $comic->metric_value = $comic->getViewsInPeriod(30);
+                $topComics->push($comic);
+            }
         }
 
-        foreach ($performance['most_purchased']->take(5) as $comic) {
-            $comic->metric_type = 'Most Purchased';
-            $comic->metric_value = $comic->period_purchases ?? 0;
-            $topComics->push($comic);
+        // Handle most_purchased
+        if (isset($performance['most_purchased']) && $performance['most_purchased']) {
+            $mostPurchased = is_array($performance['most_purchased']) 
+                ? collect($performance['most_purchased']) 
+                : $performance['most_purchased'];
+            
+            foreach ($mostPurchased->take(5) as $comic) {
+                $comic->metric_type = 'Most Purchased';
+                $comic->metric_value = $comic->period_purchases ?? 0;
+                $topComics->push($comic);
+            }
         }
 
-        foreach ($performance['best_rated']->take(5) as $comic) {
-            $comic->metric_type = 'Best Rated';
-            $comic->metric_value = number_format($comic->average_rating, 1) . '/5';
-            $topComics->push($comic);
+        // Handle best_rated
+        if (isset($performance['best_rated']) && $performance['best_rated']) {
+            $bestRated = is_array($performance['best_rated']) 
+                ? collect($performance['best_rated']) 
+                : $performance['best_rated'];
+                
+            foreach ($bestRated->take(5) as $comic) {
+                $comic->metric_type = 'Best Rated';
+                $comic->metric_value = number_format($comic->average_rating, 1) . '/5';
+                $topComics->push($comic);
+            }
         }
 
         return $table

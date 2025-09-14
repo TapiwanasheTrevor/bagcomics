@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Download, Maximize2, Minimize2, ChevronLeft, ChevronRight, RotateCw, ZoomIn, ZoomOut, RefreshCw, X } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker with local file to avoid CORS issues
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/pdfjs/pdf.worker.min.js';
+// Configure PDF.js worker from CDN matching installed version to avoid mismatches
+const altCdnWorkerSrc = `https://unpkg.com/pdfjs-dist@${(pdfjsLib as any).version}/build/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = altCdnWorkerSrc;
 
 interface AlternativePdfViewerProps {
     fileUrl: string;
@@ -32,7 +33,7 @@ const AlternativePdfViewer: React.FC<AlternativePdfViewerProps> = ({
     const [scale, setScale] = useState<number>(1.2);
     const [rotation, setRotation] = useState<number>(0);
     const [pdfDoc, setPdfDoc] = useState<any>(null);
-    
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +42,7 @@ const AlternativePdfViewer: React.FC<AlternativePdfViewerProps> = ({
         try {
             setLoading(true);
             setError(null);
-            
+
             const loadingTask = pdfjsLib.getDocument({
                 url: fileUrl,
                 httpHeaders: {
@@ -50,12 +51,12 @@ const AlternativePdfViewer: React.FC<AlternativePdfViewerProps> = ({
                 withCredentials: true,
                 verbosity: 0
             });
-            
+
             const pdf = await loadingTask.promise;
             setPdfDoc(pdf);
             setNumPages(pdf.numPages);
             setLoading(false);
-            
+
             // Render first page
             await renderPage(pdf, currentPage);
         } catch (err: any) {
@@ -68,24 +69,24 @@ const AlternativePdfViewer: React.FC<AlternativePdfViewerProps> = ({
     // Render specific page
     const renderPage = useCallback(async (pdf: any, pageNumber: number) => {
         if (!pdf || !canvasRef.current) return;
-        
+
         try {
             const page = await pdf.getPage(pageNumber);
             const viewport = page.getViewport({ scale, rotation });
-            
+
             const canvas = canvasRef.current;
             const context = canvas.getContext('2d');
-            
+
             if (!context) return;
-            
+
             canvas.height = viewport.height;
             canvas.width = viewport.width;
-            
+
             const renderContext = {
                 canvasContext: context,
                 viewport: viewport
             };
-            
+
             await page.render(renderContext).promise;
         } catch (err) {
             console.error('Page rendering error:', err);

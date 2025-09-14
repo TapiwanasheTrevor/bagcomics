@@ -77,7 +77,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
     const [isInLibrary, setIsInLibrary] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [showPdfViewer, setShowPdfViewer] = useState(false);
+    
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     
     // Reviews state
@@ -122,19 +122,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
         }
     };
 
-    // Prevent body scroll when PDF viewer is open
-    useEffect(() => {
-        if (showPdfViewer) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-
-        // Cleanup on unmount
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
-    }, [showPdfViewer]);
+    
 
     const trackComicView = async () => {
         try {
@@ -403,13 +391,13 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                                     {auth.user ? (
                                         <>
                                             {comic.user_has_access ? (
-                                                <button
+                                                <Link
+                                                    href={`/comics/${comic.slug}/read`}
                                                     className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                                                    onClick={() => comic.is_pdf_comic ? setShowPdfViewer(true) : null}
                                                 >
                                                     <Play className="w-5 h-5" />
-                                                    <span>{(comic.user_progress?.current_page || 1) > 1 ? 'Continue Reading' : 'Start Reading'}</span>
-                                                </button>
+                                                    <span>{(comic.user_progress?.progress_percentage || 0) > 0 ? 'Continue Reading' : 'Start Reading'}</span>
+                                                </Link>
                                             ) : (
                                                 <button
                                                     className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
@@ -753,42 +741,7 @@ export default function ComicShow({ comic: initialComic }: ComicShowProps) {
                 onReviewSubmitted={fetchReviews}
             />
 
-            {/* Enhanced PDF Reader */}
-            {showPdfViewer && comic.is_pdf_comic && (comic.pdf_stream_url || comic.pdf_file_path) && (
-                <EnhancedPdfReader
-                    fileUrl={comic.pdf_stream_url || `/comics/${comic.slug}/stream`}
-                    fileName={comic.pdf_file_name || `${comic.title}.pdf`}
-                    downloadUrl={comic.user_has_access ? (comic.pdf_download_url || `/comics/${comic.slug}/download`) : undefined}
-                    userHasDownloadAccess={comic.user_has_access}
-                    comicSlug={comic.slug}
-                    initialPage={comic.user_progress?.current_page || 1}
-                    onPageChange={async (page) => {
-                        if (auth.user) {
-                            try {
-                                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-                                await fetch(`/api/progress/comics/${comic.slug}`, {
-                                    method: 'PATCH',
-                                    credentials: 'include',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-Requested-With': 'XMLHttpRequest',
-                                        'Accept': 'application/json',
-                                        'X-CSRF-TOKEN': csrfToken || ''
-                                    },
-                                    body: JSON.stringify({
-                                        current_page: page,
-                                        total_pages: comic.page_count,
-                                    }),
-                                });
-                            } catch (error) {
-                                console.error('Error updating progress:', error);
-                            }
-                        }
-                    }}
-                    onClose={() => setShowPdfViewer(false)}
-                />
-            )}
+            
         </>
     );
 }
