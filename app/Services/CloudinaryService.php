@@ -3,27 +3,57 @@
 namespace App\Services;
 
 use Cloudinary\Cloudinary;
-use Cloudinary\Configuration\Configuration;
-use Cloudinary\Api\Upload\UploadApi;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 
 class CloudinaryService
 {
-    protected Cloudinary $cloudinary;
+    protected ?Cloudinary $cloudinary = null;
+    protected ?bool $isConfigured = null;
 
-    public function __construct()
+    /**
+     * Get the Cloudinary client (lazy initialization)
+     */
+    protected function getCloudinary(): ?Cloudinary
     {
-        $this->cloudinary = new Cloudinary([
-            'cloud' => [
-                'cloud_name' => config('services.cloudinary.cloud_name'),
-                'api_key' => config('services.cloudinary.api_key'),
-                'api_secret' => config('services.cloudinary.api_secret'),
-            ],
-            'url' => [
-                'secure' => true,
-            ],
-        ]);
+        if ($this->cloudinary === null && $this->isConfigured === null) {
+            $cloudName = config('services.cloudinary.cloud_name');
+            $apiKey = config('services.cloudinary.api_key');
+            $apiSecret = config('services.cloudinary.api_secret');
+
+            // Only initialize if all credentials are provided and non-empty
+            if (!empty($cloudName) && !empty($apiKey) && !empty($apiSecret)) {
+                try {
+                    $this->cloudinary = new Cloudinary([
+                        'cloud' => [
+                            'cloud_name' => $cloudName,
+                            'api_key' => $apiKey,
+                            'api_secret' => $apiSecret,
+                        ],
+                        'url' => [
+                            'secure' => true,
+                        ],
+                    ]);
+                    $this->isConfigured = true;
+                } catch (\Exception $e) {
+                    Log::warning('Cloudinary initialization failed: ' . $e->getMessage());
+                    $this->isConfigured = false;
+                }
+            } else {
+                $this->isConfigured = false;
+            }
+        }
+
+        return $this->cloudinary;
+    }
+
+    /**
+     * Check if Cloudinary is properly configured
+     */
+    public function isConfigured(): bool
+    {
+        $this->getCloudinary(); // Trigger lazy initialization
+        return $this->isConfigured ?? false;
     }
 
     /**
@@ -34,6 +64,15 @@ class CloudinaryService
         string $folder = 'comics',
         array $options = []
     ): array {
+        $cloudinary = $this->getCloudinary();
+
+        if ($cloudinary === null) {
+            return [
+                'success' => false,
+                'error' => 'Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.',
+            ];
+        }
+
         try {
             $uploadOptions = array_merge([
                 'folder' => "bagcomics/{$folder}",
@@ -44,12 +83,11 @@ class CloudinaryService
                 ],
             ], $options);
 
-            // Handle file path or UploadedFile
             $filePath = $file instanceof UploadedFile
                 ? $file->getRealPath()
                 : $file;
 
-            $result = $this->cloudinary->uploadApi()->upload($filePath, $uploadOptions);
+            $result = $cloudinary->uploadApi()->upload($filePath, $uploadOptions);
 
             return [
                 'success' => true,
@@ -134,8 +172,15 @@ class CloudinaryService
      */
     public function deleteImage(string $publicId): bool
     {
+        $cloudinary = $this->getCloudinary();
+
+        if ($cloudinary === null) {
+            Log::warning('Cloudinary delete skipped - not configured');
+            return false;
+        }
+
         try {
-            $result = $this->cloudinary->uploadApi()->destroy($publicId);
+            $result = $cloudinary->uploadApi()->destroy($publicId);
             return $result['result'] === 'ok';
         } catch (\Exception $e) {
             Log::error('Cloudinary delete failed', [
@@ -151,8 +196,15 @@ class CloudinaryService
      */
     public function deleteFolder(string $folder): bool
     {
+        $cloudinary = $this->getCloudinary();
+
+        if ($cloudinary === null) {
+            Log::warning('Cloudinary folder delete skipped - not configured');
+            return false;
+        }
+
         try {
-            $this->cloudinary->adminApi()->deleteResourcesByPrefix("bagcomics/{$folder}");
+            $cloudinary->adminApi()->deleteResourcesByPrefix("bagcomics/{$folder}");
             return true;
         } catch (\Exception $e) {
             Log::error('Cloudinary folder delete failed', [
@@ -166,8 +218,14 @@ class CloudinaryService
     /**
      * Generate optimized URL for an image
      */
-    public function getOptimizedUrl(string $publicId, array $transformations = []): string
+    public function getOptimizedUrl(string $publicId, array $transformations = []): ?string
     {
+        $cloudinary = $this->getCloudinary();
+
+        if ($cloudinary === null) {
+            return null;
+        }
+
         $defaultTransformations = [
             'fetch_format' => 'auto',
             'quality' => 'auto',
@@ -175,7 +233,7 @@ class CloudinaryService
 
         $mergedTransformations = array_merge($defaultTransformations, $transformations);
 
-        return $this->cloudinary->image($publicId)
+        return $cloudinary->image($publicId)
             ->addTransformation($mergedTransformations)
             ->toUrl();
     }
@@ -183,8 +241,8 @@ class CloudinaryService
     /**
      * Get Cloudinary instance for advanced operations
      */
-    public function getClient(): Cloudinary
+    public function getClient(): ?Cloudinary
     {
-        return $this->cloudinary;
+        return $this->getCloudinary();
     }
 }
