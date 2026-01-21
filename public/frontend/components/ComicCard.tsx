@@ -1,17 +1,19 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Comic } from '../types';
 
 interface ComicCardProps {
   comic: Comic;
-  onRead: (comic: Comic) => void;
+  onRead?: (comic: Comic) => void;
 }
 
 export const ComicCard: React.FC<ComicCardProps> = ({ comic, onRead }) => {
   return (
-    <div
+    <Link
+      to={`/comics/${comic.slug}`}
       className="group cursor-pointer flex flex-col"
-      onClick={() => onRead(comic)}
+      onClick={() => onRead?.(comic)}
     >
       {/* Cover Image */}
       <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-900 mb-3">
@@ -65,6 +67,6 @@ export const ComicCard: React.FC<ComicCardProps> = ({ comic, onRead }) => {
           ))}
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
