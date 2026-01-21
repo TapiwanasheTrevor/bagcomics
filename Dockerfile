@@ -82,11 +82,8 @@ RUN npm ci --verbose
 # Copy application files
 COPY . /var/www/html
 
-# Create basic .env file for build process
-RUN cp .env.example .env || echo "APP_KEY=" > .env
-
-# Generate app key for build
-RUN php artisan key:generate --force
+# Create basic .env file for build process (key will come from environment at runtime)
+RUN cp .env.example .env || echo "APP_KEY=base64:placeholder=" > .env
 
 # Run composer autoload dump (safe to run now)
 RUN composer dump-autoload --optimize
