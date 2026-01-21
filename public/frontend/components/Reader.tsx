@@ -16,7 +16,27 @@ export const Reader: React.FC<ReaderProps> = ({ comic, onBack, isBookmarked, onT
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const totalPages = comic.pages.length;
+  // Safely handle missing pages array
+  const pages = comic.pages || [];
+  const totalPages = pages.length;
+
+  // Show message if no pages available
+  if (totalPages === 0) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-white mb-4">{comic.title}</h2>
+          <p className="text-gray-400 mb-6">No pages available for this comic yet.</p>
+          <button
+            onClick={onBack}
+            className="bg-[#DC2626] text-white px-6 py-3 rounded-lg hover:bg-[#B91C1C] transition-colors"
+          >
+            ← Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Auto-hide controls after 3 seconds
   const resetHideTimer = useCallback(() => {
@@ -140,7 +160,7 @@ export const Reader: React.FC<ReaderProps> = ({ comic, onBack, isBookmarked, onT
       {/* Main Content - Comic Pages */}
       <main className="w-full max-w-3xl mx-auto pt-16 pb-32" onClick={toggleControls}>
         <div className="flex flex-col">
-          {comic.pages.map((page, index) => (
+          {pages.map((page, index) => (
             <div key={index} className="comic-page relative">
               <img
                 src={page}
@@ -149,7 +169,7 @@ export const Reader: React.FC<ReaderProps> = ({ comic, onBack, isBookmarked, onT
                 loading={index < 3 ? 'eager' : 'lazy'}
               />
               {/* Chapter marker on first page */}
-              {index === comic.pages.length - 1 && (
+              {index === pages.length - 1 && (
                 <div className="absolute bottom-8 left-0 right-0 text-center">
                   <h2 className="text-2xl md:text-3xl font-black italic tracking-wide text-[#FFD700] uppercase drop-shadow-lg">
                     CHAPTER ONE

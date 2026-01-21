@@ -10,7 +10,7 @@ export interface Comic {
   rating: number;
   totalChapters: number;
   episodes: number;
-  pages: string[];
+  pages?: string[];
   // Engagement
   likesCount?: number;
   commentsCount?: number;
