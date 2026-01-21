@@ -89,8 +89,11 @@ RUN cp .env.example .env && \
 # Run composer dump-autoload without triggering Laravel scripts
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --optimize --no-scripts
 
-# Build frontend assets
+# Build main Laravel/Vite frontend assets
 RUN npm run build
+
+# Build React SPA frontend (in public/frontend)
+RUN cd /var/www/html/public/frontend && npm install && npm run build
 
 # Publish Livewire config (may already exist, so allow failure)
 RUN php artisan vendor:publish --tag=livewire:config --force || true
