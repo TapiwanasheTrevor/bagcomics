@@ -33,9 +33,13 @@ const App: React.FC = () => {
           api.getFeatured(),
           api.getGenres(),
         ]);
-        setComics(recentRes.data || []);
-        setFeaturedComics(featuredRes.data || []);
-        setGenres(genresRes.data || []);
+        // API returns {data: {data: [...], meta: {...}}} structure
+        const recentData = recentRes?.data?.data || recentRes?.data || [];
+        const featuredData = featuredRes?.data?.data || featuredRes?.data || [];
+        const genresData = genresRes?.data?.data || genresRes?.data || [];
+        setComics(Array.isArray(recentData) ? recentData : []);
+        setFeaturedComics(Array.isArray(featuredData) ? featuredData : []);
+        setGenres(Array.isArray(genresData) ? genresData : []);
       } catch (err) {
         console.error('Failed to fetch comics:', err);
         setError('Failed to load comics. Please try again.');
@@ -93,7 +97,8 @@ const App: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.getComics({ genre, limit: 20 });
-      setComics(res.data || []);
+      const comicsData = res?.data?.data || res?.data || [];
+      setComics(Array.isArray(comicsData) ? comicsData : []);
     } catch (err) {
       console.error('Failed to filter by genre:', err);
     } finally {
