@@ -82,20 +82,23 @@ RUN npm ci --verbose
 # Copy application files
 COPY . /var/www/html
 
-# Create basic .env file for build process (key will come from environment at runtime)
-RUN cp .env.example .env || echo "APP_KEY=base64:placeholder=" > .env
+# Create .env file for build process (real values come from environment at runtime)
+RUN cp .env.example .env && \
+    echo "APP_KEY=base64:dGVtcG9yYXJ5a2V5Zm9yYnVpbGRvbmx5MTIzNA==" >> .env
 
-# Run composer autoload dump (safe to run now)
-RUN composer dump-autoload --optimize
+# Run composer dump-autoload without triggering Laravel scripts
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --optimize --no-scripts
 
 # Build frontend assets
 RUN npm run build
 
-# Publish Livewire config
-RUN php artisan vendor:publish --tag=livewire:config
+# Publish Livewire config (may already exist, so allow failure)
+RUN php artisan vendor:publish --tag=livewire:config --force || true
 
-# Configure Livewire for HTTPS
-RUN sed -i "s/'secure' => false,/'secure' => env('LIVEWIRE_SECURE', false),/" config/livewire.php
+# Configure Livewire for HTTPS (only if file exists)
+RUN if [ -f config/livewire.php ]; then \
+    sed -i "s/'secure' => false,/'secure' => env('LIVEWIRE_SECURE', false),/" config/livewire.php; \
+    fi
 
 # Set timezone to UTC
 RUN ln -snf /usr/share/zoneinfo/Etc/UTC /etc/localtime && echo Etc/UTC > /etc/timezone

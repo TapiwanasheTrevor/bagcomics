@@ -11,8 +11,7 @@ docker-compose.yml
 README.md
 *.md
 
-# Environment files
-.env.example
+# Environment files (keep .env.example for Docker build)
 .env.local
 .env.testing
 
