@@ -1263,6 +1263,75 @@ Route::get('/test-pdf-access/{slug}', function($slug) {
 });
 
 // ============================================
+// Setup Sample Comic with Pages from /public/sample/
+// ============================================
+
+Route::get('/setup-sample-comic', function() {
+    $baseUrl = config('app.url');
+
+    // Find or create The Anointer comic
+    $comic = \App\Models\Comic::where('slug', 'the-anointer-issue-1')
+        ->orWhere('title', 'like', '%Anointer%Issue #1%')
+        ->first();
+
+    if (!$comic) {
+        $comic = \App\Models\Comic::create([
+            'title' => 'The Anointer Issue #1',
+            'slug' => 'the-anointer-sample',
+            'author' => 'Oscar Lwalwe',
+            'description' => 'A sample comic to demonstrate the reader functionality.',
+            'genre' => 'action',
+            'is_free' => true,
+            'is_visible' => true,
+            'published_at' => now(),
+        ]);
+    }
+
+    // Set cover image from first page
+    $comic->cover_image_path = $baseUrl . '/sample/The%20Anointor%20Book%20one%20Final(Complete)%202_pages-to-jpg-0001.jpg';
+    $comic->save();
+
+    // Delete existing pages for this comic
+    $comic->pages()->delete();
+
+    // Add all 15 pages
+    $pages = [];
+    for ($i = 1; $i <= 15; $i++) {
+        $paddedNum = str_pad($i, 4, '0', STR_PAD_LEFT);
+        $filename = "The Anointor Book one Final(Complete) 2_pages-to-jpg-{$paddedNum}.jpg";
+        $url = $baseUrl . '/sample/' . rawurlencode($filename);
+
+        $page = \App\Models\ComicPage::create([
+            'comic_id' => $comic->id,
+            'page_number' => $i,
+            'image_url' => $url,
+            'image_path' => $url,
+        ]);
+        $pages[] = ['page' => $i, 'url' => $url];
+    }
+
+    $comic->page_count = 15;
+    $comic->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Sample comic setup complete',
+        'comic' => [
+            'id' => $comic->id,
+            'slug' => $comic->slug,
+            'title' => $comic->title,
+            'cover_url' => $comic->cover_image_url,
+            'page_count' => $comic->page_count,
+        ],
+        'pages' => $pages,
+        'test_urls' => [
+            'api' => $baseUrl . '/api/v2/comics/' . $comic->slug,
+            'frontend' => $baseUrl . '/',
+        ]
+    ]);
+});
+
+// ============================================
 // Comic Management Routes (for updating to Cloudinary)
 // ============================================
 
