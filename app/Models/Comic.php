@@ -48,6 +48,8 @@ class Comic extends Model
         'price',
         'is_visible',
         'published_at',
+        'likes_count',
+        'comments_count',
     ];
 
     protected $casts = [
@@ -70,6 +72,8 @@ class Comic extends Model
         'publication_year' => 'integer',
         'pdf_file_size' => 'integer',
         'reading_time_estimate' => 'integer',
+        'likes_count' => 'integer',
+        'comments_count' => 'integer',
     ];
 
     protected $appends = ['cover_image_url'];
@@ -132,9 +136,14 @@ class Comic extends Model
     public function getCoverImageUrl(): ?string
     {
         if ($this->cover_image_path) {
+            // If it's already a full URL (Cloudinary), return as-is
+            if (str_starts_with($this->cover_image_path, 'http')) {
+                return $this->cover_image_path;
+            }
+            // Otherwise, assume it's a local storage path
             return asset('storage/' . $this->cover_image_path);
         }
-        
+
         // Return a default cover image if no cover image is set
         return asset('images/default-comic-cover.svg');
     }
@@ -255,6 +264,48 @@ class Comic extends Model
     public function socialShares(): HasMany
     {
         return $this->hasMany(SocialShare::class);
+    }
+
+    // Image-based page system (new frontend)
+    public function pages(): HasMany
+    {
+        return $this->hasMany(ComicPage::class)->orderBy('page_number');
+    }
+
+    public function likes(): HasMany
+    {
+        return $this->hasMany(ComicLike::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(ComicComment::class);
+    }
+
+    public function approvedComments(): HasMany
+    {
+        return $this->comments()->where('is_approved', true);
+    }
+
+    public function isLikedByUser(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        return $this->likes()->where('user_id', $user->id)->exists();
+    }
+
+    public function isBookmarkedByUser(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        return $this->libraryEntries()->where('user_id', $user->id)->exists();
+    }
+
+    public function getPageUrls(): array
+    {
+        return $this->pages->map(fn($page) => $page->getFullImageUrl())->toArray();
     }
 
     // Enhanced methods for recommendations and similarity

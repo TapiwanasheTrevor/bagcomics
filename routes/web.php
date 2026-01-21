@@ -4,10 +4,12 @@ use App\Models\Comic;
 use App\Http\Controllers\PdfStreamController;
 use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 
+// New Frontend - Serve React SPA at root
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    return File::get(public_path('frontend/dist/index.html'));
 })->name('home');
 
 // Public comic routes

@@ -313,8 +313,55 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             Route::post('/workflow/versions/{version}/publish', [App\Http\Controllers\Api\Admin\CmsWorkflowController::class, 'publishVersion']);
             Route::post('/workflow/versions/{version}/schedule', [App\Http\Controllers\Api\Admin\CmsWorkflowController::class, 'scheduleVersion']);
         });
+
+        // Comic Upload Admin Routes (Cloudinary)
+        Route::prefix('comics')->group(function () {
+            Route::post('/create-from-directory', [App\Http\Controllers\Api\Admin\ComicUploadController::class, 'createFromDirectory']);
+            Route::post('/{comic}/pages', [App\Http\Controllers\Api\Admin\ComicUploadController::class, 'uploadPages']);
+            Route::post('/{comic}/cover', [App\Http\Controllers\Api\Admin\ComicUploadController::class, 'uploadCover']);
+            Route::post('/{comic}/reorder-pages', [App\Http\Controllers\Api\Admin\ComicUploadController::class, 'reorderPages']);
+            Route::delete('/{comic}/pages', [App\Http\Controllers\Api\Admin\ComicUploadController::class, 'deletePages']);
+            Route::delete('/{comic}', [App\Http\Controllers\Api\Admin\ComicUploadController::class, 'deleteComic']);
+        });
     });
 
 }); // End of main rate limiting group
 
+// ============================================
+// V2 API Routes - New Image-Based Frontend
+// ============================================
+Route::prefix('v2')->group(function () {
+
+    // Public routes
+    Route::get('/comics', [App\Http\Controllers\Api\V2\ComicController::class, 'index']);
+    Route::get('/comics/featured', [App\Http\Controllers\Api\V2\ComicController::class, 'featured']);
+    Route::get('/comics/recent', [App\Http\Controllers\Api\V2\ComicController::class, 'recent']);
+    Route::get('/genres', [App\Http\Controllers\Api\V2\ComicController::class, 'genres']);
+    Route::get('/comics/{comic:slug}', [App\Http\Controllers\Api\V2\ComicController::class, 'show']);
+    Route::get('/comics/{comic:slug}/pages', [App\Http\Controllers\Api\V2\ComicController::class, 'pages']);
+    Route::get('/comics/{comic:slug}/comments', [App\Http\Controllers\Api\V2\ComicController::class, 'getComments']);
+
+    // Auth routes
+    Route::post('/auth/login', [App\Http\Controllers\Api\V2\AuthController::class, 'login']);
+    Route::post('/auth/register', [App\Http\Controllers\Api\V2\AuthController::class, 'register']);
+
+    // Protected routes
+    Route::middleware('auth:sanctum')->group(function () {
+        // Auth
+        Route::post('/auth/logout', [App\Http\Controllers\Api\V2\AuthController::class, 'logout']);
+        Route::get('/auth/user', [App\Http\Controllers\Api\V2\AuthController::class, 'user']);
+        Route::post('/auth/refresh', [App\Http\Controllers\Api\V2\AuthController::class, 'refresh']);
+
+        // Library (bookmarks)
+        Route::get('/library', [App\Http\Controllers\Api\V2\LibraryController::class, 'index']);
+        Route::post('/library/{comic:slug}', [App\Http\Controllers\Api\V2\LibraryController::class, 'store']);
+        Route::delete('/library/{comic:slug}', [App\Http\Controllers\Api\V2\LibraryController::class, 'destroy']);
+        Route::patch('/library/{comic:slug}/progress', [App\Http\Controllers\Api\V2\LibraryController::class, 'updateProgress']);
+
+        // Engagement
+        Route::post('/comics/{comic:slug}/like', [App\Http\Controllers\Api\V2\ComicController::class, 'toggleLike']);
+        Route::post('/comics/{comic:slug}/rate', [App\Http\Controllers\Api\V2\ComicController::class, 'rate']);
+        Route::post('/comics/{comic:slug}/comments', [App\Http\Controllers\Api\V2\ComicController::class, 'addComment']);
+    });
+});
 
