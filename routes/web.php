@@ -1262,5 +1262,95 @@ Route::get('/test-pdf-access/{slug}', function($slug) {
     }
 });
 
+// ============================================
+// Comic Management Routes (for updating to Cloudinary)
+// ============================================
+
+// Update a comic's cover image URL
+Route::post('/api/admin/comics/{comic}/update-cover-url', function(\Illuminate\Http\Request $request, \App\Models\Comic $comic) {
+    $request->validate(['cover_url' => 'required|url']);
+
+    $comic->cover_image_path = $request->cover_url;
+    $comic->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Cover URL updated',
+        'comic' => [
+            'id' => $comic->id,
+            'slug' => $comic->slug,
+            'cover_image_url' => $comic->cover_image_url,
+        ]
+    ]);
+})->middleware('auth');
+
+// Add pages to a comic via URLs
+Route::post('/api/admin/comics/{comic}/add-pages-urls', function(\Illuminate\Http\Request $request, \App\Models\Comic $comic) {
+    $request->validate([
+        'pages' => 'required|array|min:1',
+        'pages.*' => 'required|url',
+    ]);
+
+    $startPage = $comic->pages()->max('page_number') ?? 0;
+    $added = [];
+
+    foreach ($request->pages as $index => $url) {
+        $pageNumber = $startPage + $index + 1;
+        $page = \App\Models\ComicPage::create([
+            'comic_id' => $comic->id,
+            'page_number' => $pageNumber,
+            'image_url' => $url,
+            'image_path' => $url, // Use URL as path for external images
+        ]);
+        $added[] = ['page_number' => $pageNumber, 'url' => $url];
+    }
+
+    $comic->page_count = $comic->pages()->count();
+    $comic->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => count($added) . ' pages added',
+        'pages' => $added,
+        'total_pages' => $comic->page_count,
+    ]);
+})->middleware('auth');
+
+// List all comics with their cover status
+Route::get('/api/admin/comics-status', function() {
+    $comics = \App\Models\Comic::select('id', 'slug', 'title', 'cover_image_path')
+        ->withCount('pages')
+        ->get()
+        ->map(fn($c) => [
+            'id' => $c->id,
+            'slug' => $c->slug,
+            'title' => $c->title,
+            'cover_image_path' => $c->cover_image_path,
+            'cover_image_url' => $c->cover_image_url,
+            'cover_is_cloudinary' => str_starts_with($c->cover_image_path ?? '', 'http'),
+            'pages_count' => $c->pages_count,
+        ]);
+
+    return response()->json([
+        'total' => $comics->count(),
+        'comics' => $comics,
+    ]);
+});
+
+// Cloudinary config check
+Route::get('/api/admin/cloudinary-status', function() {
+    $cloudName = config('services.cloudinary.cloud_name');
+    $apiKey = config('services.cloudinary.api_key');
+    $apiSecret = config('services.cloudinary.api_secret');
+
+    return response()->json([
+        'configured' => !empty($cloudName) && !empty($apiKey) && !empty($apiSecret),
+        'cloud_name' => $cloudName ?: 'NOT SET',
+        'api_key_set' => !empty($apiKey),
+        'api_secret_set' => !empty($apiSecret),
+        'instructions' => 'Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in Render environment variables',
+    ]);
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

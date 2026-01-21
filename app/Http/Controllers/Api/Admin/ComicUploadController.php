@@ -122,7 +122,8 @@ class ComicUploadController extends Controller
             );
 
             if ($result['success']) {
-                $comic->cover_image_path = $result['public_id'];
+                // Store the full URL for Cloudinary images
+                $comic->cover_image_path = $result['url'];
                 $comic->save();
 
                 return response()->json([
@@ -204,7 +205,8 @@ class ComicUploadController extends Controller
             // Upload first page as cover
             $coverResult = $this->cloudinary->uploadCover($files[0], $comic->slug);
             if ($coverResult['success']) {
-                $comic->cover_image_path = $coverResult['public_id'];
+                // Store the full URL for Cloudinary images
+                $comic->cover_image_path = $coverResult['url'];
                 $comic->save();
             }
 
