@@ -458,11 +458,9 @@ class PaymentService
 
             // Update payment record
             $payment->update([
-                'status' => 'completed',
-                'stripe_payment_intent_id' => $paymentIntent->id,
-                'payment_method' => $paymentIntent->charges->data[0]->payment_method_details->type ?? 'card',
-                'transaction_id' => $paymentIntent->charges->data[0]->id ?? null,
-                'processed_at' => now(),
+                'status' => 'succeeded',
+                'stripe_payment_method_id' => $paymentIntent->payment_method,
+                'paid_at' => now(),
             ]);
 
             // Add comic to user's library

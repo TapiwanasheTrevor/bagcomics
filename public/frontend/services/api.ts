@@ -58,6 +58,9 @@ export interface Comic {
   isBookmarked: boolean;
   isFree: boolean;
   price?: number;
+  hasAccess?: boolean;
+  previewOnly?: boolean;
+  totalPages?: number;
   userProgress?: {
     currentPage: number;
     totalPages: number;

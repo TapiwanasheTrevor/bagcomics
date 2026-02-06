@@ -7,113 +7,23 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 
-// New Frontend - Serve React SPA at root
-Route::get('/', function () {
+// ============================================
+// React SPA Frontend Routes
+// ============================================
+// The SPA handles: /, /store, /explore, /library, /blog, /comics/:slug, /comics/:slug/read
+// All these routes serve the same index.html; React Router handles client-side routing.
+
+$serveSpa = function () {
     return File::get(public_path('frontend/dist/index.html'));
-})->name('home');
+};
 
-// Public comic routes
-Route::get('/comics', function () {
-    return Inertia::render('comics/index');
-})->name('comics.index');
-
-Route::get('/library', function () {
-    return Inertia::render('library');
-})->name('library')->middleware('auth');
-
-Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
-    ->name('dashboard')
-    ->middleware('auth');
-
-Route::get('/trending', [App\Http\Controllers\TrendingController::class, 'index'])
-    ->name('trending');
-
-Route::get('/discover', [App\Http\Controllers\DiscoverController::class, 'index'])
-    ->name('discover');
-
-Route::get('/achievements', function () {
-    return Inertia::render('achievements');
-})->name('achievements')->middleware('auth');
-
-Route::get('/comics/{comic:slug}', function (Comic $comic) {
-    if (!$comic->is_visible) {
-        abort(404);
-    }
-
-    $comicData = $comic->load([
-        'approvedReviews' => function ($query) {
-            $query->select('comic_id', 'rating');
-        },
-        'userProgress' => function ($query) {
-            if (auth()->check()) {
-                $query->where('user_id', auth()->id());
-            }
-        }
-    ])->toArray();
-
-    // Add computed fields
-    $comicData['cover_image_url'] = $comic->getCoverImageUrl();
-    $comicData['reading_time_estimate'] = $comic->getReadingTimeEstimate();
-    $comicData['is_new_release'] = $comic->isNewRelease();
-    $comicData['average_rating'] = $comic->getCalculatedAverageRating();
-    $comicData['total_ratings'] = $comic->getCalculatedTotalRatings();
-
-    // Add PDF-related fields - use proper PDF URL method
-    if ($comic->is_pdf_comic && $comic->pdf_file_path) {
-        $comicData['pdf_stream_url'] = $comic->getPdfStreamUrl();
-        $comicData['pdf_download_url'] = route('comics.download', $comic->slug);
-    }
-
-    // Add user-specific data if authenticated
-    if (auth()->check()) {
-        $comicData['user_has_access'] = auth()->user()->hasAccessToComic($comic);
-        $comicData['user_progress'] = $comic->userProgress->first();
-    }
-
-    // Prepare sharing data for server-side meta tags
-    $shareData = [
-        'title' => $comic->title . ' - BagComics',
-        'description' => $comic->description ?: "Discover \"{$comic->title}\" by " . ($comic->author ?: 'Unknown Author') . ". Read this amazing comic now on BagComics!",
-        'image' => $comic->getCoverImageUrl() ? url($comic->getCoverImageUrl()) : null,
-        'url' => url("/comics/{$comic->slug}"),
-        'type' => 'article',
-    ];
-
-    return Inertia::render('comics/show', [
-        'comic' => $comicData,
-        'shareData' => $shareData
-    ])->withViewData([
-        'shareData' => $shareData
-    ]);
-})->name('comics.show');
-
-// Comic reading route
-Route::get('/comics/{comic:slug}/read', function (Comic $comic) {
-    if (!$comic->is_visible) {
-        abort(404);
-    }
-
-    // Check if user has access to this comic
-    if (auth()->check() && !auth()->user()->hasAccessToComic($comic)) {
-        abort(403, 'You do not have access to this comic. Please purchase it first.');
-    } elseif (!auth()->check() && !$comic->is_free) {
-        return redirect()->guest(route('login'));
-    }
-
-    $comicData = $comic->load(['userProgress' => function ($query) {
-        if (auth()->check()) {
-            $query->where('user_id', auth()->id());
-        }
-    }])->toArray();
-
-    // Add computed fields - use proper PDF URL method
-    $comicData['cover_image_url'] = $comic->getCoverImageUrl();
-    $comicData['pdf_stream_url'] = $comic->getPdfStreamUrl();
-    
-    return Inertia::render('comics/reader', [
-        'comic' => $comicData
-    ]);
-})->name('comics.read');
+Route::get('/', $serveSpa)->name('home');
+Route::get('/store', $serveSpa)->name('store');
+Route::get('/explore', $serveSpa)->name('explore');
+Route::get('/library', $serveSpa)->name('library');
+Route::get('/blog', $serveSpa)->name('blog');
+Route::get('/comics/{slug}', $serveSpa)->where('slug', '[a-z0-9\-]+')->name('comics.show');
+Route::get('/comics/{slug}/read', $serveSpa)->where('slug', '[a-z0-9\-]+')->name('comics.read');
 
 // PDF streaming routes
 Route::match(['GET', 'OPTIONS'], '/comics/{comic:slug}/stream', [PdfStreamController::class, 'stream'])->name('comics.stream');
@@ -618,7 +528,7 @@ Route::prefix('api')->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
+        return File::get(public_path('frontend/dist/index.html'));
     })->name('dashboard');
 });
 

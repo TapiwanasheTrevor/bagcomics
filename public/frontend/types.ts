@@ -16,9 +16,12 @@ export interface Comic {
   commentsCount?: number;
   isLiked?: boolean;
   isBookmarked?: boolean;
-  // Pricing
+  // Pricing & Access
   isFree?: boolean;
   price?: number;
+  hasAccess?: boolean;
+  previewOnly?: boolean;
+  totalPages?: number;
   // Progress
   userProgress?: {
     currentPage: number;

@@ -19,8 +19,7 @@ class ComicController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Comic::visible()
-            ->with(['pages'])
-            ->withCount(['likes', 'approvedComments as comments_count']);
+            ->withCount(['likes', 'approvedComments as comments_count', 'pages as page_count_relation']);
 
         // Genre filter
         if ($genre = $request->get('genre')) {
@@ -74,7 +73,7 @@ class ComicController extends Controller
     public function featured(): JsonResponse
     {
         $comics = Comic::visible()
-            ->with(['pages'])
+            ->withCount(['pages as page_count_relation'])
             ->orderByDesc('average_rating')
             ->orderByDesc('total_readers')
             ->limit(6)
@@ -93,7 +92,7 @@ class ComicController extends Controller
     public function recent(): JsonResponse
     {
         $comics = Comic::visible()
-            ->with(['pages'])
+            ->withCount(['pages as page_count_relation'])
             ->orderByDesc('created_at')
             ->limit(12)
             ->get();
@@ -118,8 +117,21 @@ class ComicController extends Controller
         $user = Auth::user();
 
         $data = $this->transformComic($comic, $user);
-        $data['pages'] = $comic->getPageUrls();
         $data['commentsCount'] = $comic->approvedComments->count();
+
+        // Only include page URLs if comic is free or user has access
+        $hasAccess = $comic->is_free || ($user && $user->hasAccessToComic($comic));
+        $data['hasAccess'] = $hasAccess;
+
+        if ($hasAccess) {
+            $data['pages'] = $comic->getPageUrls();
+        } else {
+            // Return preview (first 2 pages) for paid comics
+            $allPages = $comic->getPageUrls();
+            $data['pages'] = array_slice($allPages, 0, 2);
+            $data['previewOnly'] = true;
+            $data['totalPages'] = count($allPages);
+        }
 
         // User progress if authenticated
         if ($user) {
@@ -143,6 +155,18 @@ class ComicController extends Controller
     {
         if (!$comic->is_visible) {
             abort(404);
+        }
+
+        $user = Auth::user();
+        $hasAccess = $comic->is_free || ($user && $user->hasAccessToComic($comic));
+
+        if (!$hasAccess) {
+            return response()->json([
+                'error' => 'Purchase required',
+                'code' => 'ACCESS_DENIED',
+                'isFree' => $comic->is_free,
+                'price' => $comic->price,
+            ], 403);
         }
 
         return response()->json([

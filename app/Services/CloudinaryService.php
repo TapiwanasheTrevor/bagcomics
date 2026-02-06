@@ -77,6 +77,7 @@ class CloudinaryService
             $uploadOptions = array_merge([
                 'folder' => "bagcomics/{$folder}",
                 'resource_type' => 'image',
+                'type' => 'authenticated',
                 'transformation' => [
                     'quality' => 'auto:best',
                     'fetch_format' => 'auto',
@@ -119,6 +120,7 @@ class CloudinaryService
         return $this->uploadImage($file, "covers/{$comicSlug}", [
             'public_id' => "cover",
             'overwrite' => true,
+            'type' => 'upload', // Covers remain public for sharing/thumbnails
             'transformation' => [
                 'width' => 600,
                 'height' => 900,

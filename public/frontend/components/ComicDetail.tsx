@@ -55,7 +55,14 @@ export const ComicDetail: React.FC = () => {
     );
   }
 
+  const isAuthenticated = api.isAuthenticated();
+  const canRead = comic.isFree || comic.hasAccess;
+
   const handleStartReading = () => {
+    if (!canRead) {
+      // For paid comics without access, show purchase prompt
+      return;
+    }
     navigate(`/comics/${slug}/read`);
   };
 
@@ -204,17 +211,56 @@ export const ComicDetail: React.FC = () => {
                 </div>
               </div>
 
+              {/* Price Badge for paid comics */}
+              {!comic.isFree && !comic.hasAccess && (
+                <div className="mb-6 inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-2">
+                  <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span className="text-yellow-400 font-semibold">
+                    ${comic.price?.toFixed(2) || '0.00'}
+                  </span>
+                  <span className="text-yellow-400/70 text-sm">Purchase required</span>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={handleStartReading}
-                  className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                  Start Reading
-                </button>
+                {canRead ? (
+                  <button
+                    onClick={handleStartReading}
+                    className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Start Reading
+                  </button>
+                ) : !isAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      // Store return URL and redirect to login
+                      localStorage.setItem('bag_comics_return_url', `/comics/${slug}`);
+                      window.location.href = '/login';
+                    }}
+                    className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Sign in to Purchase
+                  </button>
+                ) : (
+                  <button
+                    className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
+                    onClick={() => alert('Purchase flow coming soon! This comic costs $' + (comic.price?.toFixed(2) || '0.00'))}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+                    </svg>
+                    Buy for ${comic.price?.toFixed(2) || '0.00'}
+                  </button>
+                )}
 
                 <button
                   onClick={handleShare}

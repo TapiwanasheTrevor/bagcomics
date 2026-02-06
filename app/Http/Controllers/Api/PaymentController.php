@@ -48,14 +48,12 @@ class PaymentController extends Controller
     {
         $request->validate([
             'payment_intent_id' => 'required|string',
-            'comic_id' => 'required|exists:comics,id'
         ]);
 
         try {
             $payment = $this->paymentService->processPayment(
                 $request->user(),
-                $request->payment_intent_id,
-                $request->comic_id
+                $request->payment_intent_id
             );
 
             return response()->json([

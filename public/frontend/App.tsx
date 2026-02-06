@@ -352,30 +352,40 @@ const ExplorePage: React.FC = () => {
 
 // Library page component
 const LibraryPage: React.FC = () => {
-  const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [comics, setComics] = useState<Comic[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('bag_comics_bookmarks');
-    if (saved) {
-      setBookmarks(JSON.parse(saved));
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchBookmarkedComics = async () => {
-      if (bookmarks.length === 0) return;
+    const fetchLibrary = async () => {
+      setLoading(true);
       try {
-        const res = await api.getComics({ limit: 100 });
-        const allComics = res?.data?.data || res?.data || [];
-        const bookmarked = allComics.filter((c: Comic) => bookmarks.includes(c.id));
-        setComics(bookmarked);
+        // Try authenticated library API first
+        if (api.isAuthenticated()) {
+          const res = await api.getLibrary();
+          const libraryData = res?.data?.data || res?.data || [];
+          setComics(Array.isArray(libraryData) ? libraryData : []);
+        } else {
+          // Fallback to localStorage bookmarks for unauthenticated users
+          const saved = localStorage.getItem('bag_comics_bookmarks');
+          if (saved) {
+            const bookmarkIds: string[] = JSON.parse(saved);
+            if (bookmarkIds.length > 0) {
+              const res = await api.getComics({ limit: 100 });
+              const allComics = res?.data?.data || res?.data || [];
+              const bookmarked = (Array.isArray(allComics) ? allComics : [])
+                .filter((c: Comic) => bookmarkIds.includes(c.id));
+              setComics(bookmarked);
+            }
+          }
+        }
       } catch (err) {
-        console.error('Failed to fetch bookmarked comics:', err);
+        console.error('Failed to fetch library:', err);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchBookmarkedComics();
-  }, [bookmarks]);
+    fetchLibrary();
+  }, []);
 
   return <Library bookmarks={comics} onRead={() => {}} />;
 };

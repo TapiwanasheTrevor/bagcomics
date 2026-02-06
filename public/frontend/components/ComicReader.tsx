@@ -62,6 +62,23 @@ export const ComicReader: React.FC = () => {
     };
   }, [controlsVisible, resetHideTimer]);
 
+  // Debounced progress save
+  const progressSaveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedPage = useRef<number>(-1);
+
+  const saveProgress = useCallback((page: number) => {
+    if (!slug || !api.isAuthenticated() || page === lastSavedPage.current) return;
+
+    if (progressSaveTimeout.current) {
+      clearTimeout(progressSaveTimeout.current);
+    }
+
+    progressSaveTimeout.current = setTimeout(() => {
+      api.updateProgress(slug, page + 1, totalPages).catch(() => {});
+      lastSavedPage.current = page;
+    }, 2000); // Save after 2 seconds of stability
+  }, [slug, totalPages]);
+
   // Track scroll progress
   useEffect(() => {
     const handleScroll = () => {
@@ -71,13 +88,20 @@ export const ComicReader: React.FC = () => {
         const scrolled = (winScroll / height) * 100;
         setProgress(scrolled);
         const pageIndex = Math.floor((scrolled / 100) * totalPages);
-        setCurrentPage(Math.min(pageIndex, totalPages - 1));
+        const newPage = Math.min(pageIndex, totalPages - 1);
+        setCurrentPage(newPage);
+        saveProgress(newPage);
       }
     };
 
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [totalPages]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (progressSaveTimeout.current) {
+        clearTimeout(progressSaveTimeout.current);
+      }
+    };
+  }, [totalPages, saveProgress]);
 
   const toggleControls = () => {
     setControlsVisible(!controlsVisible);
@@ -141,6 +165,27 @@ export const ComicReader: React.FC = () => {
         >
           Go Home
         </Link>
+      </div>
+    );
+  }
+
+  // Check access for paid content
+  if (comic && !comic.isFree && !comic.hasAccess) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-white mb-4">{comic.title}</h2>
+          <p className="text-gray-400 mb-4">This comic requires purchase to read.</p>
+          <p className="text-yellow-400 font-semibold mb-6">
+            ${comic.price?.toFixed(2) || '0.00'}
+          </p>
+          <Link
+            to={`/comics/${slug}`}
+            className="bg-[#DC2626] text-white px-6 py-3 rounded-lg hover:bg-[#B91C1C] transition-colors"
+          >
+            Go to Details
+          </Link>
+        </div>
       </div>
     );
   }
