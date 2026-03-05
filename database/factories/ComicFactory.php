@@ -19,10 +19,12 @@ class ComicFactory extends Factory
     public function definition(): array
     {
         $title = fake()->words(rand(2, 5), true);
+        $baseSlug = Str::slug($title);
+        $slug = substr($baseSlug, 0, 240) . '-' . strtolower(Str::random(8));
         
         return [
             'title' => $title,
-            'slug' => Str::slug($title),
+            'slug' => $slug,
             'description' => fake()->paragraphs(rand(2, 4), true),
             'author' => fake()->name(),
             'publisher' => fake()->randomElement([
@@ -62,7 +64,7 @@ class ComicFactory extends Factory
                 'noir'
             ], rand(2, 4)),
             'page_count' => fake()->numberBetween(20, 200),
-            'language' => fake()->randomElement(['en', 'es', 'fr', 'de', 'ja']),
+            'language' => 'fr',
             'isbn' => fake()->isbn13(),
             'publication_year' => fake()->numberBetween(1990, 2025),
             'average_rating' => fake()->randomFloat(2, 1, 5),
@@ -80,11 +82,9 @@ class ComicFactory extends Factory
                 'drug use',
                 'disturbing imagery'
             ], rand(1, 3)),
-            'is_free' => fake()->boolean(30), // 30% chance of being free
-            'price' => function (array $attributes) {
-                return $attributes['is_free'] ? null : fake()->randomFloat(2, 0.99, 19.99);
-            },
-            'is_visible' => fake()->boolean(95), // 95% chance of being visible
+            'is_free' => false,
+            'price' => fake()->randomFloat(2, 0.99, 19.99),
+            'is_visible' => true,
             'published_at' => fake()->dateTimeBetween('-2 years', 'now'),
             'pdf_file_name' => fake()->words(3, true) . '.pdf',
             'pdf_file_size' => fake()->numberBetween(1000000, 50000000), // 1MB to 50MB

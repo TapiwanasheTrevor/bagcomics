@@ -10,6 +10,14 @@ use App\Models\User;
 
 echo "Setting up admin user...\n";
 
+$adminEmail = getenv('ADMIN_DEFAULT_EMAIL') ?: 'admin@bagcomics.com';
+$adminPassword = getenv('ADMIN_DEFAULT_PASSWORD');
+
+if (!$adminPassword) {
+    $adminPassword = bin2hex(random_bytes(12));
+    echo "No ADMIN_DEFAULT_PASSWORD provided. Generated a random password for this run.\n";
+}
+
 // Add is_admin column if it doesn't exist
 if (!Schema::hasColumn('users', 'is_admin')) {
     Schema::table('users', function ($table) {
@@ -22,8 +30,8 @@ if (!Schema::hasColumn('users', 'is_admin')) {
 
 // Create or update admin user
 $user = User::firstOrCreate(
-    ['email' => 'admin@bagcomics.com'],
-    ['name' => 'Admin User', 'password' => bcrypt('password')]
+    ['email' => $adminEmail],
+    ['name' => 'Admin User', 'password' => bcrypt($adminPassword)]
 );
 $user->is_admin = true;
 $user->save();
@@ -64,5 +72,6 @@ echo "PDF URL: " . $comic->getPdfUrl() . "\n";
 
 echo "\nSetup complete!\n";
 echo "You can now:\n";
-echo "1. Login to admin at http://localhost:8000/admin with admin@bagcomics.com / password\n";
+echo "1. Login to admin at http://localhost:8000/admin with {$adminEmail}\n";
+echo "   Password: {$adminPassword}\n";
 echo "2. View the comic at http://localhost:8000/comics/ubuntu-tales-community\n";

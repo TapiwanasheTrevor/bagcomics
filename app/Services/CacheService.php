@@ -320,9 +320,12 @@ class CacheService
         Log::info('Invalidating user caches', ['user_id' => $userId]);
         
         // Clear user library caches (all pages)
-        $cacheKeys = Cache::getRedis()->keys("*user_library_{$userId}_*");
-        if (!empty($cacheKeys)) {
-            Cache::getRedis()->del($cacheKeys);
+        $redis = $this->getRedisClient();
+        if ($redis) {
+            $cacheKeys = $redis->keys("*user_library_{$userId}_*");
+            if (!empty($cacheKeys)) {
+                $redis->del($cacheKeys);
+            }
         }
         
         // Clear user recommendations
@@ -348,9 +351,14 @@ class CacheService
     {
         Log::info('Clearing search caches');
         
-        $searchKeys = Cache::getRedis()->keys('*search_*');
+        $redis = $this->getRedisClient();
+        if (!$redis) {
+            return;
+        }
+
+        $searchKeys = $redis->keys('*search_*');
         if (!empty($searchKeys)) {
-            Cache::getRedis()->del($searchKeys);
+            $redis->del($searchKeys);
         }
     }
 
@@ -383,7 +391,14 @@ class CacheService
     public function getCacheStats(): array
     {
         try {
-            $redis = Cache::getRedis();
+            $redis = $this->getRedisClient();
+            if (!$redis) {
+                return [
+                    'error' => 'Cache stats unavailable',
+                    'message' => 'Redis cache store not configured',
+                ];
+            }
+
             $info = $redis->info();
             
             return [
@@ -403,6 +418,23 @@ class CacheService
                 'message' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Resolve a Redis client only when the current cache store supports it.
+     */
+    private function getRedisClient(): mixed
+    {
+        try {
+            $store = Cache::getStore();
+            if (method_exists($store, 'getRedis')) {
+                return $store->getRedis();
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
     }
 
     /**

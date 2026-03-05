@@ -119,18 +119,20 @@ class ComicController extends Controller
         $data = $this->transformComic($comic, $user);
         $data['commentsCount'] = $comic->approvedComments->count();
 
+        $allPages = $comic->getPageUrls();
+        $data['totalPages'] = $comic->page_count ?? count($allPages);
+
         // Only include page URLs if comic is free or user has access
         $hasAccess = $comic->is_free || ($user && $user->hasAccessToComic($comic));
         $data['hasAccess'] = $hasAccess;
 
         if ($hasAccess) {
-            $data['pages'] = $comic->getPageUrls();
+            $data['pages'] = $allPages;
+            $data['previewOnly'] = false;
         } else {
             // Return preview (first 2 pages) for paid comics
-            $allPages = $comic->getPageUrls();
             $data['pages'] = array_slice($allPages, 0, 2);
             $data['previewOnly'] = true;
-            $data['totalPages'] = count($allPages);
         }
 
         // User progress if authenticated
@@ -188,6 +190,19 @@ class ComicController extends Controller
             ->values();
 
         return response()->json(['data' => $genres]);
+    }
+
+    /**
+     * Get like status for a comic
+     */
+    public function likeStatus(Comic $comic): JsonResponse
+    {
+        $user = Auth::user();
+
+        return response()->json([
+            'isLiked' => ComicLike::where('user_id', $user->id)->where('comic_id', $comic->id)->exists(),
+            'likesCount' => $comic->likes_count,
+        ]);
     }
 
     /**
@@ -325,6 +340,8 @@ class ComicController extends Controller
             'isBookmarked' => $user ? $comic->isBookmarkedByUser($user) : false,
             'isFree' => $comic->is_free,
             'price' => $comic->price,
+            'hasAccess' => $user ? $user->hasAccessToComic($comic) : $comic->is_free,
+            'totalPages' => $comic->page_count ?? $comic->pages()->count(),
         ];
     }
 }

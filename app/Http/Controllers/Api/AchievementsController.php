@@ -26,11 +26,22 @@ class AchievementsController extends Controller
 
         try {
             $achievements = $this->achievementService->getUserAchievements($user);
+            $achievementList = collect();
+
+            if ($achievements instanceof \Illuminate\Support\Collection) {
+                $achievementList = $achievements->values();
+            } elseif (is_array($achievements)) {
+                if (array_is_list($achievements)) {
+                    $achievementList = collect($achievements)->values();
+                } elseif (isset($achievements['unlocked']) && is_array($achievements['unlocked'])) {
+                    $achievementList = collect($achievements['unlocked'])->values();
+                }
+            }
 
             return response()->json([
                 'success' => true,
-                'achievements' => $achievements,
-                'total_achievements' => $achievements->count(),
+                'achievements' => $achievementList,
+                'total_achievements' => $achievementList->count(),
             ]);
 
         } catch (\Exception $e) {

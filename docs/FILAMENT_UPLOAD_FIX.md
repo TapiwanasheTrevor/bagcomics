@@ -79,7 +79,7 @@ Your ComicResource has these upload fields that should now work:
    SESSION_SECURE_COOKIE=true
    ```
 3. **Test file uploads** in Filament Admin Panel
-4. **Check logs** if issues persist: `/debug-log` endpoint
+4. **Check logs** if issues persist: `storage/logs/laravel.log`
 
 ## 🔍 Troubleshooting
 
@@ -90,7 +90,7 @@ If uploads still fail:
    - Session cookies being sent
    - HTTPS URLs being generated
 
-2. **Check Laravel logs** at `/debug-log` endpoint
+2. **Check Laravel logs** at `storage/logs/laravel.log`
 
 3. **Verify session** by visiting `/debug-upload-test` (POST request)
 

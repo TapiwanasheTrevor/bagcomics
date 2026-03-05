@@ -30,7 +30,7 @@ class SearchController extends Controller
 
         // Search query
         if ($request->filled('query')) {
-            $searchTerm = $request->query;
+            $searchTerm = $request->input('query');
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('author', 'LIKE', "%{$searchTerm}%")
@@ -96,7 +96,7 @@ class SearchController extends Controller
             default:
                 if ($request->filled('query')) {
                     // Order by relevance (title match first, then author, then description)
-                    $searchTerm = $request->query;
+                    $searchTerm = $request->input('query');
                     $query->orderByRaw("
                         CASE 
                             WHEN title LIKE ? THEN 1
@@ -151,7 +151,7 @@ class SearchController extends Controller
             'query' => 'required|string|min:2|max:100'
         ]);
 
-        $searchTerm = $request->query;
+        $searchTerm = $request->input('query');
         $cacheKey = "autocomplete.{$searchTerm}";
 
         $suggestions = Cache::remember($cacheKey, 300, function () use ($searchTerm) {

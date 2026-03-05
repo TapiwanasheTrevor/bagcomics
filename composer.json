@@ -29,7 +29,9 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "pestphp/pest": "^3.8",
-        "pestphp/pest-plugin-laravel": "^3.2"
+        "pestphp/pest-plugin-laravel": "^3.2",
+        "phpdocumentor/reflection-docblock": "^5.6",
+        "phpdocumentor/type-resolver": "^1.10"
     },
     "autoload": {
         "psr-4": {

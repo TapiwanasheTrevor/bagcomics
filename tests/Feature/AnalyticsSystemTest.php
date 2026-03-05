@@ -86,8 +86,9 @@ class AnalyticsSystemTest extends TestCase
     {
         $user = User::factory()->create();
         $comic = Comic::factory()->create();
-        
-        // Create reading progress
+        $comic2 = Comic::factory()->create();
+
+        // Create reading progress for two different comics
         UserComicProgress::factory()->create([
             'user_id' => $user->id,
             'comic_id' => $comic->id,
@@ -99,7 +100,7 @@ class AnalyticsSystemTest extends TestCase
 
         UserComicProgress::factory()->create([
             'user_id' => $user->id,
-            'comic_id' => $comic->id,
+            'comic_id' => $comic2->id,
             'progress_percentage' => 100,
             'reading_time_minutes' => 60,
             'is_completed' => true,
@@ -320,8 +321,9 @@ class AnalyticsSystemTest extends TestCase
     {
         $user = User::factory()->create();
         $comic = Comic::factory()->create();
+        $comic2 = Comic::factory()->create();
 
-        // Create reading sessions at different hours
+        // Create reading sessions at different hours for different comics
         UserComicProgress::factory()->create([
             'user_id' => $user->id,
             'comic_id' => $comic->id,
@@ -332,7 +334,7 @@ class AnalyticsSystemTest extends TestCase
 
         UserComicProgress::factory()->create([
             'user_id' => $user->id,
-            'comic_id' => $comic->id,
+            'comic_id' => $comic2->id,
             'reading_time_minutes' => 45,
             'device_type' => 'mobile',
             'last_read_at' => now()->setHour(20)->subDays(2),

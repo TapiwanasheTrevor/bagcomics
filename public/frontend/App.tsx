@@ -7,6 +7,8 @@ import { ComicReader } from './components/ComicReader';
 import { Library } from './components/Library';
 import { ViewMode, Comic } from './types';
 import api from './services/api';
+import LoginPage from './pages/Login';
+import RegisterPage from './pages/Register';
 
 // Home page component
 const HomePage: React.FC = () => {
@@ -409,7 +411,7 @@ const BlogPage: React.FC = () => {
 // Layout component with header and footer
 const Layout: React.FC<{ children: React.ReactNode; hideHeaderFooter?: boolean }> = ({ children, hideHeaderFooter }) => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isLoggedIn = api.isAuthenticated();
 
   const getCurrentView = (): ViewMode => {
     const path = window.location.pathname;
@@ -450,7 +452,7 @@ const Layout: React.FC<{ children: React.ReactNode; hideHeaderFooter?: boolean }
         currentView={getCurrentView()}
         onNavigate={handleNavigate}
         isLoggedIn={isLoggedIn}
-        onSignIn={() => setIsLoggedIn(true)}
+        onSignIn={() => navigate('/login')}
       />
 
       <main className="flex-1">
@@ -535,6 +537,8 @@ const App: React.FC = () => {
       <Route path="/explore" element={<Layout><ExplorePage /></Layout>} />
       <Route path="/library" element={<Layout><LibraryPage /></Layout>} />
       <Route path="/blog" element={<Layout><BlogPage /></Layout>} />
+      <Route path="/login" element={<Layout><LoginPage /></Layout>} />
+      <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
 
       {/* Comic detail page - has its own header */}
       <Route path="/comics/:slug" element={<ComicDetail />} />

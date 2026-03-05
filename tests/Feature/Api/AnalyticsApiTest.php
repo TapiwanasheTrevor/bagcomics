@@ -27,11 +27,6 @@ class AnalyticsApiTest extends TestCase
         
         $this->user = User::factory()->create();
         $this->adminUser = User::factory()->create();
-        
-        // Mock the admin permission check
-        $this->adminUser->shouldReceive('can')
-            ->with('access-admin')
-            ->andReturn(true);
     }
 
     public function test_reading_behavior_requires_authentication(): void
@@ -109,7 +104,7 @@ class AnalyticsApiTest extends TestCase
 
         // Mock the Gate check
         $this->app['auth']->shouldUse('sanctum');
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -142,7 +137,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -177,7 +172,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -216,7 +211,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -252,7 +247,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -286,7 +281,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -322,7 +317,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -362,7 +357,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -396,7 +391,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 
@@ -432,7 +427,7 @@ class AnalyticsApiTest extends TestCase
         $adminUser = User::factory()->create();
         Sanctum::actingAs($adminUser);
 
-        $this->app['gate']->define('access-admin', function ($user) use ($adminUser) {
+        \Illuminate\Support\Facades\Gate::define('access-admin', function ($user) use ($adminUser) {
             return $user->id === $adminUser->id;
         });
 

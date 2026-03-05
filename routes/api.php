@@ -14,10 +14,25 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
     // Public routes (higher rate limit for authenticated users)
     Route::get('/user', function (Request $request) {
         return $request->user();
-    })->middleware('auth:web');
+    })->middleware('auth:sanctum');
+
+    Route::get('/documentation', function () {
+        return response()->json([
+            'name' => config('app.name') . ' API',
+            'version' => 'v1',
+            'status' => 'available',
+            'generated_at' => now()->toISOString(),
+        ]);
+    });
 
     // Comics API Routes
     Route::prefix('comics')->group(function () {
+        // Backward-compatible search endpoints (legacy clients/tests)
+        Route::get('/search', [ComicSearchController::class, 'search']);
+        Route::get('/search/suggestions', [ComicSearchController::class, 'suggestions']);
+        Route::get('/search/autocomplete', [ComicSearchController::class, 'autocomplete']);
+        Route::get('/search/filter-options', [ComicSearchController::class, 'filterOptions']);
+        Route::get('/search/popular-terms', [ComicSearchController::class, 'popularTerms']);
         Route::get('/', [ComicController::class, 'index']);
         Route::get('/featured', [ComicController::class, 'featured']);
         Route::get('/new-releases', [ComicController::class, 'newReleases']);
@@ -39,13 +54,26 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
 
     // Public Social Sharing API Routes
     Route::prefix('social')->group(function () {
-        Route::post('/comics/{comic}/share', [App\Http\Controllers\Api\SocialSharingController::class, 'shareComic'])->middleware('optional.auth');
+        Route::post('/comics/{comic}/share', [App\Http\Controllers\Api\SocialSharingController::class, 'shareComic'])->middleware('auth:sanctum');
         Route::get('/comics/{comic}/metadata', [App\Http\Controllers\Api\SocialSharingController::class, 'getSharingMetadata']);
         Route::get('/comics/{comic}/stats', [App\Http\Controllers\Api\SocialSharingController::class, 'getComicSharingStats']);
     });
 
+    // Public Reviews API Routes
+    Route::prefix('reviews')->group(function () {
+        Route::get('/most-helpful', [App\Http\Controllers\Api\ReviewController::class, 'getMostHelpful']);
+        Route::get('/recent', [App\Http\Controllers\Api\ReviewController::class, 'getRecent']);
+        Route::get('/comics/{comicId}', function (Request $request, int $comicId) {
+            $comic = \App\Models\Comic::query()->findOrFail($comicId);
+
+            return app(\App\Http\Controllers\Api\ReviewController::class)->index($request, $comic);
+        })->whereNumber('comicId');
+        Route::get('/comics/{comic:slug}', [App\Http\Controllers\Api\ReviewController::class, 'index']);
+        Route::get('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'show'])->whereNumber('review');
+    });
+
     // Authenticated routes (stricter rate limiting)
-    Route::middleware(['auth:web', 'api.rate_limit:300,1'])->group(function () {
+    Route::middleware(['auth:sanctum', 'api.rate_limit:300,1'])->group(function () {
         
         // Reading Progress API Routes
         Route::prefix('comics/{comic}/progress')->group(function () {
@@ -66,7 +94,7 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
 
         // Payment API Routes
         Route::prefix('payments')->group(function () {
-            Route::post('/comics/{comic:slug}/intent', [PaymentController::class, 'createPaymentIntent']);
+            Route::post('/comics/{comic}/intent', [PaymentController::class, 'createPaymentIntent']);
             Route::post('/confirm', [PaymentController::class, 'confirmPayment']);
             Route::post('/process', [PaymentController::class, 'processPayment']);
             Route::get('/history', [PaymentController::class, 'history']);
@@ -116,7 +144,7 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             Route::post('/preferences', [App\Http\Controllers\Api\UserLibraryController::class, 'updatePreferences']);
             Route::post('/preferences/reset', [App\Http\Controllers\Api\UserLibraryController::class, 'resetPreferences']);
             
-            Route::prefix('comics/{comic:slug}')->group(function () {
+            Route::prefix('comics/{comic}')->group(function () {
                 Route::post('/add', [App\Http\Controllers\Api\UserLibraryController::class, 'addToLibrary']);
                 Route::delete('/remove', [App\Http\Controllers\Api\UserLibraryController::class, 'removeFromLibrary']);
                 Route::post('/favorite', [App\Http\Controllers\Api\UserLibraryController::class, 'toggleFavorite']);
@@ -135,16 +163,25 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
             Route::put('/notifications', [App\Http\Controllers\Api\UserPreferencesController::class, 'updateNotificationPreferences']);
         });
 
-        // Reviews API Routes
+        // Reviews API Routes (authenticated actions)
         Route::prefix('reviews')->group(function () {
-            Route::get('/comics/{comic}', [App\Http\Controllers\Api\ReviewController::class, 'index']);
-            Route::post('/comics/{comic}', [App\Http\Controllers\Api\ReviewController::class, 'store']);
-            Route::get('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'show']);
-            Route::put('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'update']);
-            Route::delete('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'destroy']);
-            Route::post('/{review}/vote', [App\Http\Controllers\Api\ReviewController::class, 'vote']);
-            Route::delete('/{review}/vote', [App\Http\Controllers\Api\ReviewController::class, 'removeVote']);
-            Route::post('/{review}/report', [App\Http\Controllers\Api\ReviewController::class, 'report']);
+            Route::post('/comics/{comicId}', function (Request $request, int $comicId) {
+                $comic = \App\Models\Comic::query()->findOrFail($comicId);
+
+                return app(\App\Http\Controllers\Api\ReviewController::class)->store($request, $comic);
+            })->whereNumber('comicId');
+            Route::post('/comics/{comic:slug}', [App\Http\Controllers\Api\ReviewController::class, 'store']);
+            Route::get('/comics/{comicId}/user', function (Request $request, int $comicId) {
+                $comic = \App\Models\Comic::query()->findOrFail($comicId);
+
+                return app(\App\Http\Controllers\Api\ReviewController::class)->getUserReview($comic);
+            })->whereNumber('comicId');
+            Route::get('/comics/{comic:slug}/user', [App\Http\Controllers\Api\ReviewController::class, 'getUserReview']);
+            Route::get('/user', [App\Http\Controllers\Api\ReviewController::class, 'getUserReviews']);
+            Route::put('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'update'])->whereNumber('review');
+            Route::delete('/{review}', [App\Http\Controllers\Api\ReviewController::class, 'destroy'])->whereNumber('review');
+            Route::post('/{review}/vote', [App\Http\Controllers\Api\ReviewController::class, 'vote'])->whereNumber('review');
+            Route::delete('/{review}/vote', [App\Http\Controllers\Api\ReviewController::class, 'removeVote'])->whereNumber('review');
         });
 
         // Recommendation API Routes
@@ -211,14 +248,15 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
 
     // Search and Discovery API Routes (Public)
     Route::prefix('comics')->group(function () {
-        Route::get('/search', [App\Http\Controllers\Api\SearchController::class, 'search']);
+        // Keep /comics/search aligned with advanced search contract.
+        Route::get('/search', [ComicSearchController::class, 'search']);
         Route::get('/autocomplete', [App\Http\Controllers\Api\SearchController::class, 'autocomplete']);
         Route::get('/tags', [App\Http\Controllers\Api\SearchController::class, 'getTags']);
         Route::get('/genres', [App\Http\Controllers\Api\SearchController::class, 'getGenres']);
     });
 
     // Admin routes (more restrictive rate limiting)
-    Route::middleware(['auth:web', 'can:access-admin', 'api.rate_limit:200,1'])->prefix('admin')->group(function () {
+    Route::middleware(['auth:sanctum', 'can:access-admin', 'api.rate_limit:200,1'])->prefix('admin')->group(function () {
         
         // Platform Analytics (Admin only)
         Route::prefix('analytics')->group(function () {
@@ -245,12 +283,14 @@ Route::middleware(['api.rate_limit:120,1'])->group(function () {
 
         // Review Moderation
         Route::prefix('reviews')->group(function () {
+            Route::get('/moderation', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'index']);
             Route::get('/pending', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'pending']);
             Route::get('/reported', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'reported']);
+            Route::post('/bulk-approve', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'bulkApprove']);
+            Route::post('/bulk-reject', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'bulkReject']);
             Route::post('/{review}/approve', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'approve']);
             Route::post('/{review}/reject', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'reject']);
-            Route::post('/{review}/flag', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'flag']);
-            Route::delete('/{review}', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'delete']);
+            Route::delete('/{review}', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'destroy']);
             Route::get('/statistics', [App\Http\Controllers\Api\Admin\ReviewModerationController::class, 'statistics']);
         });
         
@@ -352,6 +392,10 @@ Route::prefix('v2')->group(function () {
         Route::get('/auth/user', [App\Http\Controllers\Api\V2\AuthController::class, 'user']);
         Route::post('/auth/refresh', [App\Http\Controllers\Api\V2\AuthController::class, 'refresh']);
 
+        // Payments
+        Route::post('/payments/comics/{comic:slug}/intent', [App\Http\Controllers\Api\V2\PaymentController::class, 'createPaymentIntent']);
+        Route::post('/payments/confirm', [App\Http\Controllers\Api\V2\PaymentController::class, 'confirmPayment']);
+
         // Library (bookmarks)
         Route::get('/library', [App\Http\Controllers\Api\V2\LibraryController::class, 'index']);
         Route::post('/library/{comic:slug}', [App\Http\Controllers\Api\V2\LibraryController::class, 'store']);
@@ -359,9 +403,9 @@ Route::prefix('v2')->group(function () {
         Route::patch('/library/{comic:slug}/progress', [App\Http\Controllers\Api\V2\LibraryController::class, 'updateProgress']);
 
         // Engagement
+        Route::get('/comics/{comic:slug}/like-status', [App\Http\Controllers\Api\V2\ComicController::class, 'likeStatus']);
         Route::post('/comics/{comic:slug}/like', [App\Http\Controllers\Api\V2\ComicController::class, 'toggleLike']);
         Route::post('/comics/{comic:slug}/rate', [App\Http\Controllers\Api\V2\ComicController::class, 'rate']);
         Route::post('/comics/{comic:slug}/comments', [App\Http\Controllers\Api\V2\ComicController::class, 'addComment']);
     });
 });
-

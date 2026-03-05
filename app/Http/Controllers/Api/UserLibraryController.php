@@ -112,9 +112,8 @@ class UserLibraryController extends Controller
                 $accessType = 'free';
             } else {
                 // Check if user has purchased this comic
-                $purchase = $request->user()->purchases()
+                $purchase = $request->user()->successfulPayments()
                     ->where('comic_id', $comic->id)
-                    ->where('status', 'completed')
                     ->first();
                 
                 if ($purchase) {

@@ -48,11 +48,11 @@ echo "Configuring environment..."
 
 # Set database connection details from Render environment
 export DB_CONNECTION="pgsql"
-export DB_HOST="${DB_HOST:-dpg-d2a2nrh5pdvs73aaf51g-a}"
+export DB_HOST="${DB_HOST:-127.0.0.1}"
 export DB_PORT="${DB_PORT:-5432}"
-export DB_DATABASE="${DB_DATABASE:-bagcomics_db}"
+export DB_DATABASE="${DB_DATABASE:-bagcomics}"
 export DB_USERNAME="${DB_USERNAME:-bagcomics}"
-export DB_PASSWORD="${DB_PASSWORD:-fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6}"
+export DB_PASSWORD="${DB_PASSWORD:-}"
 
 # Handle DATABASE_URL if provided (Render style)
 if [ -n "$DATABASE_URL" ]; then
@@ -72,6 +72,11 @@ if [ -n "$DATABASE_URL" ]; then
     export DB_DATABASE="${DB_HOST_PORT_DB##*/}"
 fi
 
+if [ -z "$APP_KEY" ]; then
+    echo "ERROR: APP_KEY must be provided via environment variables."
+    exit 1
+fi
+
 echo "Database config: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
 
 # Create complete .env file with all required variables
@@ -79,7 +84,7 @@ echo "Creating complete .env file..."
 cat > /var/www/html/.env << EOF
 APP_NAME="${APP_NAME:-BAG Comics}"
 APP_ENV=${APP_ENV:-production}
-APP_KEY=${APP_KEY:-base64:nVb4U6m2ibg2Hcxah3zRuO+yGHc5gIPMKn06exhHOrc=}
+APP_KEY=${APP_KEY}
 APP_DEBUG=${APP_DEBUG:-false}
 APP_URL=${APP_URL:-https://bagcomics.onrender.com}
 

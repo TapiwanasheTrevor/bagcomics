@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Cloudinary\Cloudinary;
+use Cloudinary\Asset\DeliveryType;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 
@@ -143,6 +144,8 @@ class CloudinaryService
 
         return $this->uploadImage($file, "pages/{$comicSlug}", [
             'public_id' => "page_{$paddedNumber}",
+            // Store pages as authenticated assets to prevent public hotlinking
+            'type' => 'authenticated',
             'transformation' => [
                 'width' => 1200,
                 'quality' => 'auto:best',
@@ -236,6 +239,31 @@ class CloudinaryService
         $mergedTransformations = array_merge($defaultTransformations, $transformations);
 
         return $cloudinary->image($publicId)
+            ->addTransformation($mergedTransformations)
+            ->toUrl();
+    }
+
+    /**
+     * Generate signed URL for an authenticated asset
+     */
+    public function getAuthenticatedUrl(string $publicId, array $transformations = []): ?string
+    {
+        $cloudinary = $this->getCloudinary();
+
+        if ($cloudinary === null) {
+            return null;
+        }
+
+        $defaultTransformations = [
+            'fetch_format' => 'auto',
+            'quality' => 'auto',
+        ];
+
+        $mergedTransformations = array_merge($defaultTransformations, $transformations);
+
+        return $cloudinary->image($publicId)
+            ->deliveryType(DeliveryType::AUTHENTICATED)
+            ->signUrl(true)
             ->addTransformation($mergedTransformations)
             ->toUrl();
     }

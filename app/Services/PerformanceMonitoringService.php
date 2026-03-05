@@ -152,7 +152,14 @@ class PerformanceMonitoringService
     private function getCacheStatistics(): array
     {
         try {
-            $redis = Cache::getRedis();
+            $redis = $this->getRedisClient();
+            if (!$redis) {
+                return [
+                    'error' => 'Cache statistics unavailable',
+                    'message' => 'Redis cache store not configured',
+                ];
+            }
+
             $info = $redis->info();
             
             $hits = $info['keyspace_hits'] ?? 0;
@@ -169,6 +176,23 @@ class PerformanceMonitoringService
         } catch (\Exception $e) {
             return ['error' => 'Cache statistics unavailable'];
         }
+    }
+
+    /**
+     * Resolve a Redis client only when the active cache store supports it.
+     */
+    private function getRedisClient(): mixed
+    {
+        try {
+            $store = Cache::getStore();
+            if (method_exists($store, 'getRedis')) {
+                return $store->getRedis();
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
     }
 
     /**
@@ -327,7 +351,7 @@ class PerformanceMonitoringService
     private function parseRecentErrors(string $logFile): array
     {
         try {
-            $logContent = File::get($logFile);
+            $logContent = $this->readRecentLogChunk($logFile);
             $lines = explode("\n", $logContent);
             $errors = [];
             
@@ -360,6 +384,41 @@ class PerformanceMonitoringService
             Log::warning('Failed to parse error logs', ['error' => $e->getMessage()]);
             return [];
         }
+    }
+
+    /**
+     * Read only the most recent log bytes to avoid memory exhaustion on large log files.
+     */
+    private function readRecentLogChunk(string $logFile, int $maxBytes = 2097152): string
+    {
+        $fileSize = File::size($logFile);
+        if ($fileSize <= $maxBytes) {
+            return File::get($logFile);
+        }
+
+        $handle = fopen($logFile, 'rb');
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to open log file for reading.');
+        }
+
+        try {
+            fseek($handle, -$maxBytes, SEEK_END);
+            $chunk = fread($handle, $maxBytes);
+        } finally {
+            fclose($handle);
+        }
+
+        if ($chunk === false) {
+            throw new \RuntimeException('Unable to read recent log chunk.');
+        }
+
+        // Skip a potentially partial first line after seeking from the end.
+        $firstLineBreak = strpos($chunk, "\n");
+        if ($firstLineBreak !== false) {
+            return substr($chunk, $firstLineBreak + 1);
+        }
+
+        return $chunk;
     }
 
     /**

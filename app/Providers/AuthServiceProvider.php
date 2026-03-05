@@ -21,11 +21,16 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Define admin access gate
-        Gate::define('access-admin', function ($user) {
-            // For now, allow any authenticated user to access admin features
-            // In a real application, you would check for admin role/permissions
-            return $user !== null;
+        Gate::define('access-admin', function ($user): bool {
+            if ($user === null) {
+                return false;
+            }
+
+            if (method_exists($user, 'hasAdminAccess')) {
+                return (bool) $user->hasAdminAccess();
+            }
+
+            return (bool) ($user->is_admin ?? false);
         });
     }
 }

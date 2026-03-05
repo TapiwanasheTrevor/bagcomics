@@ -17,9 +17,9 @@ class ReviewModerationApiTest extends TestCase
     {
         parent::setUp();
         
-        $this->admin = User::factory()->create();
-        // Note: In a real application, you would assign admin role/permissions here
-        // For now, we'll assume the middleware is properly configured
+        $this->admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
     }
 
     public function test_get_reviews_for_moderation()
@@ -294,12 +294,6 @@ class ReviewModerationApiTest extends TestCase
         $response = $this->actingAs($regularUser)
             ->getJson('/api/admin/reviews/moderation');
 
-        // This would normally return 403 Forbidden with proper admin middleware
-        // For now, we'll assume the middleware is configured correctly
-        // $response->assertForbidden();
-        
-        // Since we don't have admin middleware set up in tests, 
-        // we'll just verify the endpoint exists
-        $response->assertOk();
+        $response->assertForbidden();
     }
 }

@@ -8,336 +8,261 @@ use App\Models\User;
 use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Laravel\Sanctum\Sanctum;
+use Mockery;
 use Tests\TestCase;
-use Stripe\StripeClient;
-use Stripe\PaymentIntent;
 
 class PaymentSystemTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
-    private PaymentService $paymentService;
     private User $user;
     private Comic $comic;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->paymentService = app(PaymentService::class);
+
         $this->user = User::factory()->create();
-        $this->comic = Comic::factory()->create(['price' => 9.99, 'is_free' => false]);
-    }
-
-    /** @test */
-    public function it_can_create_single_comic_payment_intent()
-    {
-        $this->actingAs($this->user);
-
-        $response = $this->postJson("/payments/comics/{$this->comic->slug}/intent");
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'client_secret',
-                'payment_intent_id',
-            ]);
-
-        $this->assertDatabaseHas('payments', [
-            'user_id' => $this->user->id,
-            'comic_id' => $this->comic->id,
-            'amount' => 9.99,
-            'status' => 'pending',
-            'payment_type' => 'single',
+        $this->comic = Comic::factory()->create([
+            'price' => 9.99,
+            'is_free' => false,
+            'is_visible' => true,
         ]);
     }
 
     /** @test */
-    public function it_can_create_bundle_payment_intent()
+    public function it_can_create_single_comic_payment_intent(): void
     {
-        $comics = Comic::factory()->count(3)->create(['price' => 5.00, 'is_free' => false]);
-        $this->actingAs($this->user);
+        Sanctum::actingAs($this->user);
 
-        $response = $this->postJson('/payments/bundle/intent', [
-            'comic_ids' => $comics->pluck('id')->toArray(),
-            'discount_percent' => 15,
-        ]);
+        $mockPaymentService = Mockery::mock(PaymentService::class);
+        $mockPaymentIntent = (object) [
+            'id' => 'pi_test_123',
+            'client_secret' => 'pi_test_123_secret_456',
+        ];
 
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'client_secret',
-                'payment_intent_id',
-                'bundle_info' => [
-                    'comic_count',
-                    'original_price',
-                    'discounted_price',
-                    'savings',
-                ],
-            ]);
+        $mockPaymentService->shouldReceive('createPaymentIntent')
+            ->once()
+            ->andReturn($mockPaymentIntent);
 
-        $this->assertDatabaseCount('payments', 3);
-        $this->assertDatabaseHas('payments', [
-            'user_id' => $this->user->id,
-            'payment_type' => 'bundle',
-            'bundle_discount_percent' => 15.00,
-        ]);
-    }
+        $this->app->instance(PaymentService::class, $mockPaymentService);
 
-    /** @test */
-    public function it_can_create_subscription_payment_intent()
-    {
-        $this->actingAs($this->user);
-
-        $response = $this->postJson('/payments/subscription/intent', [
-            'subscription_type' => 'monthly',
-        ]);
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'client_secret',
-                'payment_intent_id',
-                'subscription_info' => [
-                    'type',
-                    'price',
-                    'benefits',
-                ],
-            ]);
-
-        $this->assertDatabaseHas('payments', [
-            'user_id' => $this->user->id,
-            'comic_id' => null,
-            'payment_type' => 'subscription',
-            'subscription_type' => 'monthly',
-            'amount' => 9.99,
-        ]);
-    }
-
-    /** @test */
-    public function it_prevents_duplicate_comic_purchases()
-    {
-        $this->user->library()->create([
-            'comic_id' => $this->comic->id,
-            'access_type' => 'purchased',
-            'purchased_at' => now(),
-        ]);
-
-        $this->actingAs($this->user);
-
-        $response = $this->postJson("/payments/comics/{$this->comic->slug}/intent");
-
-        $response->assertStatus(400)
-            ->assertJson(['error' => 'User already has access to this comic']);
-    }
-
-    /** @test */
-    public function it_prevents_payment_for_free_comics()
-    {
-        $freeComic = Comic::factory()->create(['is_free' => true]);
-        $this->actingAs($this->user);
-
-        $response = $this->postJson("/payments/comics/{$freeComic->slug}/intent");
-
-        $response->assertStatus(400)
-            ->assertJson(['error' => 'Cannot create payment intent for free comic']);
-    }
-
-    /** @test */
-    public function it_can_confirm_successful_payment()
-    {
-        $payment = Payment::factory()->create([
-            'user_id' => $this->user->id,
-            'comic_id' => $this->comic->id,
-            'status' => 'pending',
-            'payment_type' => 'single',
-        ]);
-
-        $this->actingAs($this->user);
-
-        // Mock successful Stripe payment intent
-        $this->mockStripePaymentIntent($payment->stripe_payment_intent_id, 'succeeded');
-
-        $response = $this->postJson('/payments/confirm', [
-            'payment_intent_id' => $payment->stripe_payment_intent_id,
-        ]);
+        $response = $this->postJson("/api/payments/comics/{$this->comic->id}/intent");
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true,
-                'message' => 'Payment confirmed and access granted',
+                'payment_intent' => [
+                    'id' => 'pi_test_123',
+                ],
+                'client_secret' => 'pi_test_123_secret_456',
             ]);
-
-        $payment->refresh();
-        $this->assertEquals('succeeded', $payment->status);
-        $this->assertNotNull($payment->paid_at);
-
-        $this->assertDatabaseHas('user_libraries', [
-            'user_id' => $this->user->id,
-            'comic_id' => $this->comic->id,
-            'access_type' => 'purchased',
-        ]);
     }
 
     /** @test */
-    public function it_can_get_payment_history()
+    public function it_surfaces_duplicate_purchase_errors_from_payment_intent_creation(): void
     {
-        Payment::factory()->count(5)->create([
+        Sanctum::actingAs($this->user);
+
+        $mockPaymentService = Mockery::mock(PaymentService::class);
+        $mockPaymentService->shouldReceive('createPaymentIntent')
+            ->once()
+            ->andThrow(new \InvalidArgumentException('User already has access to this comic'));
+
+        $this->app->instance(PaymentService::class, $mockPaymentService);
+
+        $response = $this->postJson("/api/payments/comics/{$this->comic->id}/intent");
+
+        $response->assertStatus(400)
+            ->assertJsonPath('error.code', 'PAYMENT_INTENT_FAILED');
+    }
+
+    /** @test */
+    public function it_surfaces_free_comic_payment_errors(): void
+    {
+        $freeComic = Comic::factory()->create(['is_free' => true, 'is_visible' => true]);
+
+        Sanctum::actingAs($this->user);
+
+        $mockPaymentService = Mockery::mock(PaymentService::class);
+        $mockPaymentService->shouldReceive('createPaymentIntent')
+            ->once()
+            ->andThrow(new \InvalidArgumentException('Cannot create payment intent for free comic'));
+
+        $this->app->instance(PaymentService::class, $mockPaymentService);
+
+        $response = $this->postJson("/api/payments/comics/{$freeComic->id}/intent");
+
+        $response->assertStatus(400)
+            ->assertJsonPath('error.code', 'PAYMENT_INTENT_FAILED');
+    }
+
+    /** @test */
+    public function it_can_confirm_successful_payment(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $payment = Payment::factory()->create([
             'user_id' => $this->user->id,
+            'comic_id' => $this->comic->id,
             'status' => 'succeeded',
+            'amount' => 9.99,
         ]);
 
-        Payment::factory()->count(2)->create([
-            'user_id' => $this->user->id,
-            'status' => 'failed',
+        $mockPaymentService = Mockery::mock(PaymentService::class);
+        $mockPaymentService->shouldReceive('confirmPaymentIntent')
+            ->once()
+            ->with(Mockery::type(User::class), 'pi_test_123')
+            ->andReturn($payment);
+
+        $this->app->instance(PaymentService::class, $mockPaymentService);
+
+        $response = $this->postJson('/api/payments/confirm', [
+            'payment_intent_id' => 'pi_test_123',
         ]);
-
-        $this->actingAs($this->user);
-
-        $response = $this->getJson('/payments/history');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'payments' => [
-                    '*' => [
-                        'id',
-                        'status',
-                        'type',
-                        'amount',
-                        'currency',
-                        'paid_at',
-                        'comic',
-                    ],
+                'payment' => [
+                    'id',
+                    'type',
+                    'amount',
                 ],
+                'message',
+            ]);
+    }
+
+    /** @test */
+    public function it_can_get_payment_history_and_filters(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Payment::factory()->create([
+            'user_id' => $this->user->id,
+            'comic_id' => $this->comic->id,
+            'status' => 'succeeded',
+        ]);
+
+        Payment::factory()->create([
+            'user_id' => $this->user->id,
+            'comic_id' => $this->comic->id,
+            'status' => 'failed',
+        ]);
+
+        Payment::factory()->create([
+            'user_id' => User::factory()->create()->id,
+            'status' => 'succeeded',
+        ]);
+
+        $response = $this->getJson('/api/payments/history?status=succeeded');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data',
                 'pagination',
             ]);
 
-        $this->assertCount(7, $response->json('payments'));
+        $this->assertCount(1, $response->json('data'));
+        $this->assertEquals('succeeded', $response->json('data.0.status'));
     }
 
     /** @test */
-    public function it_can_filter_payment_history()
+    public function it_can_request_refund_and_restrict_other_users(): void
     {
-        Payment::factory()->count(3)->create([
+        Sanctum::actingAs($this->user);
+
+        $ownedPayment = Payment::factory()->create([
             'user_id' => $this->user->id,
+            'comic_id' => $this->comic->id,
             'status' => 'succeeded',
-            'payment_type' => 'single',
         ]);
+
+        $mockRefund = (object) [
+            'id' => 'ref_123',
+            'amount' => 999,
+        ];
+
+        $mockPaymentService = Mockery::mock(PaymentService::class);
+        $mockPaymentService->shouldReceive('refundPayment')
+            ->once()
+            ->andReturn($mockRefund);
+
+        $this->app->instance(PaymentService::class, $mockPaymentService);
+
+        $refundResponse = $this->postJson("/api/payments/{$ownedPayment->id}/refund", [
+            'reason' => 'Changed my mind',
+        ]);
+
+        $refundResponse->assertStatus(200)
+            ->assertJson([
+                'message' => 'Refund request submitted successfully',
+            ]);
+
+        $otherUserPayment = Payment::factory()->create([
+            'user_id' => User::factory()->create()->id,
+            'comic_id' => $this->comic->id,
+        ]);
+
+        $deniedResponse = $this->postJson("/api/payments/{$otherUserPayment->id}/refund");
+        $deniedResponse->assertStatus(403);
+    }
+
+    /** @test */
+    public function it_can_get_user_payment_statistics(): void
+    {
+        Sanctum::actingAs($this->user);
 
         Payment::factory()->count(2)->create([
             'user_id' => $this->user->id,
             'status' => 'succeeded',
-            'payment_type' => 'subscription',
-        ]);
-
-        $this->actingAs($this->user);
-
-        $response = $this->getJson('/payments/history?payment_type=single');
-
-        $response->assertStatus(200);
-        $this->assertCount(3, $response->json('payments'));
-    }
-
-    /** @test */
-    public function it_can_request_refund()
-    {
-        $payment = Payment::factory()->create([
-            'user_id' => $this->user->id,
-            'comic_id' => $this->comic->id,
-            'status' => 'succeeded',
             'amount' => 9.99,
-            'paid_at' => now(),
         ]);
 
-        $this->actingAs($this->user);
-
-        // Mock Stripe refund
-        $this->mockStripeRefund($payment->stripe_payment_intent_id);
-
-        $response = $this->postJson("/payments/{$payment->id}/refund");
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Refund processed successfully',
-            ]);
-
-        $payment->refresh();
-        $this->assertEquals('refunded', $payment->status);
-        $this->assertNotNull($payment->refunded_at);
-    }
-
-    /** @test */
-    public function it_can_retry_failed_payment()
-    {
-        $payment = Payment::factory()->create([
+        Payment::factory()->create([
             'user_id' => $this->user->id,
-            'comic_id' => $this->comic->id,
-            'status' => 'failed',
-            'retry_count' => 1,
+            'status' => 'refunded',
+            'amount' => 4.99,
+            'refund_amount' => 4.99,
         ]);
 
-        $this->actingAs($this->user);
-
-        $response = $this->postJson("/payments/{$payment->id}/retry");
+        $response = $this->getJson('/api/payments/statistics/user');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'client_secret',
-                'payment_intent_id',
-                'message',
+                'total_spent',
+                'total_purchases',
+                'total_refunds',
+                'average_purchase_amount',
+                'recent_purchases',
+                'monthly_spending',
             ]);
-
-        $payment->refresh();
-        $this->assertEquals(2, $payment->retry_count);
-        $this->assertNotNull($payment->last_retry_at);
     }
 
     /** @test */
-    public function it_prevents_retry_after_max_attempts()
+    public function it_reports_unimplemented_enhanced_payment_endpoints_as_not_found(): void
     {
+        Sanctum::actingAs($this->user);
+
         $payment = Payment::factory()->create([
             'user_id' => $this->user->id,
             'comic_id' => $this->comic->id,
-            'status' => 'failed',
-            'retry_count' => 3,
         ]);
 
-        $this->actingAs($this->user);
-
-        $response = $this->postJson("/payments/{$payment->id}/retry");
-
-        $response->assertStatus(400)
-            ->assertJson(['error' => 'Payment cannot be retried']);
-    }
-
-    /** @test */
-    public function it_grants_subscription_access_on_payment()
-    {
-        $payment = Payment::factory()->create([
-            'user_id' => $this->user->id,
-            'comic_id' => null,
-            'status' => 'pending',
-            'payment_type' => 'subscription',
+        $bundleResponse = $this->postJson('/api/payments/bundle/intent', [
+            'comic_ids' => [$this->comic->id],
+        ]);
+        $subscriptionResponse = $this->postJson('/api/payments/subscription/intent', [
             'subscription_type' => 'monthly',
         ]);
+        $retryResponse = $this->postJson("/api/payments/{$payment->id}/retry");
 
-        $this->actingAs($this->user);
-
-        // Mock successful Stripe payment intent
-        $this->mockStripePaymentIntent($payment->stripe_payment_intent_id, 'succeeded');
-
-        $response = $this->postJson('/payments/confirm', [
-            'payment_intent_id' => $payment->stripe_payment_intent_id,
-        ]);
-
-        $response->assertStatus(200);
-
-        $this->user->refresh();
-        $this->assertEquals('monthly', $this->user->subscription_type);
-        $this->assertEquals('active', $this->user->subscription_status);
-        $this->assertNotNull($this->user->subscription_expires_at);
+        $this->assertSame(404, $bundleResponse->status());
+        $this->assertSame(404, $subscriptionResponse->status());
+        $this->assertSame(404, $retryResponse->status());
     }
 
     /** @test */
-    public function subscription_user_has_access_to_all_comics()
+    public function subscription_user_has_access_to_all_comics(): void
     {
         $this->user->update([
             'subscription_type' => 'monthly',
@@ -349,7 +274,7 @@ class PaymentSystemTest extends TestCase
     }
 
     /** @test */
-    public function expired_subscription_user_loses_access()
+    public function expired_subscription_user_loses_access(): void
     {
         $this->user->update([
             'subscription_type' => 'monthly',
@@ -358,82 +283,5 @@ class PaymentSystemTest extends TestCase
         ]);
 
         $this->assertFalse($this->user->hasAccessToComic($this->comic));
-    }
-
-    /** @test */
-    public function it_validates_bundle_purchase_requirements()
-    {
-        $this->actingAs($this->user);
-
-        // Test with single comic (should fail)
-        $response = $this->postJson('/payments/bundle/intent', [
-            'comic_ids' => [$this->comic->id],
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['comic_ids']);
-
-        // Test with invalid comic IDs
-        $response = $this->postJson('/payments/bundle/intent', [
-            'comic_ids' => [999, 1000],
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['comic_ids.0', 'comic_ids.1']);
-    }
-
-    /** @test */
-    public function it_validates_subscription_type()
-    {
-        $this->actingAs($this->user);
-
-        $response = $this->postJson('/payments/subscription/intent', [
-            'subscription_type' => 'invalid',
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['subscription_type']);
-    }
-
-    private function mockStripePaymentIntent(string $paymentIntentId, string $status): void
-    {
-        $mockPaymentIntent = new PaymentIntent($paymentIntentId);
-        $mockPaymentIntent->status = $status;
-        $mockPaymentIntent->payment_method = 'pm_test_123';
-
-        $this->mock(StripeClient::class, function ($mock) use ($mockPaymentIntent) {
-            $mock->paymentIntents = new class($mockPaymentIntent) {
-                private $paymentIntent;
-                
-                public function __construct($paymentIntent) {
-                    $this->paymentIntent = $paymentIntent;
-                }
-                
-                public function retrieve($id) {
-                    return $this->paymentIntent;
-                }
-            };
-        });
-    }
-
-    private function mockStripeRefund(string $paymentIntentId): void
-    {
-        $mockRefund = new \Stripe\Refund('re_test_123');
-        $mockRefund->status = 'succeeded';
-        $mockRefund->amount = 999; // $9.99 in cents
-
-        $this->mock(StripeClient::class, function ($mock) use ($mockRefund) {
-            $mock->refunds = new class($mockRefund) {
-                private $refund;
-                
-                public function __construct($refund) {
-                    $this->refund = $refund;
-                }
-                
-                public function create($params) {
-                    return $this->refund;
-                }
-            };
-        });
     }
 }

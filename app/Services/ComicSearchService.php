@@ -11,6 +11,35 @@ use Laravel\Scout\Builder as ScoutBuilder;
 class ComicSearchService
 {
     /**
+     * Explicit select list to avoid SELECT * in high-traffic search queries.
+     */
+    private const SEARCH_SELECT_COLUMNS = [
+        'id',
+        'title',
+        'slug',
+        'author',
+        'genre',
+        'tags',
+        'description',
+        'page_count',
+        'language',
+        'average_rating',
+        'total_ratings',
+        'total_readers',
+        'view_count',
+        'publication_year',
+        'publisher',
+        'series_id',
+        'cover_image_path',
+        'has_mature_content',
+        'content_warnings',
+        'is_free',
+        'price',
+        'is_visible',
+        'published_at',
+    ];
+
+    /**
      * Perform advanced search with filters
      */
     public function search(array $params = []): LengthAwarePaginator
@@ -21,13 +50,15 @@ class ComicSearchService
         $perPage = $params['per_page'] ?? 20;
         $page = $params['page'] ?? 1;
 
-        // Use Scout for text search if query is provided
-        if (!empty($query)) {
-            return $this->searchWithScout($query, $filters, $sort, $perPage, $page);
+        if (!empty($query) && $this->canUseScout()) {
+            try {
+                return $this->searchWithScout($query, $filters, $sort, $perPage, $page);
+            } catch (\Throwable) {
+                // Fall back to SQL search if the configured Scout engine is unavailable.
+            }
         }
 
-        // Use Eloquent for filtering without text search
-        return $this->searchWithEloquent($filters, $sort, $perPage, $page);
+        return $this->searchWithEloquent($filters, $sort, $perPage, $page, $query);
     }
 
     /**
@@ -50,11 +81,22 @@ class ComicSearchService
     /**
      * Search using Eloquent query builder
      */
-    protected function searchWithEloquent(array $filters, string $sort, int $perPage, int $page): LengthAwarePaginator
+    protected function searchWithEloquent(array $filters, string $sort, int $perPage, int $page, string $searchQuery = ''): LengthAwarePaginator
     {
         $query = Comic::query()
             ->where('is_visible', true)
             ->whereNotNull('published_at');
+
+        if ($searchQuery !== '') {
+            $likeOperator = config('database.default') === 'pgsql' ? 'ILIKE' : 'LIKE';
+            $query->where(function (Builder $builder) use ($searchQuery, $likeOperator) {
+                $wildcardQuery = "%{$searchQuery}%";
+                $builder->where('title', $likeOperator, $wildcardQuery)
+                    ->orWhere('author', $likeOperator, $wildcardQuery)
+                    ->orWhere('description', $likeOperator, $wildcardQuery)
+                    ->orWhere('publisher', $likeOperator, $wildcardQuery);
+            });
+        }
 
         // Apply filters
         $query = $this->applyEloquentFilters($query, $filters);
@@ -63,7 +105,18 @@ class ComicSearchService
         $query = $this->applyEloquentSorting($query, $sort);
 
         // Execute query with pagination
-        return $query->paginate($perPage, ['*'], 'page', $page);
+        return $query->paginate($perPage, self::SEARCH_SELECT_COLUMNS, 'page', $page);
+    }
+
+    protected function canUseScout(): bool
+    {
+        if (!method_exists(Comic::class, 'search')) {
+            return false;
+        }
+
+        $driver = (string) config('scout.driver', '');
+
+        return !in_array($driver, ['', 'null', 'collection'], true);
     }
 
     /**

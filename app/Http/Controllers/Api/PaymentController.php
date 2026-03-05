@@ -35,8 +35,7 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 'PAYMENT_INTENT_FAILED',
-                'message' => 'Failed to create payment intent',
-                'details' => ['error' => $e->getMessage()]
+                'message' => 'Failed to create payment intent. Please try again.'
             ], 400);
         }
     }
@@ -63,8 +62,7 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 'PAYMENT_PROCESSING_FAILED',
-                'message' => 'Failed to process payment',
-                'details' => ['error' => $e->getMessage()]
+                'message' => 'Failed to process payment. Please try again.'
             ], 400);
         }
     }
@@ -87,7 +85,7 @@ class PaymentController extends Controller
             return response()->json([
                 'payment' => [
                     'id' => $payment->id,
-                    'type' => $payment->payment_method ?? 'card',
+                    'type' => $payment->stripe_payment_method_id ? 'card' : 'card',
                     'amount' => '$' . number_format($payment->amount, 2),
                 ],
                 'message' => 'Payment confirmed successfully'
@@ -100,7 +98,7 @@ class PaymentController extends Controller
             ]);
             
             return response()->json([
-                'error' => 'Failed to confirm payment: ' . $e->getMessage(),
+                'error' => 'Failed to confirm payment. Please try again.',
                 'code' => 'PAYMENT_CONFIRMATION_FAILED',
             ], 400);
         }
@@ -113,7 +111,7 @@ class PaymentController extends Controller
     {
         $request->validate([
             'per_page' => 'nullable|integer|min:1|max:100',
-            'status' => 'nullable|string|in:pending,completed,failed,refunded',
+            'status' => 'nullable|string|in:pending,succeeded,failed,refunded,canceled',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date'
         ]);
@@ -183,10 +181,7 @@ class PaymentController extends Controller
         ]);
 
         try {
-            $refund = $this->paymentService->requestRefund(
-                $payment,
-                $request->reason
-            );
+            $refund = $this->paymentService->refundPayment($payment);
 
             return response()->json([
                 'refund' => $refund,
@@ -195,8 +190,7 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 'REFUND_REQUEST_FAILED',
-                'message' => 'Failed to request refund',
-                'details' => ['error' => $e->getMessage()]
+                'message' => 'Failed to process refund. Please try again.'
             ], 400);
         }
     }
@@ -210,19 +204,19 @@ class PaymentController extends Controller
 
         $stats = [
             'total_spent' => Payment::where('user_id', $userId)
-                ->where('status', 'completed')
+                ->where('status', 'succeeded')
                 ->sum('amount'),
             'total_purchases' => Payment::where('user_id', $userId)
-                ->where('status', 'completed')
+                ->where('status', 'succeeded')
                 ->count(),
             'total_refunds' => Payment::where('user_id', $userId)
                 ->where('status', 'refunded')
                 ->sum('refund_amount'),
             'average_purchase_amount' => Payment::where('user_id', $userId)
-                ->where('status', 'completed')
+                ->where('status', 'succeeded')
                 ->avg('amount'),
             'recent_purchases' => Payment::where('user_id', $userId)
-                ->where('status', 'completed')
+                ->where('status', 'succeeded')
                 ->where('created_at', '>=', now()->subDays(30))
                 ->count(),
         ];
@@ -234,7 +228,7 @@ class PaymentController extends Controller
             $monthlySpending[] = [
                 'month' => $month->format('Y-m'),
                 'amount' => Payment::where('user_id', $userId)
-                    ->where('status', 'completed')
+                    ->where('status', 'succeeded')
                     ->whereYear('created_at', $month->year)
                     ->whereMonth('created_at', $month->month)
                     ->sum('amount')

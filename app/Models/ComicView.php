@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ComicView extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'comic_id',
         'user_id',
@@ -62,11 +65,18 @@ class ComicView extends Model
             // Update comic view counts
             $comic->increment('view_count');
             
-            // Update unique viewers count using raw SQL for PostgreSQL compatibility
-            $uniqueViewers = \DB::select(
-                'SELECT COUNT(DISTINCT COALESCE(user_id::text, ip_address)) as count FROM comic_views WHERE comic_id = ?',
-                [$comic->id]
-            )[0]->count ?? 0;
+            $distinctUsers = static::where('comic_id', $comic->id)
+                ->whereNotNull('user_id')
+                ->distinct('user_id')
+                ->count('user_id');
+
+            $distinctGuestIps = static::where('comic_id', $comic->id)
+                ->whereNull('user_id')
+                ->whereNotNull('ip_address')
+                ->distinct('ip_address')
+                ->count('ip_address');
+
+            $uniqueViewers = $distinctUsers + $distinctGuestIps;
             
             $comic->update(['unique_viewers' => $uniqueViewers]);
         }

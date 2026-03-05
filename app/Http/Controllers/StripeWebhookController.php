@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
 use Stripe\Webhook;
 use Stripe\Exception\SignatureVerificationException;
+use UnexpectedValueException;
 
 class StripeWebhookController extends Controller
 {
@@ -30,8 +31,18 @@ class StripeWebhookController extends Controller
         $sigHeader = $request->header('Stripe-Signature');
         $endpointSecret = config('services.stripe.webhook_secret');
 
+        if (empty($endpointSecret)) {
+            Log::error('Stripe webhook secret is not configured');
+            return response('Webhook not configured', 500);
+        }
+
         try {
             $event = Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
+        } catch (UnexpectedValueException $e) {
+            Log::warning('Stripe webhook payload is invalid', [
+                'error' => $e->getMessage()
+            ]);
+            return response('Invalid payload', 400);
         } catch (SignatureVerificationException $e) {
             Log::error('Stripe webhook signature verification failed', [
                 'error' => $e->getMessage()

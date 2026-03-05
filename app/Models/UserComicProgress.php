@@ -18,6 +18,7 @@ class UserComicProgress extends Model
         'is_completed',
         'is_bookmarked',
         'reading_time_minutes',
+        'device_type',
         'last_read_at',
         'completed_at',
         'bookmarks',

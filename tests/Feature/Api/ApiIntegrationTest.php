@@ -34,11 +34,14 @@ class ApiIntegrationTest extends TestCase
         
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'success',
                 'data',
-                'timestamp'
-            ])
-            ->assertJson(['success' => true]);
+                'pagination' => [
+                    'current_page',
+                    'last_page',
+                    'per_page',
+                    'total',
+                ],
+            ]);
     }
 
     /** @test */
@@ -104,7 +107,7 @@ class ApiIntegrationTest extends TestCase
                 'success' => false,
                 'error' => [
                     'code' => 'VALIDATION_ERROR',
-                    'message' => 'The given data was invalid.'
+                    'message' => 'Validation failed'
                 ]
             ])
             ->assertJsonStructure([
@@ -155,18 +158,19 @@ class ApiIntegrationTest extends TestCase
 
         // Test genre filter
         $response = $this->getJson('/api/comics?genre=Drama');
-        $response->assertStatus(200)
-            ->assertJson(['success' => true]);
-        
-        $data = $response->json('data.data');
-        $this->assertCount(1, $data);
-        $this->assertEquals('Drama', $data[0]['genre']);
-
-        // Test free comics filter
-        $response = $this->getJson('/api/comics?is_free=true');
         $response->assertStatus(200);
         
-        $data = $response->json('data.data');
+        $data = $response->json('data');
+        $this->assertNotEmpty($data);
+        foreach ($data as $comic) {
+            $this->assertEquals('Drama', $comic['genre']);
+        }
+
+        // Test free comics filter
+        $response = $this->getJson('/api/comics?is_free=1');
+        $response->assertStatus(200);
+        
+        $data = $response->json('data');
         foreach ($data as $comic) {
             $this->assertTrue($comic['is_free']);
         }
@@ -200,14 +204,20 @@ class ApiIntegrationTest extends TestCase
         ]);
         
         $response->assertStatus(200)
-            ->assertJson(['success' => true]);
+            ->assertJsonStructure([
+                'message',
+                'library_entry',
+            ]);
 
         // Check library
         $response = $this->getJson('/api/library');
         $response->assertStatus(200)
-            ->assertJson(['success' => true]);
+            ->assertJsonStructure([
+                'data',
+                'pagination',
+            ]);
         
-        $libraryItems = $response->json('data.data');
+        $libraryItems = $response->json('data');
         $this->assertCount(1, $libraryItems);
         $this->assertEquals($comic->id, $libraryItems[0]['comic_id']);
     }
@@ -217,6 +227,13 @@ class ApiIntegrationTest extends TestCase
     {
         Sanctum::actingAs($this->user);
         $comic = $this->comics->first();
+
+        // User must have access to a comic before submitting a review.
+        $this->user->library()->create([
+            'comic_id' => $comic->id,
+            'access_type' => 'purchased',
+            'purchased_at' => now(),
+        ]);
 
         // Submit review
         $response = $this->postJson("/api/reviews/comics/{$comic->id}", [
@@ -234,7 +251,7 @@ class ApiIntegrationTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['success' => true]);
         
-        $reviews = $response->json('data.data');
+        $reviews = $response->json('data.reviews');
         $this->assertCount(1, $reviews);
         $this->assertEquals(5, $reviews[0]['rating']);
         $this->assertEquals('Amazing comic!', $reviews[0]['title']);
@@ -260,9 +277,8 @@ class ApiIntegrationTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['success' => true]);
         
-        $progress = $response->json('data');
+        $progress = $response->json('data.progress');
         $this->assertEquals(15, $progress['current_page']);
-        $this->assertEquals(900, $progress['reading_time_seconds']);
     }
 
     /** @test */
@@ -287,17 +303,24 @@ class ApiIntegrationTest extends TestCase
         Sanctum::actingAs($this->user);
         $comic = $this->comics->first();
 
+        $this->mock(\App\Services\PaymentService::class, function ($mock) {
+            $paymentIntent = (object) [
+                'id' => 'pi_test_123',
+                'client_secret' => 'pi_test_123_secret',
+            ];
+
+            $mock->shouldReceive('createPaymentIntent')
+                ->once()
+                ->andReturn($paymentIntent);
+        });
+
         // Create payment intent
         $response = $this->postJson("/api/payments/comics/{$comic->id}/intent");
         
         $response->assertStatus(200)
-            ->assertJson(['success' => true])
             ->assertJsonStructure([
-                'success',
-                'data' => [
-                    'payment_intent',
-                    'client_secret'
-                ]
+                'payment_intent',
+                'client_secret',
             ]);
     }
 

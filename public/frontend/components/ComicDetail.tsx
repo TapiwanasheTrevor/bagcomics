@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Comic } from '../types';
 import api from '../services/api';
+import PaymentModal from './PaymentModal';
 
 export const ComicDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -9,6 +10,7 @@ export const ComicDetail: React.FC = () => {
   const [comic, setComic] = useState<Comic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     const fetchComic = async () => {
@@ -253,7 +255,7 @@ export const ComicDetail: React.FC = () => {
                 ) : (
                   <button
                     className="flex items-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
-                    onClick={() => alert('Purchase flow coming soon! This comic costs $' + (comic.price?.toFixed(2) || '0.00'))}
+                    onClick={() => setShowPaymentModal(true)}
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
@@ -285,6 +287,16 @@ export const ComicDetail: React.FC = () => {
           </p>
         </div>
       </footer>
+
+      <PaymentModal
+        comic={comic}
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          setComic(prev => (prev ? { ...prev, hasAccess: true } : prev));
+        }}
+      />
     </div>
   );
 };

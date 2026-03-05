@@ -157,6 +157,15 @@ class DatabaseOptimizationService
      */
     private function populateComicStatistics(): void
     {
+        if (!Schema::hasTable('comic_statistics') || !Schema::hasTable('comics')) {
+            return;
+        }
+
+        if (!$this->isMySql()) {
+            $this->populateComicStatisticsFallback();
+            return;
+        }
+
         $sql = "
             INSERT INTO comic_statistics (comic_id, view_count, total_readers, average_rating, total_ratings, purchase_count, total_revenue, completion_count, completion_rate)
             SELECT 
@@ -206,10 +215,80 @@ class DatabaseOptimizationService
     }
 
     /**
+     * Populate comic statistics using query-builder operations for non-MySQL drivers.
+     */
+    private function populateComicStatisticsFallback(): void
+    {
+        $comicColumns = ['id'];
+        foreach (['view_count', 'total_readers', 'average_rating', 'total_ratings'] as $column) {
+            if (Schema::hasColumn('comics', $column)) {
+                $comicColumns[] = $column;
+            }
+        }
+
+        $comics = DB::table('comics')->select($comicColumns)->get();
+
+        foreach ($comics as $comic) {
+            $purchaseCount = 0;
+            $totalRevenue = 0.0;
+
+            if (Schema::hasTable('payments') && Schema::hasColumn('payments', 'comic_id')) {
+                $paymentQuery = DB::table('payments')
+                    ->where('comic_id', $comic->id)
+                    ->where('status', 'succeeded');
+
+                $purchaseCount = (int) $paymentQuery->count();
+                $totalRevenue = (float) ($paymentQuery->sum('amount') ?? 0);
+            }
+
+            $totalReaders = (int) ($comic->total_readers ?? 0);
+            $completionCount = 0;
+
+            if (Schema::hasTable('user_comic_progress')) {
+                $completionCount = (int) DB::table('user_comic_progress')
+                    ->where('comic_id', $comic->id)
+                    ->where('is_completed', 1)
+                    ->count();
+
+                if ($totalReaders === 0) {
+                    $totalReaders = (int) DB::table('user_comic_progress')
+                        ->where('comic_id', $comic->id)
+                        ->distinct()
+                        ->count('user_id');
+                }
+            }
+
+            DB::table('comic_statistics')->updateOrInsert(
+                ['comic_id' => $comic->id],
+                [
+                    'view_count' => (int) ($comic->view_count ?? 0),
+                    'total_readers' => $totalReaders,
+                    'average_rating' => (float) ($comic->average_rating ?? 0),
+                    'total_ratings' => (int) ($comic->total_ratings ?? 0),
+                    'purchase_count' => $purchaseCount,
+                    'total_revenue' => $totalRevenue,
+                    'completion_count' => $completionCount,
+                    'completion_rate' => $totalReaders > 0 ? round(($completionCount / $totalReaders) * 100, 2) : 0,
+                    'last_updated' => now(),
+                ]
+            );
+        }
+    }
+
+    /**
      * Populate user activity summary table
      */
     private function populateUserActivitySummary(): void
     {
+        if (!Schema::hasTable('user_activity_summary') || !Schema::hasTable('users')) {
+            return;
+        }
+
+        if (!$this->isMySql()) {
+            $this->populateUserActivitySummaryFallback();
+            return;
+        }
+
         $sql = "
             INSERT INTO user_activity_summary (user_id, total_comics_read, total_comics_completed, total_reading_time_minutes, last_reading_date, total_purchases, total_spent)
             SELECT 
@@ -251,6 +330,59 @@ class DatabaseOptimizationService
         ";
         
         DB::statement($sql);
+    }
+
+    /**
+     * Populate user activity summary using query-builder operations for non-MySQL drivers.
+     */
+    private function populateUserActivitySummaryFallback(): void
+    {
+        $userIds = DB::table('users')->pluck('id');
+
+        foreach ($userIds as $userId) {
+            $totalComicsRead = 0;
+            $totalComicsCompleted = 0;
+            $totalReadingTimeMinutes = 0;
+            $lastReadingDate = null;
+
+            if (Schema::hasTable('user_comic_progress')) {
+                $progressQuery = DB::table('user_comic_progress')->where('user_id', $userId);
+
+                $totalComicsRead = (int) (clone $progressQuery)->distinct()->count('comic_id');
+                $totalComicsCompleted = (int) (clone $progressQuery)->where('is_completed', 1)->count();
+                $totalReadingTimeMinutes = (int) ((clone $progressQuery)->sum('reading_time_minutes') ?? 0);
+
+                $lastReadAt = (clone $progressQuery)->max('last_read_at');
+                if ($lastReadAt) {
+                    $lastReadingDate = \Carbon\Carbon::parse($lastReadAt)->toDateString();
+                }
+            }
+
+            $totalPurchases = 0;
+            $totalSpent = 0.0;
+
+            if (Schema::hasTable('payments') && Schema::hasColumn('payments', 'user_id')) {
+                $paymentQuery = DB::table('payments')
+                    ->where('user_id', $userId)
+                    ->where('status', 'succeeded');
+
+                $totalPurchases = (int) $paymentQuery->count();
+                $totalSpent = (float) ($paymentQuery->sum('amount') ?? 0);
+            }
+
+            DB::table('user_activity_summary')->updateOrInsert(
+                ['user_id' => $userId],
+                [
+                    'total_comics_read' => $totalComicsRead,
+                    'total_comics_completed' => $totalComicsCompleted,
+                    'total_reading_time_minutes' => $totalReadingTimeMinutes,
+                    'last_reading_date' => $lastReadingDate,
+                    'total_purchases' => $totalPurchases,
+                    'total_spent' => $totalSpent,
+                    'last_updated' => now(),
+                ]
+            );
+        }
     }
 
     /**
@@ -315,17 +447,31 @@ class DatabaseOptimizationService
         
         foreach ($tables as $table) {
             try {
-                $tableStatus = collect(DB::select("SHOW TABLE STATUS LIKE '{$table}'")->first());
-                $indexInfo = collect(DB::select("SHOW INDEXES FROM {$table}"));
-                
-                $analysis[$table] = [
-                    'rows' => $tableStatus['Rows'] ?? 0,
-                    'data_length' => $this->formatBytes($tableStatus['Data_length'] ?? 0),
-                    'index_length' => $this->formatBytes($tableStatus['Index_length'] ?? 0),
-                    'index_count' => $indexInfo->count(),
-                    'unique_indexes' => $indexInfo->where('Non_unique', 0)->count(),
-                    'fragmentation' => $this->calculateFragmentation($tableStatus),
-                ];
+                if ($this->isMySql()) {
+                    $tableStatus = collect(DB::select("SHOW TABLE STATUS LIKE '{$table}'")->first());
+                    $indexInfo = collect(DB::select("SHOW INDEXES FROM {$table}"));
+                    
+                    $analysis[$table] = [
+                        'rows' => $tableStatus['Rows'] ?? 0,
+                        'data_length' => $this->formatBytes($tableStatus['Data_length'] ?? 0),
+                        'index_length' => $this->formatBytes($tableStatus['Index_length'] ?? 0),
+                        'index_count' => $indexInfo->count(),
+                        'unique_indexes' => $indexInfo->where('Non_unique', 0)->count(),
+                        'fragmentation' => $this->calculateFragmentation($tableStatus),
+                    ];
+                } else {
+                    $rows = Schema::hasTable($table) ? DB::table($table)->count() : 0;
+                    $indexInfo = collect(DB::select("PRAGMA index_list('{$table}')"));
+
+                    $analysis[$table] = [
+                        'rows' => $rows,
+                        'data_length' => '0 B',
+                        'index_length' => '0 B',
+                        'index_count' => $indexInfo->count(),
+                        'unique_indexes' => $indexInfo->where('unique', 1)->count(),
+                        'fragmentation' => 0.0,
+                    ];
+                }
                 
                 // Add suggestions
                 $analysis[$table]['suggestions'] = $this->getOptimizationSuggestions($table, $analysis[$table]);
@@ -336,6 +482,11 @@ class DatabaseOptimizationService
         }
         
         return $analysis;
+    }
+
+    private function isMySql(): bool
+    {
+        return DB::connection()->getDriverName() === 'mysql';
     }
 
     /**
@@ -396,6 +547,10 @@ class DatabaseOptimizationService
     public function updateStatistics(): void
     {
         Log::info('Updating database statistics');
+
+        // Ensure summary tables exist before attempting population.
+        $this->createComicStatsTable();
+        $this->createUserActivitySummaryTable();
         
         $this->populateComicStatistics();
         $this->populateUserActivitySummary();
@@ -411,6 +566,30 @@ class DatabaseOptimizationService
      */
     private function updateReadingStreaks(): void
     {
+        if (!Schema::hasTable('user_activity_summary') || !Schema::hasTable('user_comic_progress')) {
+            return;
+        }
+
+        if (!$this->isMySql()) {
+            $streakRows = DB::table('user_comic_progress')
+                ->select('user_id', DB::raw('COUNT(DISTINCT DATE(last_read_at)) as streak_days'))
+                ->whereNotNull('last_read_at')
+                ->where('last_read_at', '>=', now()->subDays(7))
+                ->groupBy('user_id')
+                ->get();
+
+            foreach ($streakRows as $streakRow) {
+                DB::table('user_activity_summary')
+                    ->where('user_id', $streakRow->user_id)
+                    ->update([
+                        'current_reading_streak' => (int) $streakRow->streak_days,
+                        'last_updated' => now(),
+                    ]);
+            }
+
+            return;
+        }
+
         $sql = "
             UPDATE user_activity_summary uas
             SET current_reading_streak = (

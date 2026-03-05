@@ -1,4 +1,16 @@
 <x-filament-panels::page>
+    @php
+        $comicsIndexUrl = \Illuminate\Support\Facades\Route::has('filament.admin.resources.comics.index')
+            ? route('filament.admin.resources.comics.index')
+            : url('/admin/comics');
+        $usersIndexUrl = \Illuminate\Support\Facades\Route::has('filament.admin.resources.users.index')
+            ? route('filament.admin.resources.users.index')
+            : url('/admin/users');
+        $reviewsIndexUrl = \Illuminate\Support\Facades\Route::has('filament.admin.resources.reviews.index')
+            ? route('filament.admin.resources.reviews.index')
+            : url('/admin/reviews');
+    @endphp
+
     <div class="space-y-6">
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
             <h2 class="text-2xl font-bold text-blue-900 mb-2">Analytics Dashboard</h2>
@@ -37,17 +49,17 @@
                 <div class="bg-white rounded-lg shadow p-6">
                     <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
                     <div class="space-y-3">
-                        <a href="{{ \App\Filament\Resources\ComicResource::getUrl('index') }}" 
+                        <a href="{{ $comicsIndexUrl }}"
                            class="block w-full text-left bg-blue-50 hover:bg-blue-100 p-3 rounded-lg transition-colors">
                             <div class="font-medium text-blue-900">Manage Comics</div>
                             <div class="text-sm text-blue-700">View and edit comic library</div>
                         </a>
-                        <a href="{{ \App\Filament\Resources\UserResource::getUrl('index') }}" 
+                        <a href="{{ $usersIndexUrl }}"
                            class="block w-full text-left bg-green-50 hover:bg-green-100 p-3 rounded-lg transition-colors">
                             <div class="font-medium text-green-900">Manage Users</div>
                             <div class="text-sm text-green-700">View user analytics</div>
                         </a>
-                        <a href="{{ \App\Filament\Resources\ReviewResource::getUrl('index') }}" 
+                        <a href="{{ $reviewsIndexUrl }}"
                            class="block w-full text-left bg-orange-50 hover:bg-orange-100 p-3 rounded-lg transition-colors">
                             <div class="font-medium text-orange-900">Content Moderation</div>
                             <div class="text-sm text-orange-700">Review flagged content</div>

@@ -59,10 +59,9 @@ class ReadingProgressApiTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'error' => 'Validation failed',
-            ]);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed')
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
     }
 
     public function test_start_session_creates_reading_session()
@@ -112,10 +111,9 @@ class ReadingProgressApiTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'error' => 'Validation failed',
-            ]);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed')
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
     }
 
     public function test_add_pause_time_updates_session()
@@ -211,10 +209,9 @@ class ReadingProgressApiTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'error' => 'Validation failed',
-            ]);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed')
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
     }
 
     public function test_remove_bookmark_removes_existing_bookmark()
@@ -249,10 +246,8 @@ class ReadingProgressApiTest extends TestCase
         ]);
 
         $response->assertStatus(404)
-            ->assertJson([
-                'success' => false,
-                'error' => 'Bookmark not found',
-            ]);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'NOT_FOUND');
     }
 
     public function test_get_bookmarks_returns_user_bookmarks()
@@ -308,10 +303,9 @@ class ReadingProgressApiTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'error' => 'Validation failed',
-            ]);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed')
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
     }
 
     public function test_get_user_statistics_returns_aggregated_stats()
@@ -377,12 +371,14 @@ class ReadingProgressApiTest extends TestCase
 
     public function test_api_requires_authentication()
     {
-        // Test without authentication
-        $response = $this->withoutMiddleware()->getJson("/api/comics/{$this->comic->id}/progress");
+        // Clear authenticated context established in setUp.
+        auth()->guard('web')->logout();
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
 
-        // Since we're removing middleware, we expect it to work but without user context
-        // In a real scenario with Sanctum, this would return 401
-        $response->assertStatus(500); // Will fail because no authenticated user
+        $response = $this->getJson("/api/comics/{$this->comic->id}/progress");
+
+        $response->assertStatus(401);
     }
 
     public function test_api_handles_nonexistent_comic()

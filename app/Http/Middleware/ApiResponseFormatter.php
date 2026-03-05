@@ -42,35 +42,20 @@ class ApiResponseFormatter
         $data = $response->getData(true);
         $statusCode = $response->getStatusCode();
 
-        // Format successful responses
+        // Keep successful payloads unchanged to preserve endpoint-specific contracts.
         if ($statusCode >= 200 && $statusCode < 300) {
-            $formattedData = [
-                'success' => true,
-                'timestamp' => now()->toISOString(),
-            ];
-
-            // Add pagination info if present
-            if (isset($data['pagination'])) {
-                $formattedData['data'] = $data['data'] ?? [];
-                $formattedData['pagination'] = $data['pagination'];
-            } else {
-                $formattedData['data'] = $data;
-            }
-
-            // Add meta information if present
-            if (isset($data['meta'])) {
-                $formattedData['meta'] = $data['meta'];
-            }
-
-            return response()->json($formattedData, $statusCode, $response->headers->all());
+            return $response;
         }
 
         // Format error responses
+        $errorMessage = $this->getErrorMessage($statusCode, $data);
+
         $errorData = [
             'success' => false,
+            'message' => $errorMessage,
             'error' => [
                 'code' => $this->getErrorCode($statusCode, $data),
-                'message' => $this->getErrorMessage($statusCode, $data),
+                'message' => $errorMessage,
                 'timestamp' => now()->toISOString(),
             ]
         ];
@@ -78,6 +63,7 @@ class ApiResponseFormatter
         // Add validation errors if present
         if (isset($data['errors'])) {
             $errorData['error']['validation_errors'] = $data['errors'];
+            $errorData['errors'] = $data['errors'];
         }
 
         // Add additional error details if present

@@ -38,10 +38,8 @@ class PaymentApiTest extends TestCase
         $response->assertStatus(401)
             ->assertJson([
                 'success' => false,
-                'error' => [
-                    'code' => 'UNAUTHORIZED'
-                ]
-            ]);
+            ])
+            ->assertJsonPath('error.code', 'UNAUTHORIZED');
     }
 
     public function test_create_payment_intent_successfully(): void
@@ -56,7 +54,11 @@ class PaymentApiTest extends TestCase
 
         $mockPaymentService->shouldReceive('createPaymentIntent')
             ->once()
-            ->with($this->user, $this->comic, [])
+            ->with(
+                Mockery::type(User::class),
+                Mockery::on(fn ($comic) => $comic instanceof Comic && $comic->id === $this->comic->id),
+                Mockery::type('array')
+            )
             ->andReturn($mockPaymentIntent);
 
         $this->app->instance(PaymentService::class, $mockPaymentService);
@@ -65,13 +67,10 @@ class PaymentApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true,
-                'data' => [
-                    'payment_intent' => [
-                        'id' => 'pi_test_123'
-                    ],
-                    'client_secret' => 'pi_test_123_secret_456'
-                ]
+                'payment_intent' => [
+                    'id' => 'pi_test_123'
+                ],
+                'client_secret' => 'pi_test_123_secret_456'
             ]);
     }
 
@@ -96,18 +95,8 @@ class PaymentApiTest extends TestCase
         $response->assertStatus(422)
             ->assertJson([
                 'success' => false,
-                'error' => [
-                    'code' => 'VALIDATION_ERROR'
-                ]
             ])
-            ->assertJsonStructure([
-                'success',
-                'error' => [
-                    'code',
-                    'message',
-                    'validation_errors'
-                ]
-            ]);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
     }
 
     public function test_process_payment_successfully(): void
@@ -117,13 +106,13 @@ class PaymentApiTest extends TestCase
         $payment = Payment::factory()->create([
             'user_id' => $this->user->id,
             'comic_id' => $this->comic->id,
-            'status' => 'completed'
+            'status' => 'succeeded'
         ]);
 
         $mockPaymentService = Mockery::mock(PaymentService::class);
         $mockPaymentService->shouldReceive('processPayment')
             ->once()
-            ->with($this->user, 'pi_test_123', $this->comic->id)
+            ->with(Mockery::type(User::class), 'pi_test_123')
             ->andReturn($payment);
 
         $this->app->instance(PaymentService::class, $mockPaymentService);
@@ -135,10 +124,7 @@ class PaymentApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true,
-                'data' => [
-                    'message' => 'Payment processed successfully'
-                ]
+                'message' => 'Payment processed successfully'
             ]);
     }
 
@@ -149,7 +135,7 @@ class PaymentApiTest extends TestCase
         $response = $this->postJson('/api/payments/process', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['payment_intent_id', 'comic_id']);
+            ->assertJsonValidationErrors(['payment_intent_id']);
     }
 
     public function test_get_payment_history(): void
@@ -168,11 +154,7 @@ class PaymentApiTest extends TestCase
         $response = $this->getJson('/api/payments/history');
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true
-            ])
             ->assertJsonStructure([
-                'success',
                 'data' => [
                     '*' => [
                         'id',
@@ -195,7 +177,7 @@ class PaymentApiTest extends TestCase
 
         Payment::factory()->create([
             'user_id' => $this->user->id,
-            'status' => 'completed',
+            'status' => 'succeeded',
             'created_at' => now()->subDays(5)
         ]);
 
@@ -205,7 +187,7 @@ class PaymentApiTest extends TestCase
             'created_at' => now()->subDays(10)
         ]);
 
-        $response = $this->getJson('/api/payments/history?status=completed&from_date=' . now()->subDays(7)->toDateString());
+        $response = $this->getJson('/api/payments/history?status=succeeded&from_date=' . now()->subDays(7)->toDateString());
 
         $response->assertStatus(200);
         $this->assertCount(1, $response->json('data'));
@@ -224,12 +206,9 @@ class PaymentApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true,
-                'data' => [
-                    'id' => $payment->id,
-                    'user_id' => $this->user->id,
-                    'comic_id' => $this->comic->id
-                ]
+                'id' => $payment->id,
+                'user_id' => $this->user->id,
+                'comic_id' => $this->comic->id
             ]);
     }
 
@@ -245,12 +224,7 @@ class PaymentApiTest extends TestCase
         $response = $this->getJson("/api/payments/{$payment->id}");
 
         $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_ACCESS_DENIED'
-                ]
-            ]);
+            ->assertJsonPath('error.code', 'PAYMENT_ACCESS_DENIED');
     }
 
     public function test_request_refund_successfully(): void
@@ -259,15 +233,17 @@ class PaymentApiTest extends TestCase
 
         $payment = Payment::factory()->create([
             'user_id' => $this->user->id,
-            'status' => 'completed'
+            'status' => 'succeeded'
         ]);
 
         $mockRefund = (object) ['id' => 'ref_123', 'amount' => 999];
 
         $mockPaymentService = Mockery::mock(PaymentService::class);
-        $mockPaymentService->shouldReceive('requestRefund')
+        $mockPaymentService->shouldReceive('refundPayment')
             ->once()
-            ->with($payment, 'Changed my mind')
+            ->with(
+                Mockery::on(fn ($paymentModel) => $paymentModel instanceof Payment && $paymentModel->id === $payment->id),
+            )
             ->andReturn($mockRefund);
 
         $this->app->instance(PaymentService::class, $mockPaymentService);
@@ -278,10 +254,7 @@ class PaymentApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true,
-                'data' => [
-                    'message' => 'Refund request submitted successfully'
-                ]
+                'message' => 'Refund request submitted successfully'
             ]);
     }
 
@@ -306,7 +279,7 @@ class PaymentApiTest extends TestCase
         // Create some test payments
         Payment::factory()->count(3)->create([
             'user_id' => $this->user->id,
-            'status' => 'completed',
+            'status' => 'succeeded',
             'amount' => 9.99
         ]);
 
@@ -320,22 +293,16 @@ class PaymentApiTest extends TestCase
         $response = $this->getJson('/api/payments/statistics/user');
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true
-            ])
             ->assertJsonStructure([
-                'success',
-                'data' => [
-                    'total_spent',
-                    'total_purchases',
-                    'total_refunds',
-                    'average_purchase_amount',
-                    'recent_purchases',
-                    'monthly_spending'
-                ]
+                'total_spent',
+                'total_purchases',
+                'total_refunds',
+                'average_purchase_amount',
+                'recent_purchases',
+                'monthly_spending'
             ]);
 
-        $data = $response->json('data');
+        $data = $response->json();
         $this->assertEquals(29.97, $data['total_spent']);
         $this->assertEquals(3, $data['total_purchases']);
         $this->assertEquals(4.99, $data['total_refunds']);

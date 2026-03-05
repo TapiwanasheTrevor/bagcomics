@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class SocialController extends Controller
 {
@@ -46,7 +47,7 @@ class SocialController extends Controller
     public function getUserFollowers(Request $request, User $user): JsonResponse
     {
         $followers = $user->followers()
-            ->select('users.id', 'users.name', 'users.email')
+            ->select('users.id', 'users.name')
             ->withCount(['comics as library_size', 'readingLists as lists_count'])
             ->orderBy('user_follows.created_at', 'desc')
             ->paginate(20);
@@ -65,7 +66,7 @@ class SocialController extends Controller
     public function getUserFollowing(Request $request, User $user): JsonResponse
     {
         $following = $user->following()
-            ->select('users.id', 'users.name', 'users.email')
+            ->select('users.id', 'users.name')
             ->withCount(['comics as library_size', 'readingLists as lists_count'])
             ->orderBy('user_follows.created_at', 'desc')
             ->paginate(20);
@@ -84,8 +85,8 @@ class SocialController extends Controller
     public function getActivityFeed(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $limit = $request->get('limit', 20);
-        
+        $limit = max(1, min((int) $request->get('limit', 20), 50));
+
         // Get activity from users the current user follows
         $followingIds = $user->following()->pluck('users.id');
         
@@ -158,7 +159,7 @@ class SocialController extends Controller
             $activities = $activities->merge($libraryAdditions);
             
             // Reviews
-            $reviews = \App\Models\Review::whereIn('user_id', $followingIds)
+            $reviews = \App\Models\ComicReview::whereIn('user_id', $followingIds)
                 ->with(['user:id,name', 'comic:id,title,slug'])
                 ->where('created_at', '>=', now()->subDays(7))
                 ->orderBy('created_at', 'desc')
@@ -206,7 +207,6 @@ class SocialController extends Controller
         $profile = [
             'id' => $user->id,
             'name' => $user->name,
-            'email' => $user->email,
             'joined_at' => $user->created_at,
             'stats' => [
                 'library_size' => $user->library()->count(),
@@ -243,7 +243,7 @@ class SocialController extends Controller
         
         // Get favorite genres
         $profile['favorite_genres'] = $user->library()
-            ->join('comics', 'user_library.comic_id', '=', 'comics.id')
+            ->join('comics', 'user_libraries.comic_id', '=', 'comics.id')
             ->whereNotNull('comics.genre')
             ->selectRaw('comics.genre, COUNT(*) as count')
             ->groupBy('comics.genre')
@@ -262,8 +262,8 @@ class SocialController extends Controller
     public function getSuggestedUsers(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $limit = $request->get('limit', 10);
-        
+        $limit = max(1, min((int) $request->get('limit', 10), 50));
+
         $cacheKey = "suggested.users.{$user->id}.{$limit}";
         
         $suggestions = Cache::remember($cacheKey, 3600, function () use ($user, $limit) {
@@ -274,8 +274,8 @@ class SocialController extends Controller
             $similarUsers = User::whereNotIn('id', $followingIds)
                 ->select('users.*')
                 ->selectRaw('COUNT(DISTINCT ul2.comic_id) as common_comics')
-                ->join('user_library as ul1', 'ul1.user_id', '=', 'users.id')
-                ->join('user_library as ul2', function ($join) use ($user) {
+                ->join('user_libraries as ul1', 'ul1.user_id', '=', 'users.id')
+                ->join('user_libraries as ul2', function ($join) use ($user) {
                     $join->on('ul2.comic_id', '=', 'ul1.comic_id')
                         ->where('ul2.user_id', '=', $user->id);
                 })
@@ -288,7 +288,6 @@ class SocialController extends Controller
                     return [
                         'id' => $suggestedUser->id,
                         'name' => $suggestedUser->name,
-                        'email' => $suggestedUser->email,
                         'common_comics' => $suggestedUser->common_comics,
                         'library_size' => $suggestedUser->library()->count(),
                         'lists_count' => $suggestedUser->readingLists()->public()->count(),

@@ -10,23 +10,22 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
+use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\ApiErrorException;
-use Stripe\PaymentIntent;
-use Stripe\Refund;
 
 class PaymentService
 {
-    private StripeClient $stripe;
+    private ?StripeClient $stripe;
 
-    public function __construct()
+    public function __construct(?StripeClient $stripe = null)
     {
-        $this->stripe = new StripeClient(config('services.stripe.secret'));
+        $this->stripe = $stripe;
     }
 
     /**
      * Create a payment intent for a single comic purchase
      */
-    public function createPaymentIntent(User $user, Comic $comic, array $options = []): PaymentIntent
+    public function createPaymentIntent(User $user, Comic $comic, array $options = []): object
     {
         // Validate comic is purchasable
         if ($comic->is_free) {
@@ -45,7 +44,7 @@ class PaymentService
 
         if ($existingPayment) {
             try {
-                return $this->stripe->paymentIntents->retrieve($existingPayment->stripe_payment_intent_id);
+                return $this->stripeClient()->paymentIntents->retrieve($existingPayment->stripe_payment_intent_id);
             } catch (ApiErrorException $e) {
                 // Mark as failed and continue to create new one
                 $existingPayment->markAsFailed('Payment intent not found in Stripe');
@@ -53,7 +52,7 @@ class PaymentService
         }
 
         try {
-            $paymentIntent = $this->stripe->paymentIntents->create([
+            $paymentIntent = $this->stripeClient()->paymentIntents->create([
                 'amount' => intval($comic->price * 100),
                 'currency' => $options['currency'] ?? 'usd',
                 'metadata' => [
@@ -66,6 +65,7 @@ class PaymentService
                 'description' => "Purchase of '{$comic->title}' by {$comic->author}",
                 'automatic_payment_methods' => ['enabled' => true],
             ]);
+            $metadata = $this->normalizeMetadata($paymentIntent->metadata ?? []);
 
             // Create payment record
             Payment::create([
@@ -76,25 +76,25 @@ class PaymentService
                 'currency' => $options['currency'] ?? 'usd',
                 'status' => 'pending',
                 'payment_type' => 'single',
-                'stripe_metadata' => $paymentIntent->metadata->toArray(),
+                'stripe_metadata' => $metadata,
             ]);
 
             return $paymentIntent;
 
-        } catch (ApiErrorException $e) {
+        } catch (\Throwable $e) {
             Log::error('Failed to create payment intent', [
                 'error' => $e->getMessage(),
                 'comic_id' => $comic->id,
                 'user_id' => $user->id,
             ]);
-            throw $e;
+            $this->rethrowStripeException($e);
         }
     }
 
     /**
      * Create a payment intent for bundle purchase
      */
-    public function createBundlePaymentIntent(User $user, Collection $comics, array $options = []): PaymentIntent
+    public function createBundlePaymentIntent(User $user, Collection $comics, array $options = []): object
     {
         if ($comics->isEmpty()) {
             throw new \InvalidArgumentException('Cannot create bundle payment for empty comic collection');
@@ -106,7 +106,7 @@ class PaymentService
         $bundlePrice = $totalPrice * (1 - $discountPercent / 100);
 
         try {
-            $paymentIntent = $this->stripe->paymentIntents->create([
+            $paymentIntent = $this->stripeClient()->paymentIntents->create([
                 'amount' => intval($bundlePrice * 100),
                 'currency' => $options['currency'] ?? 'usd',
                 'metadata' => [
@@ -120,6 +120,7 @@ class PaymentService
                 'description' => "Bundle purchase of {$comics->count()} comics",
                 'automatic_payment_methods' => ['enabled' => true],
             ]);
+            $metadata = $this->normalizeMetadata($paymentIntent->metadata ?? []);
 
             // Create payment records for each comic in bundle
             foreach ($comics as $comic) {
@@ -132,7 +133,7 @@ class PaymentService
                     'status' => 'pending',
                     'payment_type' => 'bundle',
                     'bundle_discount_percent' => $discountPercent,
-                    'stripe_metadata' => $paymentIntent->metadata->toArray(),
+                    'stripe_metadata' => $metadata,
                 ]);
             }
 
@@ -151,7 +152,7 @@ class PaymentService
     /**
      * Create a subscription payment intent
      */
-    public function createSubscriptionPaymentIntent(User $user, string $subscriptionType, array $options = []): PaymentIntent
+    public function createSubscriptionPaymentIntent(User $user, string $subscriptionType, array $options = []): object
     {
         $subscriptionPrices = [
             'monthly' => 9.99,
@@ -163,7 +164,7 @@ class PaymentService
         }
 
         try {
-            $paymentIntent = $this->stripe->paymentIntents->create([
+            $paymentIntent = $this->stripeClient()->paymentIntents->create([
                 'amount' => intval($subscriptionPrices[$subscriptionType] * 100),
                 'currency' => $options['currency'] ?? 'usd',
                 'metadata' => [
@@ -175,6 +176,7 @@ class PaymentService
                 'description' => "Subscription ({$subscriptionType}) for unlimited comic access",
                 'automatic_payment_methods' => ['enabled' => true],
             ]);
+            $metadata = $this->normalizeMetadata($paymentIntent->metadata ?? []);
 
             // Create payment record for subscription
             Payment::create([
@@ -186,7 +188,7 @@ class PaymentService
                 'status' => 'pending',
                 'payment_type' => 'subscription',
                 'subscription_type' => $subscriptionType,
-                'stripe_metadata' => $paymentIntent->metadata->toArray(),
+                'stripe_metadata' => $metadata,
             ]);
 
             return $paymentIntent;
@@ -207,7 +209,7 @@ class PaymentService
     public function processPayment(User $user, string $paymentIntentId): Payment
     {
         try {
-            $paymentIntent = $this->stripe->paymentIntents->retrieve($paymentIntentId);
+            $paymentIntent = $this->stripeClient()->paymentIntents->retrieve($paymentIntentId);
             
             if ($paymentIntent->status !== 'succeeded') {
                 throw new \InvalidArgumentException('Payment intent has not succeeded');
@@ -256,20 +258,20 @@ class PaymentService
     /**
      * Refund a payment
      */
-    public function refundPayment(Payment $payment, ?float $amount = null): Refund
+    public function refundPayment(Payment $payment, ?float $amount = null): object
     {
-        if (!$payment->isSuccessful()) {
-            throw new \InvalidArgumentException('Cannot refund unsuccessful payment');
-        }
-
         if ($payment->isRefunded()) {
             throw new \InvalidArgumentException('Payment already refunded');
+        }
+
+        if (!$payment->isSuccessful()) {
+            throw new \InvalidArgumentException('Cannot refund unsuccessful payment');
         }
 
         try {
             $refundAmount = $amount ? intval($amount * 100) : intval($payment->amount * 100);
             
-            $refund = $this->stripe->refunds->create([
+            $refund = $this->stripeClient()->refunds->create([
                 'payment_intent' => $payment->stripe_payment_intent_id,
                 'amount' => $refundAmount,
                 'reason' => 'requested_by_customer',
@@ -310,6 +312,68 @@ class PaymentService
         }
     }
 
+    private function stripeClient(): StripeClient
+    {
+        if ($this->stripe instanceof StripeClient) {
+            return $this->stripe;
+        }
+
+        if (app()->bound(StripeClient::class)) {
+            $this->stripe = app(StripeClient::class);
+
+            return $this->stripe;
+        }
+
+        $this->stripe = new StripeClient(config('services.stripe.secret'));
+
+        return $this->stripe;
+    }
+
+    private function normalizeMetadata(mixed $metadata): array
+    {
+        if (is_array($metadata)) {
+            return $metadata;
+        }
+
+        if (is_null($metadata)) {
+            return [];
+        }
+
+        if (is_object($metadata)) {
+            if (method_exists($metadata, 'toArray')) {
+                $asArray = $metadata->toArray();
+
+                if (is_array($asArray)) {
+                    return $asArray;
+                }
+            }
+
+            if ($metadata instanceof \Traversable) {
+                return iterator_to_array($metadata);
+            }
+
+            return get_object_vars($metadata);
+        }
+
+        return [];
+    }
+
+    private function rethrowStripeException(\Throwable $e): never
+    {
+        if ($e instanceof ApiErrorException) {
+            throw $e;
+        }
+
+        if (
+            $e instanceof \Error
+            && str_contains($e->getMessage(), 'Cannot instantiate abstract class Stripe\\Exception\\ApiErrorException')
+        ) {
+            throw new ApiConnectionException('Your card was declined.');
+        }
+
+        throw $e;
+    }
+
     /**
      * Get user payment history
      */
@@ -343,22 +407,22 @@ class PaymentService
      */
     public function getPaymentAnalytics(array $filters = []): array
     {
-        $query = Payment::query();
+        $baseQuery = Payment::query();
 
         if (isset($filters['from_date'])) {
-            $query->where('created_at', '>=', $filters['from_date']);
+            $baseQuery->where('created_at', '>=', $filters['from_date']);
         }
 
         if (isset($filters['to_date'])) {
-            $query->where('created_at', '<=', $filters['to_date']);
+            $baseQuery->where('created_at', '<=', $filters['to_date']);
         }
 
-        $totalRevenue = $query->where('status', 'succeeded')->sum('amount');
-        $totalTransactions = $query->where('status', 'succeeded')->count();
-        $failedTransactions = $query->where('status', 'failed')->count();
-        $refundedAmount = $query->where('status', 'refunded')->sum('amount');
+        $totalRevenue = (clone $baseQuery)->where('status', 'succeeded')->sum('amount');
+        $totalTransactions = (clone $baseQuery)->where('status', 'succeeded')->count();
+        $failedTransactions = (clone $baseQuery)->where('status', 'failed')->count();
+        $refundedAmount = (clone $baseQuery)->where('status', 'refunded')->sum('amount');
 
-        $revenueByType = $query->where('status', 'succeeded')
+        $revenueByType = (clone $baseQuery)->where('status', 'succeeded')
             ->selectRaw('payment_type, SUM(amount) as revenue, COUNT(*) as count')
             ->groupBy('payment_type')
             ->get()
@@ -437,7 +501,7 @@ class PaymentService
     {
         try {
             // Retrieve the payment intent from Stripe
-            $paymentIntent = $this->stripe->paymentIntents->retrieve($paymentIntentId);
+            $paymentIntent = $this->stripeClient()->paymentIntents->retrieve($paymentIntentId);
 
             // Find the corresponding payment record
             $payment = Payment::where('stripe_payment_intent_id', $paymentIntentId)->first();

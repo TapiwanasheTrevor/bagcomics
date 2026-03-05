@@ -6,7 +6,7 @@ services:
     plan: starter
     region: oregon
     branch: main
-    healthCheckPath: /
+    healthCheckPath: /up
     disk:
       name: bagcomics-storage
       mountPath: /var/www/html/storage/app/public
@@ -24,7 +24,7 @@ services:
           name: bagcomics
           property: host
       - key: APP_KEY
-        value: base64:nVb4U6m2ibg2Hcxah3zRuO+yGHc5gIPMKn06exhHOrc=
+        sync: false
       - key: FORCE_HTTPS
         value: "true"
       - key: DB_CONNECTION
@@ -64,13 +64,13 @@ services:
       - key: FILESYSTEM_DISK
         value: public
       - key: STRIPE_KEY
-        value: pk_test_51H0LkYH5gAovQC3PEyptqm0gdcEmIUlOzBA8Mtv9C3LvHFVHr273e5z3ZLggyg9vQFGVwZt4bBpACJC6SV16Nnqe00HVabhZkM
+        sync: false
       - key: STRIPE_SECRET
-        value: sk_test_51H0LkYH5gAovQC3PMmaik3EMalCkTnQbyvNpws51IDvRT0NJ0tGwF3ofBdyNkq2xHFcdeP2uadejL89KBe2CoHOP00IRW2KkhE
+        sync: false
       - key: STRIPE_WEBHOOK_SECRET
-        value: whsec_test_webhook_secret_here
+        sync: false
       - key: VITE_STRIPE_PUBLISHABLE_KEY
-        value: pk_test_51H0LkYH5gAovQC3PEyptqm0gdcEmIUlOzBA8Mtv9C3LvHFVHr273e5z3ZLggyg9vQFGVwZt4bBpACJC6SV16Nnqe00HVabhZkM
+        sync: false
       - key: AUTH_MODEL
         value: App\Models\User
       - key: ADMIN_EMAILS
@@ -79,18 +79,64 @@ services:
         value: ".bagcomics.shop"
       - key: SESSION_SECURE_COOKIE
         value: "true"
-      - key: REDIS_CACHE
-        value: "false"
-      - key: REDIS_QUEUE
-        value: "false"
-      - key: CACHE_STORE
-        value: database
-      - key: QUEUE_CONNECTION
-        value: database
       - key: FILE_STORAGE_DISK
         value: public
       - key: PERSISTENT_STORAGE_PATH
         value: /var/www/html/storage/app/public
+
+  - type: worker
+    name: bagcomics-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    dockerCommand: php /var/www/html/artisan queue:work database --sleep=3 --tries=3 --max-time=3600
+    envVars:
+      - key: APP_NAME
+        value: "BAG Comics"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: bagcomics-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: bagcomics-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: bagcomics-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: bagcomics-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: bagcomics-db
+          property: password
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_LEVEL
+        value: error
+      - key: MAIL_MAILER
+        value: log
+      - key: STRIPE_KEY
+        sync: false
+      - key: STRIPE_SECRET
+        sync: false
 
 databases:
   - name: bagcomics-db

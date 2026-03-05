@@ -34,45 +34,9 @@ class ImageOptimizationService
         $results = [];
 
         try {
-            // Create original image
-            $originalImage = Image::make($file);
-            $originalPath = "{$directory}/original/{$filename}";
-            
-            // Save original with basic optimization
-            $optimizedOriginal = $this->optimizeImage($originalImage, 95);
-            Storage::disk('public')->put($originalPath, $optimizedOriginal);
-            
-            $results['original'] = [
-                'path' => $originalPath,
-                'url' => Storage::disk('public')->url($originalPath),
-                'size' => Storage::disk('public')->size($originalPath),
-                'dimensions' => ['width' => $originalImage->width(), 'height' => $originalImage->height()]
-            ];
-
-            // Generate responsive versions
-            foreach (self::SIZES as $sizeName => $config) {
-                $sizePath = "{$directory}/{$sizeName}/{$filename}";
-                
-                $resizedImage = $this->createResponsiveVersion($originalImage, $config);
-                Storage::disk('public')->put($sizePath, $resizedImage);
-                
-                $results[$sizeName] = [
-                    'path' => $sizePath,
-                    'url' => Storage::disk('public')->url($sizePath),
-                    'size' => Storage::disk('public')->size($sizePath),
-                    'dimensions' => $config
-                ];
-
-                // Generate WebP version
-                $webpPath = $this->generateWebPVersion($originalImage, $sizePath, $config);
-                if ($webpPath) {
-                    $results[$sizeName]['webp'] = [
-                        'path' => $webpPath,
-                        'url' => Storage::disk('public')->url($webpPath),
-                        'size' => Storage::disk('public')->size($webpPath)
-                    ];
-                }
-            }
+            $results = $this->canUseIntervention()
+                ? $this->processWithIntervention($file, $directory, $filename)
+                : $this->processWithoutIntervention($file, $directory, $filename);
 
             Log::info('Image processing completed', [
                 'filename' => $filename,
@@ -92,10 +56,136 @@ class ImageOptimizationService
     }
 
     /**
+     * Process image with Intervention Image when available.
+     */
+    private function processWithIntervention(UploadedFile $file, string $directory, string $filename): array
+    {
+        $results = [];
+        $originalImage = Image::make($file);
+        $originalPath = "{$directory}/original/{$filename}";
+
+        $optimizedOriginal = $this->optimizeImage($originalImage, 95);
+        Storage::disk('public')->put($originalPath, $optimizedOriginal);
+
+        $results['original'] = [
+            'path' => $originalPath,
+            'url' => Storage::disk('public')->url($originalPath),
+            'size' => Storage::disk('public')->size($originalPath),
+            'dimensions' => ['width' => $originalImage->width(), 'height' => $originalImage->height()],
+        ];
+
+        foreach (self::SIZES as $sizeName => $config) {
+            $sizePath = "{$directory}/{$sizeName}/{$filename}";
+
+            $resizedImage = $this->createResponsiveVersion($originalImage, $config);
+            Storage::disk('public')->put($sizePath, $resizedImage);
+
+            $results[$sizeName] = [
+                'path' => $sizePath,
+                'url' => Storage::disk('public')->url($sizePath),
+                'size' => Storage::disk('public')->size($sizePath),
+                'dimensions' => $config,
+            ];
+
+            $webpPath = $this->generateWebPVersion($originalImage, $sizePath, $config);
+            if ($webpPath) {
+                $results[$sizeName]['webp'] = [
+                    'path' => $webpPath,
+                    'url' => Storage::disk('public')->url($webpPath),
+                    'size' => Storage::disk('public')->size($webpPath),
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Process image without Intervention by preserving original bytes across sizes.
+     */
+    private function processWithoutIntervention(UploadedFile $file, string $directory, string $filename): array
+    {
+        $results = [];
+        $contents = $this->readFileContents($file);
+        [$width, $height] = $this->getFileDimensions($file);
+
+        $originalPath = "{$directory}/original/{$filename}";
+        Storage::disk('public')->put($originalPath, $contents);
+
+        $results['original'] = [
+            'path' => $originalPath,
+            'url' => Storage::disk('public')->url($originalPath),
+            'size' => Storage::disk('public')->size($originalPath),
+            'dimensions' => ['width' => $width, 'height' => $height],
+        ];
+
+        foreach (self::SIZES as $sizeName => $config) {
+            $sizePath = "{$directory}/{$sizeName}/{$filename}";
+            Storage::disk('public')->put($sizePath, $contents);
+
+            $results[$sizeName] = [
+                'path' => $sizePath,
+                'url' => Storage::disk('public')->url($sizePath),
+                'size' => Storage::disk('public')->size($sizePath),
+                'dimensions' => $config,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Determine if the Intervention facade is available.
+     */
+    private function canUseIntervention(): bool
+    {
+        return class_exists(Image::class) && method_exists(Image::class, 'make');
+    }
+
+    private function readFileContents(UploadedFile $file): string
+    {
+        $realPath = $file->getRealPath();
+
+        if (!$realPath || !is_readable($realPath)) {
+            throw new \RuntimeException('Uploaded image is not readable.');
+        }
+
+        $contents = file_get_contents($realPath);
+
+        if ($contents === false) {
+            throw new \RuntimeException('Failed to read uploaded image bytes.');
+        }
+
+        return $contents;
+    }
+
+    /**
+     * Resolve width/height from file bytes when image processing libs are unavailable.
+     */
+    private function getFileDimensions(UploadedFile $file): array
+    {
+        $realPath = $file->getRealPath();
+        if (!$realPath || !is_readable($realPath)) {
+            return [0, 0];
+        }
+
+        $size = @getimagesize($realPath);
+        if ($size === false) {
+            return [0, 0];
+        }
+
+        return [(int) $size[0], (int) $size[1]];
+    }
+
+    /**
      * Generate WebP version of image
      */
     private function generateWebPVersion($originalImage, string $basePath, array $config): ?string
     {
+        if (!$this->canUseIntervention()) {
+            return null;
+        }
+
         try {
             $webpPath = str_replace('.jpg', '.webp', str_replace('.png', '.webp', $basePath));
             
@@ -220,6 +310,10 @@ class ImageOptimizationService
             return null;
         }
 
+        if (!$this->canUseIntervention()) {
+            return null;
+        }
+
         try {
             $thumbnailPath = $imageData['thumbnail']['path'];
             $image = Image::make(Storage::disk('public')->get($thumbnailPath));
@@ -321,6 +415,10 @@ class ImageOptimizationService
      */
     private function optimizeExistingImage(string $filePath): void
     {
+        if (!$this->canUseIntervention()) {
+            return;
+        }
+
         $image = Image::make(Storage::disk('public')->get($filePath));
         $optimized = $this->optimizeImage($image, 85);
         Storage::disk('public')->put($filePath, $optimized);

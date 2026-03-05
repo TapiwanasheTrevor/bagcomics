@@ -8,7 +8,7 @@ Copy and paste these into your Render service environment variables section:
 ```
 APP_NAME=BAG Comics
 APP_ENV=production
-APP_KEY=base64:nVb4U6m2ibg2Hcxah3zRuO+yGHc5gIPMKn06exhHOrc=
+APP_KEY=base64:GENERATE_WITH_PHP_ARTISAN_KEY_GENERATE_SHOW
 APP_DEBUG=false
 APP_URL=https://bagcomics.onrender.com
 ```
@@ -16,16 +16,16 @@ APP_URL=https://bagcomics.onrender.com
 ### Database Configuration (Option 1: Individual Variables)
 ```
 DB_CONNECTION=pgsql
-DB_HOST=dpg-d2a2nrh5pdvs73aaf51g-a
+DB_HOST=your-render-db-host
 DB_PORT=5432
-DB_DATABASE=bagcomics_db
-DB_USERNAME=bagcomics
-DB_PASSWORD=fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6
+DB_DATABASE=your-render-db-name
+DB_USERNAME=your-render-db-user
+DB_PASSWORD=your-render-db-password
 ```
 
 ### Database Configuration (Option 2: Single URL - Choose This One)
 ```
-DATABASE_URL=postgresql://bagcomics:fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6@dpg-d2a2nrh5pdvs73aaf51g-a/bagcomics_db
+DATABASE_URL=postgresql://<user>:<password>@<host>/<database>
 ```
 
 ### Cache and Session Settings
@@ -75,12 +75,12 @@ SESSION_LIFETIME=120
 
 ### Internal Database URL (for application)
 ```
-postgresql://bagcomics:fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6@dpg-d2a2nrh5pdvs73aaf51g-a/bagcomics_db
+postgresql://<user>:<password>@<host>/<database>
 ```
 
 ### External Database URL (for external connections/tools)
 ```
-postgresql://bagcomics:fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6@dpg-d2a2nrh5pdvs73aaf51g-a.oregon-postgres.render.com/bagcomics_db
+postgresql://<user>:<password>@<host>.oregon-postgres.render.com/<database>
 ```
 
 ## Deployment Steps
@@ -94,8 +94,7 @@ postgresql://bagcomics:fhTpOQ62SKRsHE3BYiobOtUYhq4zlww6@dpg-d2a2nrh5pdvs73aaf51g
 ## Admin Access After Deployment
 
 - **URL**: https://bagcomics.onrender.com/admin
-- **Email**: admin@bagcomics.com
-- **Password**: admin123
+- **Credentials**: Create using `php artisan make:admin-user` (do not use hardcoded defaults)
 
 ## Notes
 

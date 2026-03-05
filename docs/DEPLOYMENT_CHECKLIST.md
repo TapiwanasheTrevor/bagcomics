@@ -37,7 +37,7 @@ All critical systems tested and verified:
 ### **Database Content:**
 - **Users**: 30 (including admin users)
 - **Comics**: 93 total (87 visible, all PDF-enabled)  
-- **Admin Users**: admin@bagcomics.com (password: admin123)
+- **Admin Users**: Managed via `php artisan make:admin-user` with unique credentials
 - **Test Data**: Reviews, progress tracking, library entries all populated
 
 ### **Key Features Verified:**
@@ -119,7 +119,6 @@ The BAG Comics platform has passed comprehensive testing with all critical featu
 
 ## 📞 **Admin Access**
 - **URL**: `/admin`
-- **Email**: `admin@bagcomics.com`
-- **Password**: `admin123`
+- **Credentials**: Create and manage with `php artisan make:admin-user`
 
 Platform is ready for immediate deployment and user onboarding.

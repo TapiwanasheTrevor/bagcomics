@@ -168,6 +168,7 @@ class CmsService
     {
         return DB::transaction(function () use ($key, $data, $userId, $createVersion) {
             $content = CmsContent::where('key', $key)->first();
+            $sectionToClear = $data['section'] ?? $content?->section;
             
             if (!$content) {
                 // Create new content
@@ -175,6 +176,7 @@ class CmsService
                 $data['created_by'] = $userId;
                 $data['updated_by'] = $userId;
                 $content = CmsContent::create($data);
+                $sectionToClear = $data['section'] ?? $content->section;
                 
                 // Create initial version if versioning is enabled
                 if ($createVersion) {
@@ -198,7 +200,7 @@ class CmsService
             }
             
             // Clear relevant cache
-            $this->clearContentCache($key, $data['section'] ?? null);
+            $this->clearContentCache($key, $sectionToClear);
             
             return $content;
         });

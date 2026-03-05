@@ -139,7 +139,7 @@ php artisan bagcomics:init-production
 #### Verify Services
 ```bash
 # Check application health
-curl https://your-app.onrender.com/health
+curl https://your-app.onrender.com/up
 
 # Check database connectivity  
 php artisan tinker
@@ -179,7 +179,7 @@ Render automatically provides SSL certificates for custom domains.
 
 ### Health Checks
 
-Render automatically monitors your service health via the `/health` endpoint.
+Render automatically monitors your service health via the `/up` endpoint.
 
 ### Log Monitoring
 

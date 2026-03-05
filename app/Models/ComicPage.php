@@ -34,7 +34,22 @@ class ComicPage extends Model
 
     public function getFullImageUrl(): string
     {
-        if (str_starts_with($this->image_url, 'http')) {
+        if ($this->image_path) {
+            $isAuthenticatedAsset = $this->image_url
+                && (str_contains($this->image_url, '/authenticated/') || str_contains($this->image_url, '/authenticated_images/'));
+
+            if ($isAuthenticatedAsset) {
+                $cloudinary = app(\App\Services\CloudinaryService::class);
+                if ($cloudinary->isConfigured()) {
+                    $signedUrl = $cloudinary->getAuthenticatedUrl($this->image_path);
+                    if ($signedUrl) {
+                        return $signedUrl;
+                    }
+                }
+            }
+        }
+
+        if ($this->image_url && str_starts_with($this->image_url, 'http')) {
             return $this->image_url;
         }
 

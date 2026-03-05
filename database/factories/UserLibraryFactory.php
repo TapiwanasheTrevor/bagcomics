@@ -24,12 +24,12 @@ class UserLibraryFactory extends Factory
         return [
             'user_id' => User::factory(),
             'comic_id' => Comic::factory(),
-            'access_type' => $this->faker->randomElement(['purchased', 'free', 'subscription']),
+            'access_type' => 'purchased',
             'purchase_price' => $this->faker->randomFloat(2, 0.99, 19.99),
-            'purchased_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
-            'is_favorite' => $this->faker->boolean(20), // 20% chance of being favorite
-            'rating' => $this->faker->optional(0.7)->numberBetween(1, 5), // 70% chance of having rating
-            'review' => $this->faker->optional(0.3)->paragraph(), // 30% chance of having review
+            'purchased_at' => now(),
+            'is_favorite' => false,
+            'rating' => null,
+            'review' => null,
         ];
     }
 

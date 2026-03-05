@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('subscription_type')->nullable()->after('avatar_path');
-            $table->enum('subscription_status', ['active', 'canceled', 'expired'])->nullable()->after('subscription_type');
+            $table->enum('subscription_status', ['active', 'trial', 'canceled', 'expired'])->nullable()->after('subscription_type');
             $table->timestamp('subscription_expires_at')->nullable()->after('subscription_status');
             
             // Add indexes

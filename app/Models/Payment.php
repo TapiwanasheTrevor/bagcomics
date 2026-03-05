@@ -32,9 +32,9 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'refund_amount' => 'decimal:2',
-        'bundle_discount_percent' => 'decimal:2',
+        'amount' => 'float',
+        'refund_amount' => 'float',
+        'bundle_discount_percent' => 'float',
         'stripe_metadata' => 'array',
         'paid_at' => 'datetime',
         'refunded_at' => 'datetime',
@@ -133,6 +133,19 @@ class Payment extends Model
             'subscription' => 'Subscription',
             default => 'Unknown',
         };
+    }
+
+    /**
+     * Compatibility alias for older payloads/tests that still send `type`.
+     */
+    public function setTypeAttribute(?string $value): void
+    {
+        $this->attributes['payment_type'] = $value;
+    }
+
+    public function getTypeAttribute(): ?string
+    {
+        return $this->attributes['payment_type'] ?? null;
     }
 
     // Scopes

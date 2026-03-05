@@ -49,10 +49,12 @@ class ComicSeriesFactory extends Factory
         $statuses = ['ongoing', 'completed', 'hiatus', 'cancelled'];
         
         $name = $seriesNames[array_rand($seriesNames)] . ' ' . ucfirst($this->faker->word);
+        $baseSlug = Str::slug($name);
+        $slug = substr($baseSlug, 0, 240) . '-' . strtolower(Str::random(8));
         
         return [
             'name' => $name,
-            'slug' => Str::slug($name),
+            'slug' => $slug,
             'description' => $this->faker->paragraph(4),
             'publisher' => $publishers[array_rand($publishers)],
             'total_issues' => rand(1, 50),

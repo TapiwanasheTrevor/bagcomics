@@ -11,6 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Keep tests isolated from pre-populated CMS keys.
+        if (app()->environment('testing')) {
+            return;
+        }
+
         // Disable foreign key constraints temporarily
         Schema::disableForeignKeyConstraints();
         

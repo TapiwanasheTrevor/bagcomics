@@ -475,8 +475,13 @@ class AnalyticsService
             // Total users count
             $totalUsers = User::count();
             
-            // New users in the period
-            $newUsers = User::where('created_at', '>=', $periodStart)->count();
+            // New users in the completed portion of the period (exclude current day).
+            $periodEnd = Carbon::now()->subDay()->endOfDay();
+            if ($periodEnd->lt($periodStart)) {
+                $periodEnd = Carbon::now();
+            }
+
+            $newUsers = User::whereBetween('created_at', [$periodStart, $periodEnd])->count();
             
             // Total revenue from all payments
             $totalRevenue = \App\Models\Payment::where('status', 'succeeded')
@@ -529,12 +534,13 @@ class AnalyticsService
         });
     }
 
-    public function getRevenueAnalytics(int $days = 30): array
+    public function getRevenueAnalytics(int|string $days = 30, ?string $breakdown = null): array
     {
-        $cacheKey = "revenue_analytics_{$days}";
+        $resolvedDays = $this->resolvePeriodDays($days);
+        $cacheKey = "revenue_analytics_{$resolvedDays}_" . ($breakdown ?? 'default');
         
-        return Cache::remember($cacheKey, 1800, function () use ($days) {
-            $startDate = Carbon::now()->subDays($days);
+        return Cache::remember($cacheKey, 1800, function () use ($resolvedDays) {
+            $startDate = Carbon::now()->subDays($resolvedDays);
             $endDate = Carbon::now();
             
             // Get daily revenue data
@@ -565,7 +571,7 @@ class AnalyticsService
             // Calculate summary statistics
             $totalRevenue = $dailyRevenue->sum('revenue');
             $totalTransactions = $dailyRevenue->sum('transactions');
-            $avgDailyRevenue = $totalRevenue / max($days, 1);
+            $avgDailyRevenue = $totalRevenue / max($resolvedDays, 1);
             $avgTransactionValue = $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0;
             
             // Get revenue by payment type
@@ -592,6 +598,8 @@ class AnalyticsService
             
             return [
                 'daily_revenue' => array_values($dateRange),
+                'top_earning_comics' => $topComics,
+                'average_transaction_value' => round($avgTransactionValue, 2),
                 'summary' => [
                     'total_revenue' => $totalRevenue,
                     'total_transactions' => $totalTransactions,
@@ -603,7 +611,7 @@ class AnalyticsService
                 'period' => [
                     'start_date' => $startDate->format('Y-m-d'),
                     'end_date' => $endDate->format('Y-m-d'),
-                    'days' => $days,
+                    'days' => $resolvedDays,
                 ],
             ];
         });
@@ -678,10 +686,30 @@ class AnalyticsService
             
             // Get bookmark engagement
             $totalBookmarks = \App\Models\ComicBookmark::whereBetween('created_at', [$startDate, Carbon::now()])->count();
+
+            $completionTotal = \App\Models\UserComicProgress::whereBetween('last_read_at', [$startDate, Carbon::now()])->count();
+            $completionCompleted = \App\Models\UserComicProgress::whereBetween('last_read_at', [$startDate, Carbon::now()])
+                ->where('is_completed', true)
+                ->count();
+            $completionInProgress = max($completionTotal - $completionCompleted, 0);
+            $completionRate = $completionTotal > 0 ? ($completionCompleted / $completionTotal) * 100 : 0;
+            $averageSessionDuration = \App\Models\UserComicProgress::whereBetween('last_read_at', [$startDate, Carbon::now()])
+                ->avg('reading_time_minutes') ?? 0;
+            $activeUsers = \App\Models\UserComicProgress::whereBetween('last_read_at', [$startDate, Carbon::now()])
+                ->distinct('user_id')
+                ->count('user_id');
             
             return [
                 'genre_popularity' => array_values($processedGenres),
                 'user_activity' => $userActivity,
+                'completion_stats' => [
+                    'total' => $completionTotal,
+                    'completed' => $completionCompleted,
+                    'in_progress' => $completionInProgress,
+                ],
+                'active_users' => $activeUsers,
+                'reading_completion_rate' => round($completionRate, 2),
+                'average_session_duration' => round((float) $averageSessionDuration, 2),
                 'engagement_metrics' => [
                     'total_views' => $totalViews,
                     'unique_viewers' => $uniqueViewers,
@@ -789,6 +817,7 @@ class AnalyticsService
             
             return [
                 'most_viewed' => $mostViewed,
+                'trending' => $mostViewed,
                 'most_purchased' => $mostPurchased,
                 'best_rated' => $bestRated,
                 'recently_added' => $recentlyAdded,
@@ -806,5 +835,235 @@ class AnalyticsService
                 ],
             ];
         });
+    }
+
+    public function getConversionAnalytics(int $days = 30): array
+    {
+        $startDate = Carbon::now()->subDays($days)->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+
+        $viewsByComic = \App\Models\ComicView::whereBetween('viewed_at', [$startDate, $endDate])
+            ->selectRaw('comic_id, COUNT(*) as view_count')
+            ->groupBy('comic_id')
+            ->get()
+            ->keyBy('comic_id');
+
+        $purchasesByComic = \App\Models\Payment::where('status', 'succeeded')
+            ->whereBetween('paid_at', [$startDate, $endDate])
+            ->whereNotNull('comic_id')
+            ->selectRaw('comic_id, COUNT(*) as purchase_count')
+            ->groupBy('comic_id')
+            ->get()
+            ->keyBy('comic_id');
+
+        $comicIds = $viewsByComic->keys()->merge($purchasesByComic->keys())->unique()->filter();
+        $comicsWithMetrics = Comic::whereIn('id', $comicIds)->get()->map(function (Comic $comic) use ($viewsByComic, $purchasesByComic) {
+            $viewCount = (int) ($viewsByComic[$comic->id]->view_count ?? 0);
+            $purchaseCount = (int) ($purchasesByComic[$comic->id]->purchase_count ?? 0);
+
+            return [
+                'comic_id' => $comic->id,
+                'title' => $comic->title,
+                'slug' => $comic->slug,
+                'views' => $viewCount,
+                'purchases' => $purchaseCount,
+                'conversion_rate' => $viewCount > 0 ? round(($purchaseCount / $viewCount) * 100, 2) : 0,
+            ];
+        })->values();
+
+        $totalViews = (int) $viewsByComic->sum('view_count');
+        $totalPurchases = (int) $purchasesByComic->sum('purchase_count');
+        $overallConversionRate = $totalViews > 0 ? round(($totalPurchases / $totalViews) * 100, 2) : 0;
+
+        return [
+            'comics_with_metrics' => $comicsWithMetrics,
+            'overall_conversion_rate' => $overallConversionRate,
+            'total_views' => $totalViews,
+            'total_purchases' => $totalPurchases,
+            'period' => [
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
+                'days' => $days,
+            ],
+        ];
+    }
+
+    public function generateComprehensiveReport(array $options = []): array
+    {
+        $days = (int) ($options['days'] ?? 30);
+
+        return [
+            'summary' => [
+                'period' => "{$days} days",
+                'generated_at' => Carbon::now()->toISOString(),
+                'platform_metrics' => $this->getPlatformMetrics($days),
+            ],
+            'revenue_analytics' => $this->getRevenueAnalytics($days),
+            'user_engagement' => $this->getUserEngagementAnalytics($days),
+            'comic_performance' => $this->getComicPerformanceAnalytics($days),
+            'conversion_metrics' => $this->getConversionAnalytics($days),
+            'realtime_metrics' => $this->getRealtimeMetrics(),
+        ];
+    }
+
+    public function exportReportToCsv(array $reportData): string
+    {
+        $filePath = sys_get_temp_dir() . '/analytics_report_' . uniqid() . '.csv';
+        $handle = fopen($filePath, 'w');
+
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to create CSV report file.');
+        }
+
+        $writeRow = static function ($handle, array $columns): void {
+            $escaped = array_map(static function ($value): string {
+                if (is_bool($value)) {
+                    $value = $value ? '1' : '0';
+                } elseif (is_array($value) || is_object($value)) {
+                    $value = json_encode($value);
+                } elseif ($value === null) {
+                    $value = '';
+                } else {
+                    $value = (string) $value;
+                }
+
+                if ($value === false) {
+                    $value = '';
+                }
+
+                if (str_contains($value, ',') || str_contains($value, '"') || str_contains($value, "\n") || str_contains($value, "\r")) {
+                    return '"' . str_replace('"', '""', $value) . '"';
+                }
+
+                return $value;
+            }, $columns);
+
+            fwrite($handle, implode(',', $escaped) . PHP_EOL);
+        };
+
+        $writeRow($handle, ['Section', 'Metric', 'Value', 'Date']);
+
+        $generatedAt = $reportData['summary']['generated_at'] ?? Carbon::now()->toISOString();
+        $platformMetrics = $reportData['summary']['platform_metrics'] ?? [];
+
+        $writeRow($handle, ['Platform', 'Total Users', $platformMetrics['total_users'] ?? 0, $generatedAt]);
+
+        foreach ($platformMetrics as $metric => $value) {
+            if ($metric === 'total_users') {
+                continue;
+            }
+
+            $label = ucwords(str_replace('_', ' ', (string) $metric));
+            $writeRow($handle, ['Platform', $label, $value, $generatedAt]);
+        }
+
+        fclose($handle);
+
+        return $filePath;
+    }
+
+    public function exportReportToJson(array $reportData): string
+    {
+        $filePath = sys_get_temp_dir() . '/analytics_report_' . uniqid() . '.json';
+        $json = json_encode($reportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        if ($json === false) {
+            throw new \RuntimeException('Unable to encode analytics report as JSON.');
+        }
+
+        file_put_contents($filePath, $json);
+
+        return $filePath;
+    }
+
+    public function getRealtimeMetrics(): array
+    {
+        return [
+            'online_users' => \App\Models\UserComicProgress::where('last_read_at', '>=', Carbon::now()->subMinutes(15))
+                ->distinct('user_id')
+                ->count('user_id'),
+            'active_reading_sessions' => \App\Models\UserComicProgress::where('last_read_at', '>=', Carbon::now()->subMinutes(30))
+                ->where('is_completed', false)
+                ->count(),
+            'revenue_today' => (float) \App\Models\Payment::where('status', 'succeeded')
+                ->whereDate('paid_at', Carbon::today())
+                ->sum('amount'),
+            'new_users_today' => User::whereDate('created_at', Carbon::today())->count(),
+            'views_last_hour' => \App\Models\ComicView::where('viewed_at', '>=', Carbon::now()->subHour())->count(),
+            'last_updated' => Carbon::now()->toISOString(),
+        ];
+    }
+
+    public function getSubscriptionAnalytics(): array
+    {
+        $totalSubscribers = User::where('subscription_status', 'active')->count();
+        $trialUsers = User::where('subscription_status', 'trial')->count();
+        $canceledUsers = User::where('subscription_status', 'canceled')->count();
+
+        $basePopulation = max(User::count(), 1);
+        $conversionRate = round(($totalSubscribers / $basePopulation) * 100, 2);
+        $churnBase = max($totalSubscribers + $canceledUsers, 1);
+        $churnRate = round(($canceledUsers / $churnBase) * 100, 2);
+
+        return [
+            'total_subscribers' => $totalSubscribers,
+            'trial_users' => $trialUsers,
+            'canceled_users' => $canceledUsers,
+            'conversion_rate' => $conversionRate,
+            'churn_rate' => $churnRate,
+        ];
+    }
+
+    public function getReadingBehaviorAnalytics(int $days = 30): array
+    {
+        $startDate = Carbon::now()->subDays($days);
+        $sessions = \App\Models\UserComicProgress::whereBetween('last_read_at', [$startDate, Carbon::now()])
+            ->whereNotNull('last_read_at')
+            ->get(['reading_time_minutes', 'device_type', 'last_read_at']);
+
+        $readingByHour = $sessions
+            ->groupBy(fn ($session) => Carbon::parse($session->last_read_at)->format('H'))
+            ->map(fn ($group) => $group->count())
+            ->toArray();
+
+        $deviceUsage = $sessions
+            ->groupBy(fn ($session) => $session->device_type ?: 'unknown')
+            ->map(fn ($group) => $group->count())
+            ->toArray();
+
+        $totalReadingTime = (int) $sessions->sum('reading_time_minutes');
+        $averageSessionLength = $sessions->count() > 0 ? round($totalReadingTime / $sessions->count(), 2) : 0;
+
+        return [
+            'reading_by_hour' => $readingByHour,
+            'device_usage' => $deviceUsage,
+            'average_session_length' => $averageSessionLength,
+            'total_reading_time' => $totalReadingTime,
+        ];
+    }
+
+    private function resolvePeriodDays(int|string $period): int
+    {
+        if (is_int($period)) {
+            return max($period, 1);
+        }
+
+        $normalized = strtolower(trim($period));
+        $knownPeriods = [
+            '7d' => 7,
+            '30d' => 30,
+            '90d' => 90,
+            '1y' => 365,
+        ];
+
+        if (isset($knownPeriods[$normalized])) {
+            return $knownPeriods[$normalized];
+        }
+
+        if (is_numeric($normalized)) {
+            return max((int) $normalized, 1);
+        }
+
+        return 30;
     }
 }

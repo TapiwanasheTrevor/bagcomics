@@ -6,12 +6,278 @@ use App\Models\User;
 use App\Models\Achievement;
 use App\Models\UserAchievement;
 use App\Models\Comic;
+use App\Models\UserComicProgress;
+use App\Models\ComicReview;
+use App\Models\SocialShare;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class AchievementService
 {
+    public const ACHIEVEMENT_TYPES = [
+        'first_comic' => 'First Comic Read',
+        'comic_completed' => 'Comic Completed',
+        'series_completed' => 'Series Completed',
+        'genre_explorer' => 'Genre Explorer',
+        'speed_reader' => 'Speed Reader',
+        'collector' => 'Collector',
+        'reviewer' => 'Reviewer',
+        'social_sharer' => 'Social Sharer',
+        'milestone_reader' => 'Milestone Reader',
+        'binge_reader' => 'Binge Reader',
+    ];
+
+    public const MILESTONE_THRESHOLDS = [
+        'comics_read' => [1, 5, 10, 25, 50, 100],
+        'pages_read' => [100, 500, 1000, 5000],
+        'genres_explored' => [3, 5, 10],
+        'series_completed' => [1, 3, 5],
+        'reviews_written' => [1, 5, 10, 25],
+        'social_shares' => [1, 5, 10, 25],
+    ];
+
+    public function __construct(
+        private readonly ?SocialSharingService $socialSharingService = null
+    ) {}
+
+    /**
+     * Backward-compatible achievement checker used across tests and legacy controllers.
+     */
+    public function checkAchievements(User $user, string $trigger, array $context = []): array
+    {
+        $existing = collect($user->getAttribute('achievements') ?? []);
+        $newAchievements = collect();
+
+        $hasAchievement = static function (Collection $achievements, string $type, ?int $milestone = null): bool {
+            return $achievements->contains(function (array $achievement) use ($type, $milestone): bool {
+                if (($achievement['type'] ?? null) !== $type) {
+                    return false;
+                }
+
+                if ($milestone === null) {
+                    return true;
+                }
+
+                return (int) ($achievement['milestone'] ?? 0) === $milestone;
+            });
+        };
+
+        $addAchievement = function (string $type, string $title, string $description, ?int $milestone = null) use (&$existing, &$newAchievements, $hasAchievement): void {
+            if ($hasAchievement($existing, $type, $milestone)) {
+                return;
+            }
+
+            $achievement = [
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'type' => $type,
+                'title' => $title,
+                'description' => $description,
+                'awarded_at' => now()->toISOString(),
+            ];
+
+            if ($milestone !== null) {
+                $achievement['milestone'] = $milestone;
+            }
+
+            $existing->push($achievement);
+            $newAchievements->push($achievement);
+        };
+
+        $completedCount = UserComicProgress::where('user_id', $user->id)
+            ->where('is_completed', true)
+            ->count();
+
+        if ($trigger === 'comic_completed') {
+            if ($completedCount >= 1) {
+                $addAchievement('first_comic', 'First Steps', 'Completed your first comic');
+            }
+
+            foreach (self::MILESTONE_THRESHOLDS['comics_read'] as $milestone) {
+                if ($milestone > 1 && $completedCount >= $milestone) {
+                    $addAchievement(
+                        'milestone_reader',
+                        "Comic Enthusiast - {$milestone}",
+                        "Completed {$milestone} comics",
+                        $milestone
+                    );
+                }
+            }
+
+            $comic = $context['comic'] ?? null;
+            if ($comic instanceof Comic && $comic->series_id) {
+                $seriesComics = Comic::where('series_id', $comic->series_id)->pluck('id');
+                if ($seriesComics->isNotEmpty()) {
+                    $completedSeriesComics = UserComicProgress::where('user_id', $user->id)
+                        ->whereIn('comic_id', $seriesComics)
+                        ->where('is_completed', true)
+                        ->distinct('comic_id')
+                        ->count('comic_id');
+
+                    if ($completedSeriesComics === $seriesComics->count()) {
+                        $addAchievement('series_completed', 'Series Master', 'Completed an entire comic series');
+                    }
+                }
+            }
+
+            if ($comic instanceof Comic) {
+                $progress = UserComicProgress::where('user_id', $user->id)
+                    ->where('comic_id', $comic->id)
+                    ->where('is_completed', true)
+                    ->latest('updated_at')
+                    ->first();
+
+                if ($progress && $progress->created_at && $progress->updated_at
+                    && $progress->created_at->isSameDay($progress->updated_at)) {
+                    $addAchievement('speed_reader', 'Speed Reader', 'Completed a comic in one day');
+                }
+            }
+
+            $genresExplored = UserComicProgress::query()
+                ->join('comics', 'user_comic_progress.comic_id', '=', 'comics.id')
+                ->where('user_comic_progress.user_id', $user->id)
+                ->where('user_comic_progress.is_completed', true)
+                ->whereNotNull('comics.genre')
+                ->distinct('comics.genre')
+                ->count('comics.genre');
+
+            foreach (self::MILESTONE_THRESHOLDS['genres_explored'] as $milestone) {
+                if ($genresExplored >= $milestone) {
+                    $addAchievement(
+                        'genre_explorer',
+                        'Genre Explorer',
+                        "Completed comics in {$milestone} different genres",
+                        $milestone
+                    );
+                }
+            }
+        }
+
+        if ($trigger === 'review_submitted') {
+            $reviewCount = ComicReview::where('user_id', $user->id)->count();
+            foreach (self::MILESTONE_THRESHOLDS['reviews_written'] as $milestone) {
+                if ($reviewCount >= $milestone) {
+                    $addAchievement(
+                        'reviewer',
+                        'Reviewer',
+                        "Submitted {$milestone} review(s)",
+                        $milestone
+                    );
+                }
+            }
+        }
+
+        if ($trigger === 'social_share') {
+            $shareCount = SocialShare::where('user_id', $user->id)->count();
+            foreach (self::MILESTONE_THRESHOLDS['social_shares'] as $milestone) {
+                if ($shareCount >= $milestone) {
+                    $addAchievement(
+                        'social_sharer',
+                        'Social Sharer',
+                        "Shared {$milestone} comic(s)",
+                        $milestone
+                    );
+                }
+            }
+        }
+
+        if ($trigger === 'progress_updated') {
+            $completedToday = UserComicProgress::where('user_id', $user->id)
+                ->where('is_completed', true)
+                ->whereDate('updated_at', now()->toDateString())
+                ->count();
+
+            if ($completedToday >= 3) {
+                $addAchievement('binge_reader', 'Binge Reader', 'Completed 3 comics in one day');
+            }
+        }
+
+        if ($newAchievements->isNotEmpty()) {
+            $user->setAttribute('achievements', $existing->values()->all());
+            $user->save();
+        }
+
+        return $newAchievements->values()->all();
+    }
+
+    public function getUserReadingStats(User $user): array
+    {
+        $completedProgressQuery = UserComicProgress::query()
+            ->where('user_id', $user->id)
+            ->where('is_completed', true);
+        $completedProgress = (clone $completedProgressQuery)->get();
+
+        $comicsCompleted = $completedProgress->count();
+        $reviewsWritten = ComicReview::where('user_id', $user->id)->count();
+        $socialShares = SocialShare::where('user_id', $user->id)->count();
+        $librarySize = $user->library()->count();
+        $averageRatingGiven = (float) ($user->library()->whereNotNull('rating')->avg('rating') ?? 0);
+
+        $totalPagesRead = UserComicProgress::query()
+            ->join('comics', 'user_comic_progress.comic_id', '=', 'comics.id')
+            ->where('user_comic_progress.user_id', $user->id)
+            ->where('user_comic_progress.is_completed', true)
+            ->sum('comics.page_count');
+
+        $genresExplored = UserComicProgress::query()
+            ->join('comics', 'user_comic_progress.comic_id', '=', 'comics.id')
+            ->where('user_comic_progress.user_id', $user->id)
+            ->where('user_comic_progress.is_completed', true)
+            ->whereNotNull('comics.genre')
+            ->distinct('comics.genre')
+            ->count('comics.genre');
+
+        $readingStreak = UserComicProgress::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('updated_at')
+            ->whereDate('updated_at', '>=', now()->subDays(6)->toDateString())
+            ->distinct()
+            ->count(\Illuminate\Support\Facades\DB::raw('DATE(updated_at)'));
+
+        $favoriteGenre = UserComicProgress::query()
+            ->join('comics', 'user_comic_progress.comic_id', '=', 'comics.id')
+            ->where('user_comic_progress.user_id', $user->id)
+            ->where('user_comic_progress.is_completed', true)
+            ->whereNotNull('comics.genre')
+            ->selectRaw('comics.genre, COUNT(*) as total')
+            ->groupBy('comics.genre')
+            ->orderByDesc('total')
+            ->value('comics.genre');
+
+        $completedComicIds = $completedProgress->pluck('comic_id');
+        $seriesCompleted = 0;
+        if ($completedComicIds->isNotEmpty()) {
+            $seriesIds = Comic::query()
+                ->whereIn('id', $completedComicIds)
+                ->whereNotNull('series_id')
+                ->pluck('series_id')
+                ->unique()
+                ->filter();
+
+            foreach ($seriesIds as $seriesId) {
+                $seriesComicIds = Comic::query()->where('series_id', $seriesId)->pluck('id');
+                $completedInSeries = $completedComicIds->intersect($seriesComicIds)->unique();
+
+                if ($seriesComicIds->isNotEmpty() && $completedInSeries->count() === $seriesComicIds->count()) {
+                    $seriesCompleted++;
+                }
+            }
+        }
+
+        return [
+            'comics_completed' => $comicsCompleted,
+            'total_pages_read' => (int) $totalPagesRead,
+            'genres_explored' => $genresExplored,
+            'series_completed' => $seriesCompleted,
+            'reviews_written' => $reviewsWritten,
+            'social_shares' => $socialShares,
+            'library_size' => $librarySize,
+            'reading_streak' => $readingStreak,
+            'favorite_genre' => $favoriteGenre,
+            'average_rating_given' => round($averageRatingGiven, 2),
+        ];
+    }
+
     public function checkAndUnlockAchievements(User $user, ?string $trigger = null): Collection
     {
         $newAchievements = collect();
@@ -39,8 +305,15 @@ class AchievementService
         return $newAchievements;
     }
 
-    public function getUserAchievements(User $user): array
+    public function getUserAchievements(User $user): Collection|array
     {
+        $legacyAchievements = collect($user->getAttribute('achievements') ?? []);
+        if ($legacyAchievements->isNotEmpty()) {
+            return $legacyAchievements
+                ->sortByDesc('awarded_at')
+                ->values();
+        }
+
         $cacheKey = "user.achievements.{$user->id}";
         
         return Cache::remember($cacheKey, 1800, function () use ($user) {

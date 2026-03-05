@@ -39,6 +39,22 @@ class ReviewModerationController extends Controller
     }
 
     /**
+     * Backward-compatible alias for pending reviews endpoint.
+     */
+    public function pending(Request $request): JsonResponse
+    {
+        return $this->index($request);
+    }
+
+    /**
+     * Backward-compatible alias for reported reviews endpoint.
+     */
+    public function reported(Request $request): JsonResponse
+    {
+        return $this->index($request);
+    }
+
+    /**
      * Approve a review
      */
     public function approve(ComicReview $review): JsonResponse

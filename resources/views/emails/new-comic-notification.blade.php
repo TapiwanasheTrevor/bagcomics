@@ -1,9 +1,8 @@
-@component('mail::message')
 <div style="text-align: center; margin-bottom: 30px;">
     <img src="{{ asset('/images/bagcomics.jpeg') }}" alt="BAG Comics" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover;">
 </div>
 
-# 📚 New Comic Alert!
+<h1 style="margin: 0 0 16px 0; font-size: 28px; line-height: 1.2;">📚 New Comic Alert!</h1>
 
 Hello **{{ $user->name }}**!
 
@@ -46,9 +45,11 @@ We're excited to announce that a fantastic new comic has just been added to the 
 </div>
 @endif
 
-@component('mail::button', ['url' => route('comics.show', $comic->slug), 'color' => 'red'])
-🚀 Start Reading Now
-@endcomponent
+<div style="margin: 24px 0; text-align: center;">
+    <a href="{{ route('comics.show', $comic->slug) }}" style="display: inline-block; background: #dc2626; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 6px; font-weight: 600;">
+        🚀 Start Reading Now
+    </a>
+</div>
 
 <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
     <p style="margin: 0; color: #6b7280; font-size: 14px; text-align: center;">
@@ -75,4 +76,3 @@ Thanks for being part of our amazing community! 🌟
         © {{ date('Y') }} BAG Comics. African Stories, Boldly Told.
     </p>
 </div>
-@endcomponent

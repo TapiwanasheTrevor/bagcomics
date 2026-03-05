@@ -39,6 +39,60 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Re
   });
 };
 
+const extractErrorMessage = (payload: unknown, fallback: string): string => {
+  if (!payload || typeof payload !== 'object') {
+    return fallback;
+  }
+
+  const data = payload as Record<string, any>;
+  return data?.error?.message || data?.message || fallback;
+};
+
+const unwrapApiData = <T>(payload: unknown): T => {
+  if (payload && typeof payload === 'object') {
+    const data = payload as Record<string, any>;
+    if (typeof data.success === 'boolean') {
+      if (data.success === false) {
+        throw new Error(extractErrorMessage(payload, 'Request failed'));
+      }
+      if ('data' in data) {
+        return data.data as T;
+      }
+    }
+  }
+
+  return payload as T;
+};
+
+const normalizeApiResponse = <T>(payload: unknown): ApiResponse<T> => {
+  if (payload && typeof payload === 'object') {
+    const data = payload as Record<string, any>;
+
+    if (typeof data.success === 'boolean' && data.success === true && 'data' in data) {
+      return {
+        data: data.data as T,
+        meta: data.pagination ?? data.meta,
+      };
+    }
+
+    if ('data' in data) {
+      return data as ApiResponse<T>;
+    }
+  }
+
+  return { data: payload as T };
+};
+
+const parseResponsePayload = async (response: Response): Promise<unknown> => {
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(extractErrorMessage(payload, `Request failed (${response.status})`));
+  }
+
+  return payload;
+};
+
 // API Response types
 export interface Comic {
   id: string;
@@ -124,7 +178,8 @@ export const api = {
       });
     }
     const response = await fetchWithAuth(`${API_BASE}/comics?${searchParams}`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<Comic[]>(payload);
   },
 
   /**
@@ -132,7 +187,8 @@ export const api = {
    */
   async getFeatured(): Promise<ApiResponse<Comic[]>> {
     const response = await fetchWithAuth(`${API_BASE}/comics/featured`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<Comic[]>(payload);
   },
 
   /**
@@ -140,7 +196,8 @@ export const api = {
    */
   async getRecent(): Promise<ApiResponse<Comic[]>> {
     const response = await fetchWithAuth(`${API_BASE}/comics/recent`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<Comic[]>(payload);
   },
 
   /**
@@ -148,7 +205,8 @@ export const api = {
    */
   async getComic(slug: string): Promise<ApiResponse<Comic>> {
     const response = await fetchWithAuth(`${API_BASE}/comics/${slug}`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<Comic>(payload);
   },
 
   /**
@@ -156,7 +214,8 @@ export const api = {
    */
   async getPages(slug: string): Promise<ApiResponse<string[]>> {
     const response = await fetchWithAuth(`${API_BASE}/comics/${slug}/pages`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<string[]>(payload);
   },
 
   /**
@@ -164,7 +223,8 @@ export const api = {
    */
   async getGenres(): Promise<ApiResponse<string[]>> {
     const response = await fetchWithAuth(`${API_BASE}/genres`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<string[]>(payload);
   },
 
   // ============================================
@@ -184,12 +244,8 @@ export const api = {
       body: JSON.stringify({ email, password }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
-    }
-
-    const data = await response.json();
+    const payload = await parseResponsePayload(response);
+    const data = unwrapApiData<AuthResponse>(payload);
     setToken(data.token);
     return data;
   },
@@ -207,12 +263,8 @@ export const api = {
       body: JSON.stringify({ name, email, password, password_confirmation }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Registration failed');
-    }
-
-    const data = await response.json();
+    const payload = await parseResponsePayload(response);
+    const data = unwrapApiData<AuthResponse>(payload);
     setToken(data.token);
     return data;
   },
@@ -241,7 +293,8 @@ export const api = {
         removeToken();
         return null;
       }
-      return response.json();
+      const payload = await parseResponsePayload(response);
+      return unwrapApiData<{ user: User }>(payload);
     } catch {
       removeToken();
       return null;
@@ -264,7 +317,8 @@ export const api = {
    */
   async getLibrary(): Promise<ApiResponse<Comic[]>> {
     const response = await fetchWithAuth(`${API_BASE}/library`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<Comic[]>(payload);
   },
 
   /**
@@ -274,7 +328,8 @@ export const api = {
     const response = await fetchWithAuth(`${API_BASE}/library/${slug}`, {
       method: 'POST',
     });
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ isBookmarked: boolean }>(payload);
   },
 
   /**
@@ -284,7 +339,8 @@ export const api = {
     const response = await fetchWithAuth(`${API_BASE}/library/${slug}`, {
       method: 'DELETE',
     });
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ isBookmarked: boolean }>(payload);
   },
 
   /**
@@ -299,7 +355,40 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ current_page: currentPage, total_pages: totalPages }),
     });
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{
+      currentPage: number;
+      totalPages: number;
+      percentage: number;
+    }>(payload);
+  },
+
+  // ============================================
+  // Payments
+  // ============================================
+
+  /**
+   * Create payment intent for a comic
+   */
+  async createPaymentIntent(slug: string): Promise<{ payment_intent_id: string; client_secret: string }> {
+    const response = await fetchWithAuth(`${API_BASE}/payments/comics/${slug}/intent`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ payment_intent_id: string; client_secret: string }>(payload);
+  },
+
+  /**
+   * Confirm payment intent with backend
+   */
+  async confirmPayment(paymentIntentId: string): Promise<{ payment: { id: string; amount: string; status: string } }> {
+    const response = await fetchWithAuth(`${API_BASE}/payments/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ payment_intent_id: paymentIntentId }),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ payment: { id: string; amount: string; status: string } }>(payload);
   },
 
   // ============================================
@@ -313,7 +402,8 @@ export const api = {
     const response = await fetchWithAuth(`${API_BASE}/comics/${slug}/like`, {
       method: 'POST',
     });
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ isLiked: boolean; likesCount: number }>(payload);
   },
 
   /**
@@ -324,7 +414,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ rating }),
     });
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ rating: number; averageRating: number }>(payload);
   },
 
   /**
@@ -332,7 +423,8 @@ export const api = {
    */
   async getComments(slug: string): Promise<ApiResponse<Comment[]>> {
     const response = await fetchWithAuth(`${API_BASE}/comics/${slug}/comments`);
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<Comment[]>(payload);
   },
 
   /**
@@ -343,7 +435,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ content, is_spoiler: isSpoiler }),
     });
-    return response.json();
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<Comment>(payload);
   },
 };
 

@@ -63,7 +63,7 @@ class LibraryController extends Controller
 
         $library = UserLibrary::firstOrCreate(
             ['user_id' => $user->id, 'comic_id' => $comic->id],
-            ['access_type' => $comic->is_free ? 'free' : 'reading']
+            ['access_type' => 'free']
         );
 
         return response()->json([
@@ -115,7 +115,7 @@ class LibraryController extends Controller
         // Ensure comic is in library
         UserLibrary::firstOrCreate(
             ['user_id' => $user->id, 'comic_id' => $comic->id],
-            ['access_type' => 'reading']
+            ['access_type' => 'free']
         );
 
         return response()->json([

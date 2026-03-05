@@ -42,7 +42,10 @@ class BulkUploadComics extends Page
                     ->schema([
                         Forms\Components\Select::make('series_id')
                             ->label('Comic Series (Optional)')
-                            ->relationship('series', 'name')
+                            ->options(fn (): array => ComicSeries::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
                             ->searchable()
                             ->preload()
                             ->createOptionForm([
@@ -61,7 +64,10 @@ class BulkUploadComics extends Page
                                         'cancelled' => 'Cancelled',
                                     ])
                                     ->default('ongoing'),
-                            ]),
+                            ])
+                            ->createOptionUsing(function (array $data): int {
+                                return ComicSeries::create($data)->id;
+                            }),
 
                         Forms\Components\TextInput::make('author')
                             ->label('Default Author')

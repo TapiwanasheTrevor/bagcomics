@@ -14,7 +14,7 @@ use Spatie\Sluggable\SlugOptions;
 
 class Comic extends Model
 {
-    use HasFactory, HasSlug;
+    use HasFactory, HasSlug, Searchable;
     
     protected $fillable = [
         'title',
@@ -411,7 +411,7 @@ class Comic extends Model
                 'score' => $score
             ];
         })
-        ->filter(fn($item) => $item['score'] >= 10) // Require minimum score threshold
+        ->filter(fn($item) => $item['score'] >= 20) // Exclude weakly related results
         ->sortByDesc('score')
         ->take($limit);
 
@@ -811,6 +811,25 @@ class Comic extends Model
             ->saveSlugsTo('slug')
             ->allowDuplicateSlugs(false)
             ->slugsShouldBeNoLongerThan(255);
+    }
+
+    /**
+     * Resolve route bindings by id or slug when no explicit binding field is given.
+     */
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        if (is_numeric($value)) {
+            $comic = $this->newQuery()->whereKey($value)->first();
+            if ($comic !== null) {
+                return $comic;
+            }
+        }
+
+        return $this->newQuery()->where('slug', $value)->firstOrFail();
     }
 
     /**

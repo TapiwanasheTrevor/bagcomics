@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class CreateAdminUser extends Command
 {
@@ -32,9 +33,16 @@ class CreateAdminUser extends Command
         $this->info('==========================');
 
         // Get user input
-        $email = $this->option('email') ?: $this->ask('Email address', 'admin@bagcomics.com');
+        $email = $this->option('email') ?: $this->ask('Email address');
         $name = $this->option('name') ?: $this->ask('Full name', 'BagComics Admin');
-        $password = $this->option('password') ?: $this->secret('Password (default: admin123)') ?: 'admin123';
+        $password = $this->option('password') ?: $this->secret('Password');
+        $generatedPassword = null;
+
+        if (empty($password)) {
+            $generatedPassword = Str::random(24);
+            $password = $generatedPassword;
+            $this->warn('No password provided. A random password was generated.');
+        }
 
         // Validate email
         $validator = Validator::make(['email' => $email], [
@@ -73,7 +81,11 @@ class CreateAdminUser extends Command
         $this->info('');
         $this->info('Login credentials:');
         $this->info("Email: {$email}");
-        $this->info("Password: {$password}");
+        if ($generatedPassword) {
+            $this->warn("Generated password (save it now): {$generatedPassword}");
+        } else {
+            $this->info('Password: [provided securely]');
+        }
         $this->info('');
         $this->info('You can now login to the admin panel at /admin');
 

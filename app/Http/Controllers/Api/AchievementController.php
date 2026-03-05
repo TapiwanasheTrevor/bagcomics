@@ -20,10 +20,23 @@ class AchievementController extends Controller
         try {
             $user = Auth::user();
             $achievements = $this->achievementService->getUserAchievements($user);
+            $achievementList = collect();
+
+            if ($achievements instanceof \Illuminate\Support\Collection) {
+                $achievementList = $achievements->values();
+            } elseif (is_array($achievements)) {
+                if (array_is_list($achievements)) {
+                    $achievementList = collect($achievements)->values();
+                } elseif (isset($achievements['unlocked']) && is_array($achievements['unlocked'])) {
+                    $achievementList = collect($achievements['unlocked'])->values();
+                }
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $achievements
+                'data' => $achievementList,
+                'achievements' => $achievementList,
+                'total_achievements' => $achievementList->count(),
             ]);
         } catch (\Exception $e) {
             return response()->json([

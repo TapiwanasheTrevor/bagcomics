@@ -41,6 +41,14 @@ class HandleInertiaRequests extends Middleware
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
         $cmsService = app(CmsService::class);
+        $cmsContent = [];
+
+        try {
+            $cmsContent = $cmsService->getAllContent();
+        } catch (\Throwable $e) {
+            // Keep web rendering available even when CMS schema isn't present.
+            $cmsContent = [];
+        }
 
         return [
             ...parent::share($request),
@@ -54,7 +62,7 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'cms' => $cmsService->getAllContent(),
+            'cms' => $cmsContent,
         ];
     }
 }

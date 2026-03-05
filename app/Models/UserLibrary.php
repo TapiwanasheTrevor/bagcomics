@@ -12,6 +12,15 @@ use Carbon\Carbon;
 class UserLibrary extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $library): void {
+            if ($library->access_type === 'purchased' && $library->purchased_at === null) {
+                $library->purchased_at = now();
+            }
+        });
+    }
     
     protected $fillable = [
         'user_id',

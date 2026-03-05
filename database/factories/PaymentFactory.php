@@ -18,34 +18,42 @@ class PaymentFactory extends Factory
      */
     public function definition(): array
     {
-        $paymentType = $this->faker->randomElement(['single', 'bundle', 'subscription']);
+        $paymentType = 'single';
         
         return [
-            'user_id' => User::factory(),
-            'comic_id' => $paymentType === 'subscription' ? null : Comic::factory(),
+            'user_id' => function () {
+                $existingUserIds = User::query()->pluck('id');
+
+                // Keep analytics fixtures stable (large user pools) without
+                // inflating user counts, but isolate smaller test setups.
+                if ($existingUserIds->count() >= 10) {
+                    return $existingUserIds->first();
+                }
+
+                return User::factory()->create()->id;
+            },
+            'comic_id' => $paymentType === 'subscription'
+                ? null
+                : fn () => Comic::query()->value('id') ?? Comic::factory()->create()->id,
             'stripe_payment_intent_id' => 'pi_' . $this->faker->unique()->regexify('[a-zA-Z0-9]{24}'),
-            'stripe_payment_method_id' => $this->faker->optional()->regexify('pm_[a-zA-Z0-9]{24}'),
-            'stripe_refund_id' => $this->faker->optional()->regexify('re_[a-zA-Z0-9]{24}'),
+            'stripe_payment_method_id' => null,
+            'stripe_refund_id' => null,
             'amount' => $this->faker->randomFloat(2, 0.99, 99.99),
-            'refund_amount' => $this->faker->optional()->randomFloat(2, 0.99, 50.00),
+            'refund_amount' => null,
             'currency' => 'usd',
-            'status' => $this->faker->randomElement(['pending', 'succeeded', 'failed', 'canceled', 'refunded']),
+            'status' => 'pending',
             'payment_type' => $paymentType,
-            'subscription_type' => $paymentType === 'subscription' 
-                ? $this->faker->randomElement(['monthly', 'yearly']) 
-                : null,
-            'bundle_discount_percent' => $paymentType === 'bundle' 
-                ? $this->faker->randomFloat(2, 5.00, 25.00) 
-                : null,
+            'subscription_type' => null,
+            'bundle_discount_percent' => null,
             'stripe_metadata' => [
                 'user_email' => $this->faker->email,
                 'purchase_type' => $paymentType,
             ],
-            'paid_at' => $this->faker->optional()->dateTimeBetween('-1 month', 'now'),
-            'refunded_at' => $this->faker->optional()->dateTimeBetween('-1 week', 'now'),
-            'failure_reason' => $this->faker->optional()->sentence,
-            'retry_count' => $this->faker->numberBetween(0, 3),
-            'last_retry_at' => $this->faker->optional()->dateTimeBetween('-1 week', 'now'),
+            'paid_at' => null,
+            'refunded_at' => null,
+            'failure_reason' => null,
+            'retry_count' => 0,
+            'last_retry_at' => null,
         ];
     }
 

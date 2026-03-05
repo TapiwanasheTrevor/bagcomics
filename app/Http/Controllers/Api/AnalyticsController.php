@@ -33,7 +33,7 @@ class AnalyticsController extends Controller
 
         $analytics = $this->analyticsService->getPlatformOverview($period, $timezone);
 
-        return response()->json($analytics);
+        return $this->successResponse($analytics);
     }
 
     /**
@@ -51,7 +51,7 @@ class AnalyticsController extends Controller
 
         $engagement = $this->analyticsService->getUserEngagement($period, $metric);
 
-        return response()->json($engagement);
+        return $this->successResponse($engagement);
     }
 
     /**
@@ -71,7 +71,7 @@ class AnalyticsController extends Controller
 
         $performance = $this->analyticsService->getContentPerformance($period, $sortBy, $limit);
 
-        return response()->json($performance);
+        return $this->successResponse($performance);
     }
 
     /**
@@ -89,7 +89,7 @@ class AnalyticsController extends Controller
 
         $revenue = $this->analyticsService->getRevenueAnalytics($period, $breakdown);
 
-        return response()->json($revenue);
+        return $this->successResponse($revenue);
     }
 
     /**
@@ -115,7 +115,7 @@ class AnalyticsController extends Controller
 
         $behavior = $this->analyticsService->getReadingBehavior($period, $userId);
 
-        return response()->json($behavior);
+        return $this->successResponse($behavior);
     }
 
     /**
@@ -133,7 +133,7 @@ class AnalyticsController extends Controller
 
         $popularity = $this->analyticsService->getGenrePopularity($period, $metric);
 
-        return response()->json($popularity);
+        return $this->successResponse($popularity);
     }
 
     /**
@@ -151,7 +151,7 @@ class AnalyticsController extends Controller
 
         $searchData = $this->analyticsService->getSearchAnalytics($period, $limit);
 
-        return response()->json($searchData);
+        return $this->successResponse($searchData);
     }
 
     /**
@@ -169,7 +169,7 @@ class AnalyticsController extends Controller
 
         $retention = $this->analyticsService->getUserRetention($cohortPeriod, $retentionPeriod);
 
-        return response()->json($retention);
+        return $this->successResponse($retention);
     }
 
     /**
@@ -187,7 +187,7 @@ class AnalyticsController extends Controller
 
         $funnel = $this->analyticsService->getConversionFunnel($period, $funnelType);
 
-        return response()->json($funnel);
+        return $this->successResponse($funnel);
     }
 
     /**
@@ -208,11 +208,7 @@ class AnalyticsController extends Controller
         try {
             $exportData = $this->analyticsService->exportAnalytics($type, $period, $format);
 
-            return response()->json([
-                'download_url' => $exportData['url'],
-                'filename' => $exportData['filename'],
-                'expires_at' => $exportData['expires_at']
-            ]);
+            return $this->successResponse($exportData);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 'EXPORT_FAILED',
@@ -220,5 +216,14 @@ class AnalyticsController extends Controller
                 'details' => ['error' => $e->getMessage()]
             ], 400);
         }
+    }
+
+    private function successResponse(mixed $data, int $status = 200): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'timestamp' => now()->toISOString(),
+        ], $status);
     }
 }

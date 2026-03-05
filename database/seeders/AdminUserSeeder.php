@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminUserSeeder extends Seeder
 {
@@ -14,33 +15,28 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create admin user for Filament
+        $adminEmail = env('ADMIN_DEFAULT_EMAIL', 'admin@bagcomics.com');
+        $adminName = env('ADMIN_DEFAULT_NAME', 'BagComics Admin');
+        $adminPassword = env('ADMIN_DEFAULT_PASSWORD');
+
+        if (empty($adminPassword)) {
+            $adminPassword = Str::random(32);
+            $this->command?->warn('ADMIN_DEFAULT_PASSWORD is not set. A random admin password was generated.');
+        }
+
         User::updateOrCreate(
-            ['email' => 'admin@bagcomics.com'],
+            ['email' => $adminEmail],
             [
-                'name' => 'BagComics Admin',
-                'email' => 'admin@bagcomics.com',
-                'password' => Hash::make('admin123'),
+                'name' => $adminName,
+                'email' => $adminEmail,
+                'password' => Hash::make($adminPassword),
                 'email_verified_at' => now(),
                 'is_admin' => true,
             ]
         );
 
-        // Create a backup admin user
-        User::updateOrCreate(
-            ['email' => 'admin@example.com'],
-            [
-                'name' => 'Admin User',
-                'email' => 'admin@example.com',
-                'password' => Hash::make('password'),
-                'email_verified_at' => now(),
-                'is_admin' => true,
-            ]
-        );
-
-        $this->command->info('Admin users created successfully!');
-        $this->command->info('Login credentials:');
-        $this->command->info('Email: admin@bagcomics.com | Password: admin123');
-        $this->command->info('Email: admin@example.com | Password: password');
+        $this->command?->info('Admin user seeded successfully.');
+        $this->command?->info("Email: {$adminEmail}");
+        $this->command?->info('Use a secure password from ADMIN_DEFAULT_PASSWORD and rotate it after initial login.');
     }
 }

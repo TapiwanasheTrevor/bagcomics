@@ -22,7 +22,7 @@ class CmsAdminTest extends TestCase
     {
         parent::setUp();
         
-        $this->adminUser = User::factory()->create();
+        $this->adminUser = User::factory()->create(['is_admin' => true]);
         Storage::fake('public');
     }
 
@@ -36,6 +36,7 @@ class CmsAdminTest extends TestCase
 
         $response->assertStatus(200)
                 ->assertJsonStructure([
+                    'current_page',
                     'data' => [
                         '*' => [
                             'id',
@@ -49,8 +50,8 @@ class CmsAdminTest extends TestCase
                             'updated_at',
                         ]
                     ],
-                    'meta',
-                    'links'
+                    'links',
+                    'total'
                 ]);
     }
 

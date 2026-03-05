@@ -6,7 +6,7 @@ use App\Filament\Resources\UserResource;
 use App\Models\User;
 use App\Models\Comic;
 use App\Models\Payment;
-use Filament\Pages\Page;
+use Filament\Resources\Pages\Page;
 use Filament\Widgets\StatsOverviewWidget as BaseStatsOverviewWidget;
 use Filament\Widgets\ChartWidget;
 

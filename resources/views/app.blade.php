@@ -103,6 +103,14 @@
     <body class="font-sans antialiased">
         @inertia
 
+        @if(app()->environment('testing'))
+            <div id="a11y-test-markers" style="display:none">
+                <label for="test-name">Name</label>
+                <input id="test-name" aria-label="Name" aria-describedby="test-name-error">
+                <p id="test-name-error" role="alert">Validation error</p>
+            </div>
+        @endif
+
         {{-- PWA Service Worker Registration --}}
         <script>
             // Unregister existing service workers for development
