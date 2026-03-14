@@ -70,9 +70,9 @@ services:
       - key: MAIL_PORT
         value: "587"
       - key: MAIL_USERNAME
-        sync: false
+        value: 8a33c3d91ce7eee1df501c024d7b8cb3
       - key: MAIL_PASSWORD
-        sync: false
+        value: 58c539d3a747cc47fe87f04ebc25a22f
       - key: MAIL_ENCRYPTION
         value: tls
       - key: MAIL_FROM_ADDRESS
@@ -156,9 +156,9 @@ services:
       - key: MAIL_PORT
         value: "587"
       - key: MAIL_USERNAME
-        sync: false
+        value: 8a33c3d91ce7eee1df501c024d7b8cb3
       - key: MAIL_PASSWORD
-        sync: false
+        value: 58c539d3a747cc47fe87f04ebc25a22f
       - key: MAIL_ENCRYPTION
         value: tls
       - key: MAIL_FROM_ADDRESS
