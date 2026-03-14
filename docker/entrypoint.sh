@@ -109,7 +109,14 @@ QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
 FILESYSTEM_DISK=${FILESYSTEM_DISK:-public}
 FILE_STORAGE_DISK=${FILE_STORAGE_DISK:-public}
 
-MAIL_MAILER=${MAIL_MAILER:-log}
+MAIL_MAILER=${MAIL_MAILER:-smtp}
+MAIL_HOST=${MAIL_HOST:-in-v3.mailjet.com}
+MAIL_PORT=${MAIL_PORT:-587}
+MAIL_USERNAME=${MAIL_USERNAME:-}
+MAIL_PASSWORD=${MAIL_PASSWORD:-}
+MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-hello@bagcomics.shop}
+MAIL_FROM_NAME="${MAIL_FROM_NAME:-BAG Comics}"
 
 STRIPE_KEY=${STRIPE_KEY:-}
 STRIPE_SECRET=${STRIPE_SECRET:-}
@@ -172,6 +179,10 @@ fi
 # Run database migrations
 echo "Running database migrations..."
 php artisan migrate --force || echo "Migration completed (some may have been skipped)"
+
+# Seed subscription plans (idempotent - uses updateOrCreate)
+echo "Seeding subscription plans..."
+php artisan db:seed --class=Database\\Seeders\\SubscriptionPlanSeeder --force || echo "Subscription plan seeding completed"
 
 # ============================================
 # PHASE 6: Seed database if empty
