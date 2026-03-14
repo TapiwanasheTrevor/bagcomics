@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Comic } from '../types';
 import api from '../services/api';
 import PaymentModal from './PaymentModal';
+import ShareModal from './ShareModal';
 
 export const ComicDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -11,6 +12,7 @@ export const ComicDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     const fetchComic = async () => {
@@ -70,26 +72,8 @@ export const ComicDetail: React.FC = () => {
 
   const shareUrl = `${window.location.origin}/comics/${slug}`;
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: comic.title,
-          text: comic.description || `Check out ${comic.title} on BAG Comics!`,
-          url: shareUrl,
-        });
-      } catch (err) {
-        // User cancelled or share failed
-        copyToClipboard();
-      }
-    } else {
-      copyToClipboard();
-    }
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl);
-    alert('Link copied to clipboard!');
+  const handleShare = () => {
+    setShowShareModal(true);
   };
 
   return (
@@ -296,6 +280,15 @@ export const ComicDetail: React.FC = () => {
           setShowPaymentModal(false);
           setComic(prev => (prev ? { ...prev, hasAccess: true } : prev));
         }}
+      />
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={shareUrl}
+        title={comic.title}
+        description={comic.description}
+        coverImage={comic.coverImage}
       />
     </div>
   );

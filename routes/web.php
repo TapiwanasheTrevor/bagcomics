@@ -100,7 +100,44 @@ Route::get('/publish', $serveSpa)->name('publish');
 Route::get('/pricing', $serveSpa)->name('pricing');
 Route::get('/login', $serveSpa)->name('login');
 Route::get('/register', $serveSpa)->name('register');
-Route::get('/comics/{slug}', $serveSpa)->where('slug', '[a-z0-9\-]+')->name('comics.show');
+Route::get('/comics/{slug}', function (string $slug) use ($serveSpa) {
+    // Inject Open Graph meta tags for social media link previews
+    $comic = Comic::query()->where('slug', $slug)->first();
+
+    if (!$comic || !$comic->is_visible) {
+        return $serveSpa();
+    }
+
+    $html = File::get(public_path('frontend/dist/index.html'));
+
+    $ogTitle = e($comic->title);
+    $ogDescription = e($comic->description ?: "Read {$comic->title} on BAG Comics");
+    $ogImage = e($comic->cover_image_url);
+    $ogUrl = e(url("/comics/{$slug}"));
+    $author = e($comic->author ?: 'BAG Comics');
+
+    $metaTags = <<<META
+    <meta property="og:type" content="book" />
+    <meta property="og:title" content="{$ogTitle}" />
+    <meta property="og:description" content="{$ogDescription}" />
+    <meta property="og:image" content="{$ogImage}" />
+    <meta property="og:image:width" content="400" />
+    <meta property="og:image:height" content="600" />
+    <meta property="og:url" content="{$ogUrl}" />
+    <meta property="og:site_name" content="BAG Comics" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{$ogTitle}" />
+    <meta name="twitter:description" content="{$ogDescription}" />
+    <meta name="twitter:image" content="{$ogImage}" />
+    <meta name="author" content="{$author}" />
+    <title>{$ogTitle} - BAG Comics</title>
+META;
+
+    // Inject before </head>
+    $html = str_replace('</head>', $metaTags . "\n</head>", $html);
+
+    return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+})->where('slug', '[a-z0-9\-]+')->name('comics.show');
 Route::get('/comics/{slug}/read', function (string $slug) use ($serveSpa) {
     $comic = Comic::query()->where('slug', $slug)->firstOrFail();
 
