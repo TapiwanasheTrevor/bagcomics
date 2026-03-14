@@ -80,6 +80,13 @@ fi
 echo "Database config: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
 
 # Create complete .env file with all required variables
+# Remove any cached config from Docker build layer AND .env.production
+# (.env.production overrides .env values in Laravel when APP_ENV=production)
+rm -f /var/www/html/bootstrap/cache/config.php 2>/dev/null || true
+rm -f /var/www/html/bootstrap/cache/routes-v7.php 2>/dev/null || true
+rm -f /var/www/html/.env.production 2>/dev/null || true
+rm -f /var/www/html/.env.local 2>/dev/null || true
+
 echo "Creating complete .env file..."
 cat > /var/www/html/.env << EOF
 APP_NAME="${APP_NAME:-BAG Comics}"
