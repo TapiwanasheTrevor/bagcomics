@@ -8,7 +8,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 
 class CreateComic extends CreateRecord
 {
@@ -46,8 +45,8 @@ class CreateComic extends CreateRecord
             return $data;
         }
 
-        $fullPath = storage_path('app/public/' . $localPath);
-        if (!file_exists($fullPath)) {
+        $fullPath = $this->resolveFilePath($localPath);
+        if (!$fullPath) {
             return $data;
         }
 
@@ -67,5 +66,26 @@ class CreateComic extends CreateRecord
         }
 
         return $data;
+    }
+
+    protected function resolveFilePath(string $path): ?string
+    {
+        $candidates = [
+            storage_path('app/livewire-tmp/' . $path),
+            storage_path('app/public/' . $path),
+            storage_path('app/' . $path),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (file_exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        if (file_exists($path)) {
+            return $path;
+        }
+
+        return null;
     }
 }

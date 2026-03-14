@@ -92,15 +92,10 @@ class ComicResource extends Resource
 
                     Forms\Components\FileUpload::make('cover_image_path')
                         ->label(fn ($record) => $record?->cover_image_path ? 'Replace Cover Image' : 'Cover Image')
-                        ->disk('public')
-                        ->directory('covers')
-                        ->image()
-                        ->imageEditor()
-                        ->imageResizeMode('cover')
-                        ->imageCropAspectRatio('2:3')
-                        ->imageResizeTargetWidth('400')
-                        ->imageResizeTargetHeight('600')
-                        ->helperText('Upload a cover image (2:3 aspect ratio). Comic pages are managed in the Pages tab after saving.'),
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                        ->maxSize(5120)
+                        ->imagePreviewHeight('200')
+                        ->helperText('Upload a cover image (JPG, PNG, WebP). Max 5MB. Pages are managed in the Pages tab after saving.'),
                 ]),
 
             Forms\Components\Section::make('Publishing')
