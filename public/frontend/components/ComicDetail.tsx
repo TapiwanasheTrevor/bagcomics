@@ -13,6 +13,9 @@ export const ComicDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
 
   useEffect(() => {
     const fetchComic = async () => {
@@ -25,6 +28,9 @@ export const ComicDetail: React.FC = () => {
         const res = await api.getComic(slug);
         const comicData = res?.data?.data || res?.data || res;
         setComic(comicData);
+        setIsBookmarked(comicData?.isBookmarked || false);
+        setIsLiked(comicData?.isLiked || false);
+        setLikesCount(comicData?.likesCount || 0);
       } catch (err) {
         console.error('Failed to fetch comic:', err);
         setError('Comic not found');
@@ -74,6 +80,36 @@ export const ComicDetail: React.FC = () => {
 
   const handleShare = () => {
     setShowShareModal(true);
+  };
+
+  const handleToggleBookmark = async () => {
+    if (!api.isAuthenticated()) {
+      localStorage.setItem('bag_comics_return_url', `/comics/${slug}`);
+      window.location.href = '/login';
+      return;
+    }
+    try {
+      if (isBookmarked) {
+        await api.removeFromLibrary(slug!);
+        setIsBookmarked(false);
+      } else {
+        await api.addToLibrary(slug!);
+        setIsBookmarked(true);
+      }
+    } catch {}
+  };
+
+  const handleToggleLike = async () => {
+    if (!api.isAuthenticated()) {
+      localStorage.setItem('bag_comics_return_url', `/comics/${slug}`);
+      window.location.href = '/login';
+      return;
+    }
+    try {
+      const result = await api.toggleLike(slug!);
+      setIsLiked(result.isLiked);
+      setLikesCount(result.likesCount);
+    } catch {}
   };
 
   return (
@@ -248,9 +284,41 @@ export const ComicDetail: React.FC = () => {
                   </button>
                 )}
 
+                {/* Bookmark */}
+                <button
+                  onClick={handleToggleBookmark}
+                  className={`flex items-center gap-2 px-5 py-4 rounded-xl font-medium transition-colors border ${
+                    isBookmarked
+                      ? 'bg-[#DC2626]/10 border-[#DC2626]/30 text-[#DC2626]'
+                      : 'bg-[#1a1a1a] border-gray-700 text-white hover:bg-[#2a2a2a]'
+                  }`}
+                  title={isBookmarked ? 'Remove from Library' : 'Add to Library'}
+                >
+                  <svg className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                </button>
+
+                {/* Like */}
+                <button
+                  onClick={handleToggleLike}
+                  className={`flex items-center gap-2 px-5 py-4 rounded-xl font-medium transition-colors border ${
+                    isLiked
+                      ? 'bg-pink-500/10 border-pink-500/30 text-pink-500'
+                      : 'bg-[#1a1a1a] border-gray-700 text-white hover:bg-[#2a2a2a]'
+                  }`}
+                  title={isLiked ? 'Unlike' : 'Like'}
+                >
+                  <svg className="w-5 h-5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  {likesCount > 0 && <span className="text-sm">{likesCount}</span>}
+                </button>
+
+                {/* Share */}
                 <button
                   onClick={handleShare}
-                  className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white px-6 py-4 rounded-xl font-medium transition-colors border border-gray-700"
+                  className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white px-5 py-4 rounded-xl font-medium transition-colors border border-gray-700"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />

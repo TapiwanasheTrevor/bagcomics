@@ -270,6 +270,32 @@ export const api = {
   },
 
   /**
+   * Request password reset
+   */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ message: string }>(payload);
+  },
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(data: { token: string; email: string; password: string; password_confirmation: string }): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ message: string }>(payload);
+  },
+
+  /**
    * Logout user
    */
   async logout(): Promise<void> {

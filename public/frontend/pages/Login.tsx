@@ -64,12 +64,17 @@ export const LoginPage: React.FC = () => {
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-        <p className="text-sm text-gray-400 mt-6">
-          New here?{' '}
-          <Link to="/register" className="text-white hover:text-gray-200">
-            Create an account
+        <div className="flex items-center justify-between mt-6">
+          <Link to="/forgot-password" className="text-sm text-gray-400 hover:text-white transition-colors">
+            Forgot password?
           </Link>
-        </p>
+          <p className="text-sm text-gray-400">
+            New here?{' '}
+            <Link to="/register" className="text-white hover:text-gray-200">
+              Create an account
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

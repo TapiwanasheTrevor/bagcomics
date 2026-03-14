@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password as PasswordFacade;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -102,6 +103,61 @@ class AuthController extends Controller
                 'avatar' => $user->profile_photo_url ?? null,
             ]
         ]);
+    }
+
+    /**
+     * Send password reset link
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $status = PasswordFacade::sendResetLink($request->only('email'));
+
+        if ($status === PasswordFacade::RESET_LINK_SENT) {
+            return response()->json([
+                'data' => ['message' => 'Password reset link sent to your email.'],
+            ]);
+        }
+
+        return response()->json([
+            'data' => ['message' => 'If that email exists, a reset link has been sent.'],
+        ]);
+    }
+
+    /**
+     * Reset password with token
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $status = PasswordFacade::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                ])->save();
+
+                $user->tokens()->delete();
+            }
+        );
+
+        if ($status === PasswordFacade::PASSWORD_RESET) {
+            return response()->json([
+                'data' => ['message' => 'Password has been reset. You can now sign in.'],
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Unable to reset password. The link may have expired.',
+        ], 400);
     }
 
     /**

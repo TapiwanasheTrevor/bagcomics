@@ -11,6 +11,8 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import PublishPage from './pages/Publish';
 import PricingPage from './pages/Pricing';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
 
 // Newsletter section with working subscribe
 const NewsletterSection: React.FC = () => {
@@ -578,6 +580,8 @@ const App: React.FC = () => {
       <Route path="/blog" element={<Layout><BlogPage /></Layout>} />
       <Route path="/login" element={<Layout><LoginPage /></Layout>} />
       <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
+      <Route path="/forgot-password" element={<Layout><ForgotPasswordPage /></Layout>} />
+      <Route path="/reset-password/:token" element={<Layout><ResetPasswordPage /></Layout>} />
       <Route path="/publish" element={<Layout><PublishPage /></Layout>} />
       <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
 

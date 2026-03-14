@@ -100,6 +100,8 @@ Route::get('/publish', $serveSpa)->name('publish');
 Route::get('/pricing', $serveSpa)->name('pricing');
 Route::get('/login', $serveSpa)->name('login');
 Route::get('/register', $serveSpa)->name('register');
+Route::get('/forgot-password', $serveSpa)->name('password.request');
+Route::get('/reset-password/{token}', $serveSpa)->name('password.reset');
 Route::get('/comics/{slug}', function (string $slug) use ($serveSpa) {
     // Inject Open Graph meta tags for social media link previews
     $comic = Comic::query()->where('slug', $slug)->first();
