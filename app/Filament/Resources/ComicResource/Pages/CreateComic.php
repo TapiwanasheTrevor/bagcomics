@@ -4,8 +4,11 @@ namespace App\Filament\Resources\ComicResource\Pages;
 
 use App\Filament\Resources\ComicResource;
 use App\Services\CloudinaryService;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class CreateComic extends CreateRecord
 {
@@ -16,6 +19,21 @@ class CreateComic extends CreateRecord
         return $this->uploadCoverToCloudinary($data);
     }
 
+    protected function onCreateException(\Exception $exception): void
+    {
+        if ($exception instanceof UniqueConstraintViolationException) {
+            Notification::make()
+                ->title('A comic with this title already exists')
+                ->body('Please use a different title or edit the existing comic.')
+                ->danger()
+                ->send();
+
+            $this->halt();
+        }
+
+        throw $exception;
+    }
+
     protected function uploadCoverToCloudinary(array $data): array
     {
         if (empty($data['cover_image_path'])) {
@@ -24,7 +42,6 @@ class CreateComic extends CreateRecord
 
         $localPath = $data['cover_image_path'];
 
-        // If it's already a Cloudinary URL, skip
         if (str_starts_with($localPath, 'http')) {
             return $data;
         }

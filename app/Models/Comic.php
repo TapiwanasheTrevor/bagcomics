@@ -809,7 +809,6 @@ class Comic extends Model
         return SlugOptions::create()
             ->generateSlugsFrom('title')
             ->saveSlugsTo('slug')
-            ->allowDuplicateSlugs(false)
             ->slugsShouldBeNoLongerThan(255);
     }
 
