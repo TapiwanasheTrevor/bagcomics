@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Page Not Found - BAG Comics</title>
+    <title>Access Denied - BAG Comics</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
@@ -17,9 +17,9 @@
 </head>
 <body>
     <div class="container">
-        <div class="code">404</div>
-        <h1>Page not found</h1>
-        <p>The page you're looking for doesn't exist or has been moved.</p>
+        <div class="code">403</div>
+        <h1>Access denied</h1>
+        <p>You don't have permission to access this page.</p>
         <a href="/">Go Home</a>
     </div>
 </body>
