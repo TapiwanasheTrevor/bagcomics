@@ -381,6 +381,20 @@ Route::prefix('v2')->group(function () {
     Route::get('/comics/{comic:slug}/pages', [App\Http\Controllers\Api\V2\ComicController::class, 'pages']);
     Route::get('/comics/{comic:slug}/comments', [App\Http\Controllers\Api\V2\ComicController::class, 'getComments']);
 
+    // Mail diagnostic (temporary - remove after verifying)
+    Route::get('/debug/mail-config', function () {
+        return response()->json([
+            'mailer' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'username' => config('mail.mailers.smtp.username') ? substr(config('mail.mailers.smtp.username'), 0, 8) . '...' : 'NOT_SET',
+            'password' => config('mail.mailers.smtp.password') ? 'SET' : 'NOT_SET',
+            'encryption' => config('mail.mailers.smtp.encryption'),
+            'from_address' => config('mail.from.address'),
+            'from_name' => config('mail.from.name'),
+        ]);
+    });
+
     // Public form submissions
     Route::post('/newsletter/subscribe', [App\Http\Controllers\Api\V2\NewsletterController::class, 'subscribe']);
     Route::post('/creator-submissions', [App\Http\Controllers\Api\V2\CreatorSubmissionController::class, 'store']);
