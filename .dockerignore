@@ -12,7 +12,9 @@ README.md
 *.md
 
 # Environment files (keep .env.example for Docker build)
+.env
 .env.local
+.env.production
 .env.testing
 
 # Dependencies
