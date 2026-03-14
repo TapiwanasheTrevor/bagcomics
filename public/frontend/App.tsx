@@ -19,20 +19,53 @@ const NewsletterSection: React.FC = () => {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  const validateEmail = (val: string): boolean => {
+    if (!val) { setValidationError('Email is required'); return false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { setValidationError('Please enter a valid email address'); return false; }
+    setValidationError('');
+    return true;
+  };
 
   const handleSubscribe = async () => {
-    if (!email) return;
+    if (!validateEmail(email)) return;
     setStatus('loading');
+    setValidationError('');
     try {
       const result = await api.subscribeNewsletter(email);
       setStatus('success');
       setMessage(result.message);
-      setEmail('');
     } catch (err) {
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Failed to subscribe');
+      setMessage(err instanceof Error ? err.message : 'Failed to subscribe. Please try again.');
     }
   };
+
+  if (status === 'success') {
+    return (
+      <section className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] p-8 sm:p-10 rounded-2xl border border-green-500/30">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center">
+            <svg className="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-white">{message}</h3>
+          <p className="text-gray-400 text-sm max-w-md">
+            We've sent a welcome email to <span className="text-white font-medium">{email}</span>.
+            Check your inbox (and spam folder) for confirmation.
+          </p>
+          <button
+            onClick={() => { setStatus('idle'); setEmail(''); }}
+            className="text-gray-500 hover:text-white text-xs transition-colors mt-2"
+          >
+            Subscribe another email
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] p-8 sm:p-10 rounded-2xl border border-gray-800">
@@ -51,19 +84,21 @@ const NewsletterSection: React.FC = () => {
               type="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); if (status !== 'idle') setStatus('idle'); }}
+              onChange={(e) => { setEmail(e.target.value); setValidationError(''); if (status === 'error') setStatus('idle'); }}
               onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()}
-              className="flex-1 md:w-72 bg-black border border-gray-700 rounded-full px-5 py-3 text-white text-sm focus:outline-none focus:border-[#DC2626]"
+              className={`flex-1 md:w-72 bg-black border rounded-full px-5 py-3 text-white text-sm focus:outline-none ${
+                validationError ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-[#DC2626]'
+              }`}
             />
             <button
               onClick={handleSubscribe}
-              disabled={status === 'loading' || !email}
+              disabled={status === 'loading'}
               className="bg-[#DC2626] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#B91C1C] transition-colors whitespace-nowrap disabled:opacity-50"
             >
               {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
             </button>
           </div>
-          {status === 'success' && <p className="text-green-400 text-xs text-center md:text-left">{message}</p>}
+          {validationError && <p className="text-red-400 text-xs text-center md:text-left">{validationError}</p>}
           {status === 'error' && <p className="text-red-400 text-xs text-center md:text-left">{message}</p>}
         </div>
       </div>
