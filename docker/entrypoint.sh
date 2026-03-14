@@ -143,6 +143,12 @@ echo "Optimizing Laravel..."
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
+
+# Verify mail config before caching
+echo "Mail config check: MAIL_MAILER=${MAIL_MAILER:-NOT_SET} MAIL_HOST=${MAIL_HOST:-NOT_SET} MAIL_USERNAME=${MAIL_USERNAME:+SET}"
+echo "Mail .env check:"
+grep -E "^MAIL_" /var/www/html/.env || echo "No MAIL_ vars found in .env"
+
 php artisan config:cache
 
 if [ "$APP_DEBUG" != "true" ]; then
