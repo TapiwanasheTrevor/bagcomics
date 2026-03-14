@@ -81,6 +81,14 @@ services:
         value: "BAG Comics"
       - key: FILESYSTEM_DISK
         value: public
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dbhxdtsxo
+      - key: CLOUDINARY_API_KEY
+        value: "561645223327994"
+      - key: CLOUDINARY_API_SECRET
+        value: WHh_DWFsbE9-s3hT55nFw0tXTIs
+      - key: CLOUDINARY_URL
+        value: cloudinary://561645223327994:WHh_DWFsbE9-s3hT55nFw0tXTIs@dbhxdtsxo
       - key: STRIPE_KEY
         sync: false
       - key: STRIPE_SECRET
