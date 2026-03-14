@@ -11,7 +11,6 @@ use App\Models\ComicReview;
 use App\Models\Payment;
 use Filament\Pages\Dashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -51,32 +50,6 @@ class EnhancedAdminPanelTest extends TestCase
         
         $response->assertOk();
         $response->assertSeeText('Platform Analytics Overview');
-    }
-
-    /** @test */
-    public function admin_can_bulk_upload_comics()
-    {
-        $pdfFiles = [
-            UploadedFile::fake()->create('comic1.pdf', 1000, 'application/pdf'),
-            UploadedFile::fake()->create('comic2.pdf', 1000, 'application/pdf'),
-        ];
-
-        $component = Livewire::test(\App\Filament\Resources\ComicResource\Pages\BulkUploadComics::class)
-            ->fillForm([
-                'author' => 'Test Author',
-                'genre' => 'action',
-                'language' => 'en',
-                'is_free' => true,
-                'is_visible' => true,
-                'comic_files' => $pdfFiles,
-            ])
-            ->call('uploadComics');
-
-        $this->assertDatabaseCount('comics', 2);
-        $this->assertSame(2, Comic::query()->where('author', 'Test Author')->count());
-        $this->assertSame(2, Comic::query()->where('genre', 'action')->count());
-        $this->assertSame(2, Comic::query()->where('is_free', true)->count());
-        $this->assertSame(2, Comic::query()->where('is_visible', true)->count());
     }
 
     /** @test */
@@ -213,23 +186,4 @@ class EnhancedAdminPanelTest extends TestCase
         $this->assertEquals('danger', ReviewResource::getNavigationBadgeColor());
     }
 
-    /** @test */
-    public function bulk_upload_handles_cover_image_matching()
-    {
-        Storage::disk('public')->put('comics/test-comic.pdf', 'dummy pdf content');
-        Storage::disk('public')->put('covers/test-comic.jpg', 'dummy image content');
-
-        $component = Livewire::test(\App\Filament\Resources\ComicResource\Pages\BulkUploadComics::class)
-            ->fillForm([
-                'author' => 'Test Author',
-                'genre' => 'action',
-                'is_free' => true,
-                'comic_files' => ['comics/test-comic.pdf'],
-                'cover_images' => ['covers/test-comic.jpg'],
-            ])
-            ->call('uploadComics');
-
-        $comic = Comic::query()->where('author', 'Test Author')->first();
-        $this->assertNotNull($comic->cover_image_path);
-    }
 }

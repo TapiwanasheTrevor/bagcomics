@@ -9,6 +9,65 @@ import { ViewMode, Comic } from './types';
 import api from './services/api';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
+import PublishPage from './pages/Publish';
+import PricingPage from './pages/Pricing';
+
+// Newsletter section with working subscribe
+const NewsletterSection: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  const handleSubscribe = async () => {
+    if (!email) return;
+    setStatus('loading');
+    try {
+      const result = await api.subscribeNewsletter(email);
+      setStatus('success');
+      setMessage(result.message);
+      setEmail('');
+    } catch (err) {
+      setStatus('error');
+      setMessage(err instanceof Error ? err.message : 'Failed to subscribe');
+    }
+  };
+
+  return (
+    <section className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] p-8 sm:p-10 rounded-2xl border border-gray-800">
+      <div className="flex flex-col md:flex-row items-center gap-6 justify-between">
+        <div className="text-center md:text-left">
+          <h3 className="text-2xl font-bold text-white mb-2">
+            Never miss a Chapter
+          </h3>
+          <p className="text-gray-400">
+            Subscribe to get notified when new episodes are published.
+          </p>
+        </div>
+        <div className="flex flex-col w-full md:w-auto gap-2">
+          <div className="flex gap-3">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); if (status !== 'idle') setStatus('idle'); }}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()}
+              className="flex-1 md:w-72 bg-black border border-gray-700 rounded-full px-5 py-3 text-white text-sm focus:outline-none focus:border-[#DC2626]"
+            />
+            <button
+              onClick={handleSubscribe}
+              disabled={status === 'loading' || !email}
+              className="bg-[#DC2626] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#B91C1C] transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+            </button>
+          </div>
+          {status === 'success' && <p className="text-green-400 text-xs text-center md:text-left">{message}</p>}
+          {status === 'error' && <p className="text-red-400 text-xs text-center md:text-left">{message}</p>}
+        </div>
+      </div>
+    </section>
+  );
+};
 
 // Home page component
 const HomePage: React.FC = () => {
@@ -133,28 +192,7 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Newsletter Section */}
-      <section className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] p-8 sm:p-10 rounded-2xl border border-gray-800">
-        <div className="flex flex-col md:flex-row items-center gap-6 justify-between">
-          <div className="text-center md:text-left">
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Never miss a Chapter
-            </h3>
-            <p className="text-gray-400">
-              Subscribe to get notified when new episodes are published.
-            </p>
-          </div>
-          <div className="flex w-full md:w-auto gap-3">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 md:w-72 bg-black border border-gray-700 rounded-full px-5 py-3 text-white text-sm focus:outline-none focus:border-[#DC2626]"
-            />
-            <button className="bg-[#DC2626] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#B91C1C] transition-colors whitespace-nowrap">
-              Subscribe
-            </button>
-          </div>
-        </div>
-      </section>
+      <NewsletterSection />
     </div>
   );
 };
@@ -485,7 +523,8 @@ const Layout: React.FC<{ children: React.ReactNode; hideHeaderFooter?: boolean }
               <ul className="space-y-2">
                 <li><Link to="/store" className="text-gray-500 hover:text-white text-sm transition-colors">Store</Link></li>
                 <li><Link to="/explore" className="text-gray-500 hover:text-white text-sm transition-colors">Explore</Link></li>
-                <li><a href="#" className="text-gray-500 hover:text-white text-sm transition-colors">Publish with us</a></li>
+                <li><Link to="/pricing" className="text-gray-500 hover:text-white text-sm transition-colors">Pricing</Link></li>
+                <li><Link to="/publish" className="text-gray-500 hover:text-white text-sm transition-colors">Publish with us</Link></li>
                 <li><Link to="/blog" className="text-gray-500 hover:text-white text-sm transition-colors">Blog</Link></li>
               </ul>
             </div>
@@ -494,22 +533,22 @@ const Layout: React.FC<{ children: React.ReactNode; hideHeaderFooter?: boolean }
             <div>
               <h4 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">Connect</h4>
               <div className="flex gap-3">
-                {['instagram', 'twitter', 'facebook'].map((social, i) => (
+                {[
+                  { name: 'instagram', url: 'https://instagram.com/bagcomics', icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
+                  { name: 'twitter', url: 'https://x.com/bagcomics', icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
+                  { name: 'facebook', url: 'https://facebook.com/bagcomics', icon: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z' },
+                  { name: 'youtube', url: 'https://youtube.com/@bagcomics', icon: 'M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
+                ].map((social) => (
                   <a
-                    key={i}
-                    href="#"
+                    key={social.name}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-10 h-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center text-gray-400 hover:bg-[#DC2626] hover:text-white transition-all"
+                    title={social.name}
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      {social === 'instagram' && (
-                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                      )}
-                      {social === 'twitter' && (
-                        <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
-                      )}
-                      {social === 'facebook' && (
-                        <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
-                      )}
+                      <path d={social.icon} />
                     </svg>
                   </a>
                 ))}
@@ -539,6 +578,8 @@ const App: React.FC = () => {
       <Route path="/blog" element={<Layout><BlogPage /></Layout>} />
       <Route path="/login" element={<Layout><LoginPage /></Layout>} />
       <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
+      <Route path="/publish" element={<Layout><PublishPage /></Layout>} />
+      <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
 
       {/* Comic detail page - has its own header */}
       <Route path="/comics/:slug" element={<ComicDetail />} />

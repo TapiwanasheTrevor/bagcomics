@@ -96,6 +96,8 @@ Route::get('/explore', $serveSpa)->name('explore');
 Route::get('/comics', $serveSpa)->name('comics.index');
 Route::get('/library', $serveSpa)->name('library');
 Route::get('/blog', $serveSpa)->name('blog');
+Route::get('/publish', $serveSpa)->name('publish');
+Route::get('/pricing', $serveSpa)->name('pricing');
 Route::get('/login', $serveSpa)->name('login');
 Route::get('/register', $serveSpa)->name('register');
 Route::get('/comics/{slug}', $serveSpa)->where('slug', '[a-z0-9\-]+')->name('comics.show');

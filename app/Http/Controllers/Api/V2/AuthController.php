@@ -59,6 +59,9 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Create default preferences so notification service can target this user
+        $user->preferences()->create(\App\Models\UserPreferences::getDefaults());
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([

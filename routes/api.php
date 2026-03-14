@@ -381,6 +381,13 @@ Route::prefix('v2')->group(function () {
     Route::get('/comics/{comic:slug}/pages', [App\Http\Controllers\Api\V2\ComicController::class, 'pages']);
     Route::get('/comics/{comic:slug}/comments', [App\Http\Controllers\Api\V2\ComicController::class, 'getComments']);
 
+    // Public form submissions
+    Route::post('/newsletter/subscribe', [App\Http\Controllers\Api\V2\NewsletterController::class, 'subscribe']);
+    Route::post('/creator-submissions', [App\Http\Controllers\Api\V2\CreatorSubmissionController::class, 'store']);
+
+    // Subscription plans (public)
+    Route::get('/subscription/plans', [App\Http\Controllers\Api\V2\SubscriptionController::class, 'plans']);
+
     // Auth routes
     Route::post('/auth/login', [App\Http\Controllers\Api\V2\AuthController::class, 'login']);
     Route::post('/auth/register', [App\Http\Controllers\Api\V2\AuthController::class, 'register']);
@@ -395,6 +402,11 @@ Route::prefix('v2')->group(function () {
         // Payments
         Route::post('/payments/comics/{comic:slug}/intent', [App\Http\Controllers\Api\V2\PaymentController::class, 'createPaymentIntent']);
         Route::post('/payments/confirm', [App\Http\Controllers\Api\V2\PaymentController::class, 'confirmPayment']);
+
+        // Subscriptions
+        Route::get('/subscription/current', [App\Http\Controllers\Api\V2\SubscriptionController::class, 'current']);
+        Route::post('/subscription/subscribe', [App\Http\Controllers\Api\V2\SubscriptionController::class, 'subscribe']);
+        Route::post('/subscription/cancel', [App\Http\Controllers\Api\V2\SubscriptionController::class, 'cancel']);
 
         // Library (bookmarks)
         Route::get('/library', [App\Http\Controllers\Api\V2\LibraryController::class, 'index']);

@@ -41,6 +41,25 @@ export const ComicReader: React.FC = () => {
   const pages = comic?.pages || [];
   const totalPages = pages.length;
 
+  // Restore reading progress after comic loads
+  const hasRestoredProgress = useRef(false);
+  useEffect(() => {
+    if (!comic || hasRestoredProgress.current || totalPages === 0) return;
+
+    const savedPage = comic.userProgress?.currentPage;
+    if (savedPage && savedPage > 1 && savedPage <= totalPages) {
+      hasRestoredProgress.current = true;
+      // Small delay to let page images render before scrolling
+      const resumeIndex = savedPage - 1; // convert 1-based to 0-based
+      setCurrentPage(resumeIndex);
+      setTimeout(() => {
+        scrollToPage(resumeIndex);
+      }, 500);
+    } else {
+      hasRestoredProgress.current = true;
+    }
+  }, [comic, totalPages]);
+
   // Auto-hide controls after 3 seconds
   const resetHideTimer = useCallback(() => {
     if (hideTimeoutRef.current) {

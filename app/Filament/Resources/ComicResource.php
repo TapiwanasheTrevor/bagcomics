@@ -13,7 +13,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\BulkAction;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Collection;
 use Filament\Notifications\Notification;
 
@@ -27,177 +26,168 @@ class ComicResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('title')
-                ->required()
-                ->maxLength(255),
-
-            Forms\Components\TextInput::make('slug')
-                ->maxLength(255)
-                ->unique(Comic::class, 'slug', ignoreRecord: true)
-                ->disabled()
-                ->helperText('Automatically generated from the title'),
-
-            Forms\Components\TextInput::make('author')
-                ->maxLength(255),
-
-            Forms\Components\Select::make('genre')
-                ->options([
-                    'action' => 'Action',
-                    'adventure' => 'Adventure',
-                    'comedy' => 'Comedy',
-                    'drama' => 'Drama',
-                    'fantasy' => 'Fantasy',
-                    'horror' => 'Horror',
-                    'mystery' => 'Mystery',
-                    'romance' => 'Romance',
-                    'sci-fi' => 'Science Fiction',
-                    'slice-of-life' => 'Slice of Life',
-                    'superhero' => 'Superhero',
-                    'thriller' => 'Thriller',
-                ])
-                ->searchable(),
-
-            Forms\Components\TagsInput::make('tags')
-                ->separator(','),
-
-            Forms\Components\Textarea::make('description')
-                ->rows(4)
-                ->maxLength(1000),
-
-            Forms\Components\TextInput::make('page_count')
-                ->numeric()
-                ->minValue(1),
-
-            Forms\Components\Select::make('language')
-                ->options([
-                    'en' => 'English',
-                    'es' => 'Spanish',
-                    'fr' => 'French',
-                    'de' => 'German',
-                    'ja' => 'Japanese',
-                    'ko' => 'Korean',
-                    'zh' => 'Chinese',
-                ])
-                ->default('en'),
-
-            Forms\Components\FileUpload::make('pdf_file_path')
-                ->label('Comic PDF')
-                ->disk('public')
-                ->directory('comics')
-                ->acceptedFileTypes(['application/pdf'])
-                ->maxSize(10240) // 10MB in KB
-                ->required()
-                ->helperText('Maximum file size: 10MB')
-                ->afterStateUpdated(function ($state, callable $set) {
-                    if ($state) {
-                        $set('is_pdf_comic', true);
-                        // Extract filename from path
-                        $filename = basename($state);
-                        $set('pdf_file_name', $filename);
-                    }
-                }),
-
-            Forms\Components\FileUpload::make('cover_image_path')
-                ->label('Cover Image')
-                ->disk('public')
-                ->directory('covers')
-                ->image()
-                ->imageEditor()
-                ->imageResizeMode('cover')
-                ->imageCropAspectRatio('2:3')
-                ->imageResizeTargetWidth('400')
-                ->imageResizeTargetHeight('600'),
-
-            Forms\Components\Toggle::make('is_pdf_comic')
-                ->label('PDF Comic')
-                ->default(false)
-                ->helperText('Enable if this comic is primarily a PDF document'),
-
-            Forms\Components\TextInput::make('pdf_file_name')
-                ->label('PDF File Name')
-                ->disabled()
-                ->visible(fn ($get) => $get('is_pdf_comic')),
-
-            Forms\Components\TagsInput::make('preview_pages')
-                ->label('Preview Page Numbers')
-                ->separator(',')
-                ->helperText('Enter page numbers that can be previewed (e.g., 1,2,3)'),
-
-            Forms\Components\Toggle::make('has_mature_content')
-                ->label('Contains Mature Content'),
-
-            Forms\Components\Textarea::make('content_warnings')
-                ->label('Content Warnings')
-                ->rows(2)
-                ->visible(fn ($get) => $get('has_mature_content')),
-
-            Forms\Components\TextInput::make('isbn')
-                ->label('ISBN')
-                ->maxLength(20),
-
-            Forms\Components\TextInput::make('publication_year')
-                ->label('Publication Year')
-                ->numeric()
-                ->minValue(1900)
-                ->maxValue(date('Y')),
-
-            Forms\Components\TextInput::make('publisher')
-                ->maxLength(255),
-
-            Forms\Components\Select::make('series_id')
-                ->label('Comic Series')
-                ->relationship('series', 'name')
-                ->searchable()
-                ->preload()
-                ->createOptionForm([
-                    Forms\Components\TextInput::make('name')
+            Forms\Components\Section::make('Basic Information')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\TextInput::make('title')
                         ->required()
+                        ->maxLength(255)
+                        ->columnSpanFull(),
+
+                    Forms\Components\TextInput::make('slug')
+                        ->maxLength(255)
+                        ->unique(Comic::class, 'slug', ignoreRecord: true)
+                        ->disabled()
+                        ->helperText('Automatically generated from the title'),
+
+                    Forms\Components\TextInput::make('author')
                         ->maxLength(255),
-                    Forms\Components\Textarea::make('description')
-                        ->rows(3),
-                    Forms\Components\TextInput::make('publisher')
-                        ->maxLength(255),
-                    Forms\Components\Select::make('status')
+
+                    Forms\Components\Select::make('genre')
                         ->options([
-                            'ongoing' => 'Ongoing',
-                            'completed' => 'Completed',
-                            'hiatus' => 'On Hiatus',
-                            'cancelled' => 'Cancelled',
+                            'action' => 'Action',
+                            'adventure' => 'Adventure',
+                            'comedy' => 'Comedy',
+                            'drama' => 'Drama',
+                            'fantasy' => 'Fantasy',
+                            'horror' => 'Horror',
+                            'mystery' => 'Mystery',
+                            'romance' => 'Romance',
+                            'sci-fi' => 'Science Fiction',
+                            'slice-of-life' => 'Slice of Life',
+                            'superhero' => 'Superhero',
+                            'thriller' => 'Thriller',
                         ])
-                        ->default('ongoing'),
+                        ->searchable(),
+
+                    Forms\Components\Select::make('language')
+                        ->options([
+                            'en' => 'English',
+                            'es' => 'Spanish',
+                            'fr' => 'French',
+                            'de' => 'German',
+                            'ja' => 'Japanese',
+                            'ko' => 'Korean',
+                            'zh' => 'Chinese',
+                        ])
+                        ->default('en'),
+
+                    Forms\Components\TagsInput::make('tags')
+                        ->separator(','),
+
+                    Forms\Components\Textarea::make('description')
+                        ->rows(4)
+                        ->maxLength(1000)
+                        ->columnSpanFull(),
                 ]),
 
-            Forms\Components\TextInput::make('issue_number')
-                ->label('Issue Number')
-                ->numeric()
-                ->minValue(1)
-                ->visible(fn ($get) => $get('series_id')),
+            Forms\Components\Section::make('Cover Image')
+                ->schema([
+                    Forms\Components\Placeholder::make('current_cover')
+                        ->label('Current Cover')
+                        ->content(fn ($record) => $record?->cover_image_url
+                            ? new \Illuminate\Support\HtmlString('<img src="' . e($record->cover_image_url) . '" style="max-height:200px;border-radius:8px;" />')
+                            : 'No cover image')
+                        ->visible(fn ($record) => $record !== null && $record->cover_image_path),
 
-            Forms\Components\Toggle::make('is_free')
-                ->label('Is Free?')
-                ->default(true),
+                    Forms\Components\FileUpload::make('cover_image_path')
+                        ->label(fn ($record) => $record?->cover_image_path ? 'Replace Cover Image' : 'Cover Image')
+                        ->disk('public')
+                        ->directory('covers')
+                        ->image()
+                        ->imageEditor()
+                        ->imageResizeMode('cover')
+                        ->imageCropAspectRatio('2:3')
+                        ->imageResizeTargetWidth('400')
+                        ->imageResizeTargetHeight('600')
+                        ->helperText('Upload a cover image (2:3 aspect ratio). Comic pages are managed in the Pages tab after saving.'),
+                ]),
 
-            Forms\Components\TextInput::make('price')
-                ->numeric()
-                ->step(0.01)
-                ->label('Price (if paid)')
-                ->visible(fn ($get) => !$get('is_free')),
+            Forms\Components\Section::make('Publishing')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\Select::make('series_id')
+                        ->label('Comic Series')
+                        ->relationship('series', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('name')
+                                ->required()
+                                ->maxLength(255),
+                            Forms\Components\Textarea::make('description')
+                                ->rows(3),
+                            Forms\Components\TextInput::make('publisher')
+                                ->maxLength(255),
+                            Forms\Components\Select::make('status')
+                                ->options([
+                                    'ongoing' => 'Ongoing',
+                                    'completed' => 'Completed',
+                                    'hiatus' => 'On Hiatus',
+                                    'cancelled' => 'Cancelled',
+                                ])
+                                ->default('ongoing'),
+                        ]),
 
-            Forms\Components\Toggle::make('is_visible')
-                ->label('Visible on Frontend')
-                ->default(true),
+                    Forms\Components\TextInput::make('issue_number')
+                        ->label('Issue Number')
+                        ->numeric()
+                        ->minValue(1)
+                        ->visible(fn ($get) => $get('series_id')),
 
-            Forms\Components\DateTimePicker::make('published_at')
-                ->label('Publish Date')
-                ->default(now()),
+                    Forms\Components\TextInput::make('publisher')
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('publication_year')
+                        ->label('Publication Year')
+                        ->numeric()
+                        ->minValue(1900)
+                        ->maxValue(date('Y')),
+
+                    Forms\Components\TextInput::make('isbn')
+                        ->label('ISBN')
+                        ->maxLength(20),
+
+                    Forms\Components\DateTimePicker::make('published_at')
+                        ->label('Publish Date')
+                        ->default(now()),
+                ]),
+
+            Forms\Components\Section::make('Pricing & Visibility')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\Toggle::make('is_free')
+                        ->label('Free Comic')
+                        ->default(true)
+                        ->live(),
+
+                    Forms\Components\TextInput::make('price')
+                        ->numeric()
+                        ->step(0.01)
+                        ->label('Price (USD)')
+                        ->visible(fn ($get) => !$get('is_free')),
+
+                    Forms\Components\Toggle::make('is_visible')
+                        ->label('Visible on Frontend')
+                        ->default(true),
+
+                    Forms\Components\Toggle::make('has_mature_content')
+                        ->label('Contains Mature Content')
+                        ->live(),
+
+                    Forms\Components\Textarea::make('content_warnings')
+                        ->label('Content Warnings')
+                        ->rows(2)
+                        ->visible(fn ($get) => $get('has_mature_content'))
+                        ->columnSpanFull(),
+                ]),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\ImageColumn::make('cover_image_path')
-                ->disk('public')
+            Tables\Columns\ImageColumn::make('cover_image_url')
                 ->label('Cover')
                 ->square(),
 
@@ -221,18 +211,15 @@ class ComicResource extends Resource
                 ->badge()
                 ->color('info'),
 
-            Tables\Columns\TextColumn::make('page_count')
+            Tables\Columns\TextColumn::make('pages_count')
                 ->label('Pages')
+                ->counts('pages')
                 ->sortable(),
 
             Tables\Columns\TextColumn::make('average_rating')
                 ->label('Rating')
                 ->formatStateUsing(fn ($state) => $state ? number_format($state, 1) . '/5' : 'No ratings')
                 ->sortable(),
-
-            Tables\Columns\IconColumn::make('is_pdf_comic')
-                ->label('PDF')
-                ->boolean(),
 
             Tables\Columns\IconColumn::make('is_free')
                 ->label('Free?')
@@ -244,7 +231,8 @@ class ComicResource extends Resource
 
             Tables\Columns\IconColumn::make('has_mature_content')
                 ->label('Mature')
-                ->boolean(),
+                ->boolean()
+                ->toggleable(isToggledHiddenByDefault: true),
 
             Tables\Columns\IconColumn::make('is_visible')
                 ->label('Visible')
@@ -253,23 +241,14 @@ class ComicResource extends Resource
             Tables\Columns\TextColumn::make('view_count')
                 ->label('Views')
                 ->numeric()
-                ->sortable(),
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
 
             Tables\Columns\TextColumn::make('total_readers')
                 ->label('Readers')
                 ->numeric()
-                ->sortable(),
-
-            Tables\Columns\TextColumn::make('purchase_count')
-                ->label('Purchases')
-                ->getStateUsing(fn ($record) => $record->getPurchaseCount())
-                ->numeric()
-                ->sortable(),
-
-            Tables\Columns\TextColumn::make('revenue')
-                ->label('Revenue')
-                ->getStateUsing(fn ($record) => '$' . number_format($record->getTotalRevenue(), 2))
-                ->sortable(),
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
 
             Tables\Columns\TextColumn::make('published_at')
                 ->label('Published')
@@ -312,7 +291,7 @@ class ComicResource extends Resource
         ->bulkActions([
             Tables\Actions\BulkActionGroup::make([
                 Tables\Actions\DeleteBulkAction::make(),
-                
+
                 BulkAction::make('bulk_publish')
                     ->label('Publish Selected')
                     ->icon('heroicon-o-eye')
@@ -324,7 +303,7 @@ class ComicResource extends Resource
                                 'published_at' => now(),
                             ]);
                         });
-                        
+
                         Notification::make()
                             ->title('Comics Published')
                             ->body(count($records) . ' comics have been published successfully.')
@@ -341,7 +320,7 @@ class ComicResource extends Resource
                         $records->each(function ($record) {
                             $record->update(['is_visible' => false]);
                         });
-                        
+
                         Notification::make()
                             ->title('Comics Unpublished')
                             ->body(count($records) . ' comics have been unpublished.')
@@ -376,7 +355,7 @@ class ComicResource extends Resource
                         $records->each(function ($record) use ($data) {
                             $record->update(['genre' => $data['genre']]);
                         });
-                        
+
                         Notification::make()
                             ->title('Genre Updated')
                             ->body(count($records) . ' comics have been updated to ' . $data['genre'] . '.')
@@ -391,7 +370,7 @@ class ComicResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\PagesRelationManager::class,
         ];
     }
 
@@ -401,7 +380,6 @@ class ComicResource extends Resource
             'index' => Pages\ListComics::route('/'),
             'create' => Pages\CreateComic::route('/create'),
             'edit' => Pages\EditComic::route('/{record}/edit'),
-            'bulk-upload' => Pages\BulkUploadComics::route('/bulk-upload'),
         ];
     }
 }

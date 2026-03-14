@@ -438,6 +438,77 @@ export const api = {
     const payload = await parseResponsePayload(response);
     return normalizeApiResponse<Comment>(payload);
   },
+
+  // ============================================
+  // Newsletter
+  // ============================================
+
+  async subscribeNewsletter(email: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE}/newsletter/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ message: string }>(payload);
+  },
+
+  // ============================================
+  // Creator Submissions
+  // ============================================
+
+  // ============================================
+  // Subscriptions
+  // ============================================
+
+  async getSubscriptionPlans(): Promise<ApiResponse<any[]>> {
+    const response = await fetch(`${API_BASE}/subscription/plans`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    const payload = await parseResponsePayload(response);
+    return normalizeApiResponse<any[]>(payload);
+  },
+
+  async getCurrentSubscription(): Promise<any> {
+    const response = await fetchWithAuth(`${API_BASE}/subscription/current`);
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<any>(payload);
+  },
+
+  async createSubscription(plan: string): Promise<{ payment_intent_id: string; client_secret: string }> {
+    const response = await fetchWithAuth(`${API_BASE}/subscription/subscribe`, {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ payment_intent_id: string; client_secret: string }>(payload);
+  },
+
+  async cancelSubscription(): Promise<{ message: string; expiresAt: string }> {
+    const response = await fetchWithAuth(`${API_BASE}/subscription/cancel`, {
+      method: 'POST',
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ message: string; expiresAt: string }>(payload);
+  },
+
+  async submitCreatorApplication(data: {
+    name: string;
+    email: string;
+    portfolio_url?: string;
+    comic_title: string;
+    genre: string;
+    synopsis: string;
+    sample_pages_url?: string;
+  }): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE}/creator-submissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ message: string }>(payload);
+  },
 };
 
 export default api;

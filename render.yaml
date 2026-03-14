@@ -29,6 +29,10 @@ services:
         value: "true"
       - key: DB_CONNECTION
         value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bagcomics-db
+          property: connectionString
       - key: DB_HOST
         fromDatabase:
           name: bagcomics-db
@@ -60,7 +64,21 @@ services:
       - key: LOG_LEVEL
         value: error
       - key: MAIL_MAILER
-        value: log
+        value: smtp
+      - key: MAIL_HOST
+        value: in-v3.mailjet.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        value: hello@bagcomics.shop
+      - key: MAIL_FROM_NAME
+        value: "BAG Comics"
       - key: FILESYSTEM_DISK
         value: public
       - key: STRIPE_KEY
@@ -132,7 +150,21 @@ services:
       - key: LOG_LEVEL
         value: error
       - key: MAIL_MAILER
-        value: log
+        value: smtp
+      - key: MAIL_HOST
+        value: in-v3.mailjet.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        value: hello@bagcomics.shop
+      - key: MAIL_FROM_NAME
+        value: "BAG Comics"
       - key: STRIPE_KEY
         sync: false
       - key: STRIPE_SECRET
