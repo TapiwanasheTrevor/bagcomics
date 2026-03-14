@@ -61,6 +61,15 @@ class UserComicProgress extends Model
         return $this->belongsTo(Comic::class);
     }
 
+    public function getProgressPercentage(): float
+    {
+        if ($this->total_pages > 0) {
+            return round(($this->current_page / $this->total_pages) * 100, 1);
+        }
+
+        return (float) ($this->progress_percentage ?? 0);
+    }
+
     public function updateProgress(int $currentPage, int $totalPages = null): void
     {
         $this->current_page = $currentPage;
