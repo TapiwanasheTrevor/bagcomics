@@ -9,10 +9,13 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserResource extends Resource
 {
@@ -162,6 +165,32 @@ class UserResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Action::make('reset_password')
+                    ->label('Reset Password')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset User Password')
+                    ->modalDescription(fn ($record) => "Generate a temporary password for {$record->name} ({$record->email}). You will need to share this password with the user directly (e.g. WhatsApp, phone).")
+                    ->modalSubmitActionLabel('Generate Temporary Password')
+                    ->action(function ($record) {
+                        $tempPassword = Str::random(10);
+
+                        $record->forceFill([
+                            'password' => Hash::make($tempPassword),
+                            'must_reset_password' => true,
+                        ])->save();
+
+                        // Revoke all existing tokens so old sessions are invalidated
+                        $record->tokens()->delete();
+
+                        Notification::make()
+                            ->title("Temporary Password for {$record->name}")
+                            ->body($tempPassword)
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

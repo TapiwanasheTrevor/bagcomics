@@ -15,9 +15,6 @@ interface UserPreferences {
     control_hide_delay: number;
     reduce_motion: boolean;
     high_contrast: boolean;
-    email_notifications: boolean;
-    new_releases_notifications: boolean;
-    reading_reminders: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -38,9 +35,6 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
         control_hide_delay: preferences.control_hide_delay,
         reduce_motion: preferences.reduce_motion,
         high_contrast: preferences.high_contrast,
-        email_notifications: preferences.email_notifications,
-        new_releases_notifications: preferences.new_releases_notifications,
-        reading_reminders: preferences.reading_reminders,
     });
 
     const submit = (e: React.FormEvent) => {
@@ -217,73 +211,6 @@ export default function Preferences({ preferences }: PreferencesPageProps) {
                                             <span
                                                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                                                     data.high_contrast ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Notification Settings */}
-                            <div className="space-y-6">
-                                <h2 className="text-xl font-semibold text-white border-b border-gray-600 pb-2">Notification Settings</h2>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-white">Email Notifications</h3>
-                                            <p className="text-xs text-gray-400">Receive general updates via email</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setData('email_notifications', !data.email_notifications)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.email_notifications ? 'bg-red-500' : 'bg-gray-600'
-                                            }`}
-                                        >
-                                            <span
-                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    data.email_notifications ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
-
-                                    <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-white">New Releases</h3>
-                                            <p className="text-xs text-gray-400">Get notified about new comic releases</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setData('new_releases_notifications', !data.new_releases_notifications)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.new_releases_notifications ? 'bg-red-500' : 'bg-gray-600'
-                                            }`}
-                                        >
-                                            <span
-                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    data.new_releases_notifications ? 'translate-x-6' : 'translate-x-1'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
-
-                                    <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-white">Reading Reminders</h3>
-                                            <p className="text-xs text-gray-400">Reminders to continue reading your comics</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setData('reading_reminders', !data.reading_reminders)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-                                                data.reading_reminders ? 'bg-red-500' : 'bg-gray-600'
-                                            }`}
-                                        >
-                                            <span
-                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    data.reading_reminders ? 'translate-x-6' : 'translate-x-1'
                                                 }`}
                                             />
                                         </button>

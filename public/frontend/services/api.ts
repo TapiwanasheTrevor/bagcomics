@@ -140,6 +140,7 @@ export interface User {
 export interface AuthResponse {
   user: User;
   token: string;
+  must_reset_password?: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -290,6 +291,19 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(data),
+    });
+    const payload = await parseResponsePayload(response);
+    return unwrapApiData<{ message: string }>(payload);
+  },
+
+  /**
+   * Set new password (after admin-issued temporary password)
+   */
+  async setNewPassword(password: string, password_confirmation: string): Promise<{ message: string }> {
+    const response = await fetchWithAuth(`${API_BASE}/auth/set-new-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ password, password_confirmation }),
     });
     const payload = await parseResponsePayload(response);
     return unwrapApiData<{ message: string }>(payload);
@@ -463,20 +477,6 @@ export const api = {
     });
     const payload = await parseResponsePayload(response);
     return normalizeApiResponse<Comment>(payload);
-  },
-
-  // ============================================
-  // Newsletter
-  // ============================================
-
-  async subscribeNewsletter(email: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE}/newsletter/subscribe`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const payload = await parseResponsePayload(response);
-    return unwrapApiData<{ message: string }>(payload);
   },
 
   // ============================================

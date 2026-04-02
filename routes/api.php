@@ -396,7 +396,6 @@ Route::prefix('v2')->group(function () {
     });
 
     // Public form submissions
-    Route::post('/newsletter/subscribe', [App\Http\Controllers\Api\V2\NewsletterController::class, 'subscribe']);
     Route::post('/creator-submissions', [App\Http\Controllers\Api\V2\CreatorSubmissionController::class, 'store']);
 
     // Subscription plans (public)
@@ -414,6 +413,7 @@ Route::prefix('v2')->group(function () {
         Route::post('/auth/logout', [App\Http\Controllers\Api\V2\AuthController::class, 'logout']);
         Route::get('/auth/user', [App\Http\Controllers\Api\V2\AuthController::class, 'user']);
         Route::post('/auth/refresh', [App\Http\Controllers\Api\V2\AuthController::class, 'refresh']);
+        Route::post('/auth/set-new-password', [App\Http\Controllers\Api\V2\AuthController::class, 'setNewPassword']);
 
         // Payments
         Route::post('/payments/comics/{comic:slug}/intent', [App\Http\Controllers\Api\V2\PaymentController::class, 'createPaymentIntent']);

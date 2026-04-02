@@ -15,7 +15,6 @@ const Register: React.FC<RegisterProps> = ({ onNavigate, onLogin }) => {
     password: '',
     confirmPassword: '',
     agreeToTerms: false,
-    subscribeNewsletter: true
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -402,18 +401,6 @@ const Register: React.FC<RegisterProps> = ({ onNavigate, onLogin }) => {
                   <p className="text-sm text-red-400">{errors.agreeToTerms}</p>
                 )}
 
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    name="subscribeNewsletter"
-                    checked={formData.subscribeNewsletter}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-emerald-500 bg-gray-700 border-gray-600 rounded focus:ring-emerald-500 focus:ring-2"
-                  />
-                  <span className="text-sm text-gray-300">
-                    Subscribe to newsletter for new releases and updates
-                  </span>
-                </label>
               </div>
 
               {/* Submit Button */}

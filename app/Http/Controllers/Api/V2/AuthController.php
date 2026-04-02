@@ -40,6 +40,7 @@ class AuthController extends Controller
                 'avatar' => $user->profile_photo_url ?? null,
             ],
             'token' => $token,
+            'must_reset_password' => (bool) $user->must_reset_password,
         ]);
     }
 
@@ -158,6 +159,30 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Unable to reset password. The link may have expired.',
         ], 400);
+    }
+
+    /**
+     * Set new password (used after admin resets password with a temporary one)
+     */
+    public function setNewPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $user = $request->user();
+
+        $user->forceFill([
+            'password' => Hash::make($request->password),
+            'must_reset_password' => false,
+        ])->save();
+
+        // Revoke all tokens so user must re-login with new password
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Password updated successfully. Please sign in with your new password.',
+        ]);
     }
 
     /**

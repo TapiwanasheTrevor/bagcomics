@@ -38,6 +38,7 @@ class User extends Authenticatable implements FilamentUser
         'subscription_status',
         'subscription_expires_at',
         'is_admin',
+        'must_reset_password',
     ];
 
     /**
@@ -64,6 +65,7 @@ class User extends Authenticatable implements FilamentUser
             'achievements' => 'array',
             'subscription_expires_at' => 'datetime',
             'is_admin' => 'boolean',
+            'must_reset_password' => 'boolean',
         ];
     }
 

@@ -15,7 +15,11 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await api.login(email, password);
+      const result = await api.login(email, password);
+      if (result.must_reset_password) {
+        navigate('/change-password');
+        return;
+      }
       const returnUrl = localStorage.getItem('bag_comics_return_url');
       if (returnUrl) {
         localStorage.removeItem('bag_comics_return_url');
