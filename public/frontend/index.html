@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BAG Comics - Premium Comic Experience</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ef4444">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BAG Comics">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#ef4444">
+    <meta name="description" content="African Stories, Boldly Told - Premium digital comic experience">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -14,7 +33,6 @@
             margin: 0;
             padding: 0;
         }
-        /* Custom scrollbar with red accent */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -33,5 +51,27 @@
 <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(reg) {
+                        reg.onupdatefound = function() {
+                            var worker = reg.installing;
+                            if (worker) {
+                                worker.onstatechange = function() {
+                                    if (worker.state === 'activated' && navigator.serviceWorker.controller) {
+                                        console.log('New content available; please refresh.');
+                                    }
+                                };
+                            }
+                        };
+                    })
+                    .catch(function(err) {
+                        console.log('SW registration failed:', err);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
